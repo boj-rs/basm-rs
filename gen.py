@@ -1,11 +1,11 @@
-with open("basm.bin", "rb") as f:
-    code = f.read()
+import os
+import struct
 
-n = len(code)
-code += bytes([0]) * (4 - n % 4)
+text = "basm.bin"
 
-import array
-s = array.array('i')
-s.frombytes(code)
-r = ",".join(map(str, s))
-print(f"__attribute__((section(\".text\")))a[]={{{r}}};__libc_start_main(){{((int(*)())a)();}}main;")
+code = bytearray((os.path.getsize(text) + 7) // 8 * 8)
+with open(text, "rb") as f:
+    f.readinto(code)
+
+r = ",".join(min(str(i), hex(i), key=len) for i, in struct.iter_unpack("<q", code))
+print('__attribute__((section(".text")))long long a[]={%s};__libc_start_main(){((int(*)())a)();}main;' % r)
