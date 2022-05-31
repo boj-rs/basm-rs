@@ -1,0 +1,2 @@
+[build]
+rustflags = ["-C", "link-args=-nostartfiles -nodefaultlibs -nostdlib -fno-exceptions -static -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -Wl,--build-id=none,--gc-sections,--omagic,-zstack-size=67108864", "-C", "target-feature=+avx2,+sse4.2", "-C", "relocation-model=pic"] 
