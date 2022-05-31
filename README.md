@@ -6,7 +6,7 @@ basm.rs는 Rust 코드를 BOJ에 제출 가능한 C 프로그램으로 성능 �
 
 ## 사용법
 
-`src/main.rs`에서 첫 unsafe 블록과 마지막 unsafe 블록 사이에 원하는 코드를 삽입하세요.
+`src/solution.rs` main() 에 원하는 코드를 삽입하세요.
 
 `release.sh`를 실행하면 제출 가능한 C 코드가 출력됩니다.
 
