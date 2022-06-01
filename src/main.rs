@@ -7,6 +7,7 @@ extern crate alloc;
 use core::arch::asm;
 mod allocator;
 mod io;
+mod collections;
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
