@@ -8,6 +8,7 @@ use core::arch::asm;
 mod allocator;
 mod io;
 mod collections;
+mod sorts;
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
