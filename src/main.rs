@@ -7,7 +7,6 @@ extern crate alloc;
 use core::arch::asm;
 mod allocator;
 mod io;
-mod collections;
 mod sorts;
 mod solution;
 
