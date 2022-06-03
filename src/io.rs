@@ -1,22 +1,22 @@
 use core::arch::asm;
 use core::mem::MaybeUninit;
 
-pub struct Reader<const N: usize>(pub [u8; N], pub usize, pub usize);
-pub struct Writer<const N: usize>(pub [u8; N], pub usize);
+pub struct Reader<const N: usize>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
+pub struct Writer<const N: usize>(pub [MaybeUninit<u8>; N], pub usize);
 
 impl<const N: usize> Writer<N> {
     pub fn new() -> Self {
-        Self(unsafe { MaybeUninit::uninit().assume_init() }, 0)
+        Self(MaybeUninit::uninit_array(), 0)
     }
     #[inline(always)]
     pub fn write(&mut self, buf: &[u8]) {
         if self.1 + buf.len() > N {
             self.flush();
         }
-        for i in 0..buf.len() {
-            self.0[self.1 + i] = buf[i];
+        for &b in buf {
+            self.0[self.1].write(b);
+            self.1 += 1;
         }
-        self.1 += buf.len();
     }
     #[inline(always)]
     pub fn flush(&mut self) {
@@ -41,23 +41,30 @@ impl<const N: usize> Writer<N> {
     }
     #[inline(always)]
     pub fn write_uint(&mut self, mut i: usize) {
-        let mut buf: [u8; 20] = unsafe { MaybeUninit::uninit().assume_init() };
+        let mut buf: [MaybeUninit<u8>; 20] = MaybeUninit::uninit_array();
         let mut offset = 19;
-        buf[offset] = b'0' + (i % 10) as u8;
+        buf[offset].write(b'0' + (i % 10) as u8);
         i /= 10;
         while i > 0 {
             offset -= 1;
-            buf[offset] = b'0' + (i % 10) as u8;
+            buf[offset].write(b'0' + (i % 10) as u8);
             i /= 10;
         }
-        self.write(&buf[offset..]);
+        self.write(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
     }
 }
 
 impl<const N: usize> Reader<N> {
     #[inline(always)]
     pub fn new() -> Self {
-        Self(unsafe { MaybeUninit::uninit().assume_init() }, 0, 0)
+        Self(MaybeUninit::uninit_array(), 0, 0)
+    }
+    #[inline(always)]
+    fn peek(&mut self) -> u8 {
+        if self.2 >= self.1 {
+            self.fill();
+        }
+        unsafe { self.0.get_unchecked(self.2).assume_init_read() }
     }
     #[inline(always)]
     pub fn fill(&mut self) {
@@ -69,10 +76,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline(always)]
     pub fn next_long(&mut self) -> i64 {
-        if self.2 >= self.1 {
-            self.fill();
-        }
-        if *unsafe { self.0.get_unchecked(self.2) } == b'-' {
+        if self.peek() == b'-' {
             self.2 += 1;
             -(self.next_uint() as i64)
         } else {
@@ -81,10 +85,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline(always)]
     pub fn next_int(&mut self) -> i32 {
-        if self.2 >= self.1 {
-            self.fill();
-        }
-        if *unsafe { self.0.get_unchecked(self.2) } == b'-' {
+        if self.peek() == b'-' {
             self.2 += 1;
             -(self.next_uint() as i32)
         } else {
@@ -95,10 +96,7 @@ impl<const N: usize> Reader<N> {
     pub fn next_uint(&mut self) -> usize {
         let mut n = 0;
         loop {
-            if self.2 >= self.1 {
-                self.fill();
-            }
-            let b = *unsafe { self.0.get_unchecked(self.2) };
+            let b = self.peek();
             self.2 += 1;
             if b > 32 {
                 n *= 10;
@@ -112,10 +110,7 @@ impl<const N: usize> Reader<N> {
     #[inline(always)]
     pub fn skip_white(&mut self) {
         loop {
-            if self.2 >= self.1 {
-                self.fill();
-            }
-            if *unsafe { self.0.get_unchecked(self.2) } <= 32 {
+            if self.peek() <= 32 {
                 self.2 += 1;
             } else {
                 break;
@@ -126,10 +121,7 @@ impl<const N: usize> Reader<N> {
     pub fn next_word(&mut self, buf: &mut [u8]) -> usize {
         let mut i = 0;
         loop {
-            if self.2 >= self.1 {
-                self.fill();
-            }
-            let b = *unsafe { self.0.get_unchecked(self.2) };
+            let b = self.peek();
             self.2 += 1;
             if b <= 32 {
                 break i;
@@ -143,10 +135,7 @@ impl<const N: usize> Reader<N> {
     pub fn next_line(&mut self, buf: &mut [u8]) -> usize {
         let mut i = 0;
         loop {
-            if self.2 >= self.1 {
-                self.fill();
-            }
-            let b = *unsafe { self.0.get_unchecked(self.2) };
+            let b = self.peek();
             self.2 += 1;
             if b == b'\n' {
                 break i;

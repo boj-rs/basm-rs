@@ -1,4 +1,7 @@
 #![feature(alloc_error_handler)]
+#![feature(maybe_uninit_uninit_array)]
+#![feature(maybe_uninit_slice)]
+#![feature(maybe_uninit_array_assume_init)]
 #![no_builtins]
 #![no_std]
 #![no_main]
@@ -6,7 +9,9 @@ extern crate alloc;
 
 use core::arch::asm;
 mod allocator;
+#[allow(dead_code)]
 mod io;
+#[allow(dead_code)]
 mod sorts;
 mod solution;
 
@@ -25,11 +30,13 @@ fn _start() {
     }
 }
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
 
+#[cfg(not(test))]
 #[alloc_error_handler]
 fn alloc_fail(_: core::alloc::Layout) -> ! {
     unsafe { core::hint::unreachable_unchecked() }

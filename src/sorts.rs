@@ -41,17 +41,17 @@ fn sort_radix_by_key_rec<T, F: (Fn(&T) -> K) + Copy, K: Binary>(
     key_f: F,
     pos: u32,
 ) {
-    let mut count: [u32; 256] = unsafe { MaybeUninit::uninit().assume_init() };
-    count.iter_mut().for_each(|v| *v = 0);
+    let mut count = [0u32; 256];
     for v in arr.iter() {
         count[key_f(v).get_byte_at(pos) as usize] += 1;
     }
-    let mut last: [u32; 257] = unsafe { MaybeUninit::uninit().assume_init() };
-    last[0] = 0;
-    last[1] = 0;
+    let mut last: [MaybeUninit<u32>; 257] = MaybeUninit::uninit_array();
+    last[0].write(0);
+    last[1].write(0);
     for i in 2..=256 {
-        last[i] = last[i - 1] + count[i - 2];
+        last[i].write(unsafe { last[i - 1].assume_init_read() } + count[i - 2]);
     }
+    let mut last = unsafe { MaybeUninit::array_assume_init(last) };
     for i in 0..256 {
         let end = last[i] + count[i];
         if end == arr.len() as u32 {

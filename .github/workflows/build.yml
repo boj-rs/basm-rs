@@ -1,0 +1,41 @@
+name: Check hhdr-rs
+
+on:
+  - push
+
+env:
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: clippy
+      - name: Clippy
+        run: cargo clippy
+        env:
+          RUSTFLAGS: "-D warnings"
+      - name: Generate C code
+        run: |
+          ./release.sh | tee /tmp/main.c
+          wc /tmp/main.c
+      - name: Compile C code
+        run: cc -w /tmp/main.c -o /tmp/main
+      - name: Test
+        run: |
+          /tmp/main <<< '1 2' > /tmp/output.txt
+          grep -q 3 /tmp/output.txt || {
+            echo "Expected 3, but got:"
+            cat /tmp/output.txt
+            exit 1
+          }
