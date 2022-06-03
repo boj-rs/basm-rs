@@ -29,13 +29,22 @@ jobs:
         run: |
           ./release.sh | tee /tmp/main.c
           wc /tmp/main.c
+          ./release.sh --features no-probe | tee /tmp/no-probe.c
+          wc /tmp/no-probe.c
       - name: Compile C code
-        run: cc -w /tmp/main.c -o /tmp/main
+        run: |
+          cc -w /tmp/main.c -o /tmp/main
+          cc -w /tmp/no-probe.c -o /tmp/no-probe
       - name: Test
         run: |
-          /tmp/main <<< '1 2' > /tmp/output.txt
-          grep -q 3 /tmp/output.txt || {
-            echo "Expected 3, but got:"
-            cat /tmp/output.txt
-            exit 1
+          function check() {
+            local bin_path=$1;
+            $bin_path <<< '1 2' > /tmp/output.txt
+            grep -q 3 /tmp/output.txt || {
+              echo "Expected $bin_path to print 3, but got:"
+              cat /tmp/output.txt
+              exit 1
+            }
           }
+          check /tmp/main
+          check /tmp/no-probe
