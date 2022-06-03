@@ -9,6 +9,5 @@ pub fn main() {
     let a = reader.next_uint();
     let b = reader.next_uint();
     writer.write_uint(a + b);
-    writer.flush();
     // 여기까지 예시 코드입니다
 }

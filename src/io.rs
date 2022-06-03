@@ -54,6 +54,12 @@ impl<const N: usize> Writer<N> {
     }
 }
 
+impl<const N: usize> Drop for Writer<N> {
+    fn drop(&mut self) {
+        self.flush();
+    }
+}
+
 impl<const N: usize> Reader<N> {
     #[inline(always)]
     pub fn new() -> Self {
