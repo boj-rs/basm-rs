@@ -41,3 +41,8 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 fn alloc_fail(_: core::alloc::Layout) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
+
+#[cfg(feature = "no-probe")]
+#[no_mangle]
+fn __rust_probestack() {}
+
