@@ -12,7 +12,10 @@ mod allocator;
 #[allow(dead_code)]
 mod io;
 #[allow(dead_code)]
+mod io_ext;
+#[allow(dead_code)]
 mod sorts;
+
 mod solution;
 
 #[global_allocator]
@@ -45,4 +48,3 @@ fn alloc_fail(_: core::alloc::Layout) -> ! {
 #[cfg(feature = "no-probe")]
 #[no_mangle]
 fn __rust_probestack() {}
-
