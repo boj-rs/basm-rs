@@ -21,30 +21,31 @@ jobs:
           profile: minimal
           override: true
           components: clippy
+      - name: Install System packages
+        run: |
+          sudo apt update
+          sudo apt install nasm
       - name: Clippy
         run: cargo clippy
         env:
           RUSTFLAGS: "-D warnings"
-      - name: Generate C code
+      - name: Check C
         run: |
-          ./release.sh | tee /tmp/main.c
-          wc /tmp/main.c
-          ./release.sh --features no-probe | tee /tmp/no-probe.c
-          wc /tmp/no-probe.c
-      - name: Compile C code
+          scripts/check.sh \
+            "./release.sh | tee /tmp/code.c" \
+            "cc -w /tmp/code.c -o /tmp/bin"
+      - name: Check C (no-probe)
         run: |
-          cc -w /tmp/main.c -o /tmp/main
-          cc -w /tmp/no-probe.c -o /tmp/no-probe
-      - name: Test
+          scripts/check.sh \
+            "./release.sh --features no-probe | tee /tmp/code.c" \
+            "cc -w /tmp/code.c -o /tmp/bin"
+      - name: Check ASM
         run: |
-          function check() {
-            local bin_path=$1;
-            $bin_path <<< '1 2' > /tmp/output.txt
-            grep -q 3 /tmp/output.txt || {
-              echo "Expected $bin_path to print 3, but got:"
-              cat /tmp/output.txt
-              exit 1
-            }
-          }
-          check /tmp/main
-          check /tmp/no-probe
+          scripts/check.sh \
+            "./release-asm.sh | tee /tmp/code.s" \
+            "nasm -f elf64 /tmp/code.s -o /tmp/code.o && cc /tmp/code.o -o /tmp/bin"
+      - name: Check ASM (no-probe)
+        run: |
+          scripts/check.sh \
+            "./release-asm.sh --features no-probe | tee /tmp/code.s" \
+            "nasm -f elf64 /tmp/code.s -o /tmp/code.o && cc /tmp/code.o -o /tmp/bin"
