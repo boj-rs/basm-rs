@@ -54,25 +54,25 @@ impl<const N: usize> Reader<N> {
         self.2 = 0;
     }
     #[inline(always)]
-    pub fn next_long(&mut self) -> i64 {
+    pub fn next_i64(&mut self) -> i64 {
         if self.peek() == b'-' {
             self.2 += 1;
-            -(self.next_uint() as i64)
+            -(self.next_usize() as i64)
         } else {
-            self.next_uint() as i64
+            self.next_usize() as i64
         }
     }
     #[inline(always)]
-    pub fn next_int(&mut self) -> i32 {
+    pub fn next_i32(&mut self) -> i32 {
         if self.peek() == b'-' {
             self.2 += 1;
-            -(self.next_uint() as i32)
+            -(self.next_usize() as i32)
         } else {
-            self.next_uint() as i32
+            self.next_usize() as i32
         }
     }
     #[inline(always)]
-    pub fn next_uint(&mut self) -> usize {
+    pub fn next_usize(&mut self) -> usize {
         let mut n = 0;
         loop {
             let b = self.peek();
@@ -125,52 +125,52 @@ impl<const N: usize> Reader<N> {
         }
     }
     #[inline(always)]
-    pub fn iter_int(&mut self) -> IntIterator<N> {
-        IntIterator { inner: self }
+    pub fn iter_i32(&mut self) -> I32Iterator<N> {
+        I32Iterator { inner: self }
     }
     #[inline(always)]
-    pub fn iter_long(&mut self) -> LongIterator<N> {
-        LongIterator { inner: self }
+    pub fn iter_i64(&mut self) -> I64Iterator<N> {
+        I64Iterator { inner: self }
     }
     #[inline(always)]
-    pub fn iter_uint(&mut self) -> UintIterator<N> {
-        UintIterator { inner: self }
+    pub fn iter_usize(&mut self) -> UsizeIterator<N> {
+        UsizeIterator { inner: self }
     }
 }
 
-pub struct IntIterator<'a, const N: usize> {
+pub struct I32Iterator<'a, const N: usize> {
     inner: &'a mut Reader<N>,
 }
 
-impl<'a, const N: usize> Iterator for IntIterator<'a, N> {
+impl<'a, const N: usize> Iterator for I32Iterator<'a, N> {
     type Item = i32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.inner.next_int())
+        Some(self.inner.next_i32())
     }
 }
 
-pub struct LongIterator<'a, const N: usize> {
+pub struct I64Iterator<'a, const N: usize> {
     inner: &'a mut Reader<N>,
 }
 
-impl<'a, const N: usize> Iterator for LongIterator<'a, N> {
+impl<'a, const N: usize> Iterator for I64Iterator<'a, N> {
     type Item = i64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.inner.next_long())
+        Some(self.inner.next_i64())
     }
 }
 
-pub struct UintIterator<'a, const N: usize> {
+pub struct UsizeIterator<'a, const N: usize> {
     inner: &'a mut Reader<N>,
 }
 
-impl<'a, const N: usize> Iterator for UintIterator<'a, N> {
+impl<'a, const N: usize> Iterator for UsizeIterator<'a, N> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.inner.next_uint())
+        Some(self.inner.next_usize())
     }
 }
 
