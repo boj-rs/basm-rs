@@ -9,14 +9,15 @@ impl<const N: usize> Writer<N> {
         Self(MaybeUninit::uninit_array(), 0)
     }
     #[inline(always)]
-    pub fn write(&mut self, buf: &[u8]) {
-        if self.1 + buf.len() > N {
+    pub fn write(&mut self, mut buf: &[u8]) {
+        while self.1 + buf.len() > N {
+            let (current, next) = buf.split_at(N - self.1);
+            buf = next;
+            self.0[self.1..].iter_mut().zip(current).for_each(|(d, &s)| { d.write(s); });
             self.flush();
         }
-        for &b in buf {
-            self.0[self.1].write(b);
-            self.1 += 1;
-        }
+        self.0[self.1..].iter_mut().zip(buf).for_each(|(d, &s)| { d.write(s); });
+        self.1 += buf.len();
     }
     #[inline(always)]
     pub fn flush(&mut self) {
