@@ -241,18 +241,6 @@ impl<const N: usize> Print<usize> for Writer<N> {
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-const DIGITS_LUT: [u8; 200] =
-    *b"00010203040506070809\
-       10111213141516171819\
-       20212223242526272829\
-       30313233343536373839\
-       40414243444546474849\
-       50515253545556575859\
-       60616263646566676869\
-       70717273747576777879\
-       80818283848586878889\
-       90919293949596979899";
-
 impl<const N: usize> Writer<N> {
     #[inline(always)]
     pub fn write_u8(&mut self, mut v: u8) {
