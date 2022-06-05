@@ -8,6 +8,6 @@ pub fn main() {
     let mut writer = io::Writer::<{ 1 << 15 }>::new();
     let a = reader.next_uint();
     let b = reader.next_uint();
-    writer.write_uint(a + b);
+    writer.write_usize(a + b);
     // 여기까지 예시 코드입니다
 }
