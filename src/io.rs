@@ -14,6 +14,7 @@ impl<const N: usize> Writer<N> {
             let (current, next) = buf.split_at(N - self.1);
             buf = next;
             self.0[self.1..].iter_mut().zip(current).for_each(|(d, &s)| { d.write(s); });
+            self.1 = N;
             self.flush();
         }
         self.0[self.1..].iter_mut().zip(buf).for_each(|(d, &s)| { d.write(s); });
