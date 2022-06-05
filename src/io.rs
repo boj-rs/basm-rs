@@ -191,30 +191,30 @@ impl<const N: usize> Print<&[u8]> for Writer<N> {
 
 impl<const N: usize> Print<i32> for Writer<N> {
     fn print(&mut self, x: i32) {
-        self.write_int(x);
+        self.write_i32(x);
     }
     fn println(&mut self, x: i32) {
-        self.write_int(x);
+        self.write_i32(x);
         self.write(b"\n");
     }
 }
 
 impl<const N: usize> Print<i64> for Writer<N> {
     fn print(&mut self, x: i64) {
-        self.write_long(x);
+        self.write_i64(x);
     }
     fn println(&mut self, x: i64) {
-        self.write_long(x);
+        self.write_i64(x);
         self.write(b"\n");
     }
 }
 
 impl<const N: usize> Print<usize> for Writer<N> {
     fn print(&mut self, x: usize) {
-        self.write_uint(x);
+        self.write_usize(x);
     }
     fn println(&mut self, x: usize) {
-        self.write_uint(x);
+        self.write_usize(x);
         self.write(b"\n");
     }
 }
