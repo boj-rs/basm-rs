@@ -437,8 +437,7 @@ impl<const N: usize> Writer<N> {
         let v4 = _mm_mulhi_epu16(v3, Self::SHIFT_POWERS);
         let v5 = _mm_mullo_epi16(v4, Self::FILL_10);
         let v6 = _mm_slli_epi64(v5, 16);
-        let v7 = _mm_sub_epi16(v4, v6);
-        v7
+        _mm_sub_epi16(v4, v6)
     }
     
     #[inline(always)]
