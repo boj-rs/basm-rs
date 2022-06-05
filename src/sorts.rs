@@ -36,11 +36,7 @@ pub fn sort_radix_by_key<T, F: (Fn(&T) -> K) + Copy, K: Binary>(arr: &mut [T], k
 
 // reference: https://github.com/voutcn/kxsort/blob/master/kxsort.h
 
-fn sort_radix_by_key_rec<T, F: (Fn(&T) -> K) + Copy, K: Binary>(
-    arr: &mut [T],
-    key_f: F,
-    pos: u32,
-) {
+fn sort_radix_by_key_rec<T, F: (Fn(&T) -> K) + Copy, K: Binary>(arr: &mut [T], key_f: F, pos: u32) {
     let mut count = [0u32; 256];
     for v in arr.iter() {
         count[key_f(v).get_byte_at(pos) as usize] += 1;

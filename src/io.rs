@@ -278,11 +278,20 @@ impl<const N: usize> Writer<N> {
 
     #[inline(always)]
     pub fn write_u32(&mut self, mut v: u32) {
-        use core::arch::x86_64::{_mm_add_epi8, _mm_setzero_si128, _mm_storel_epi64, _mm_cmpistri, _SIDD_CMP_EQUAL_EACH, _SIDD_NEGATIVE_POLARITY};
+        use core::arch::x86_64::{
+            _mm_add_epi8, _mm_cmpistri, _mm_setzero_si128, _mm_storel_epi64, _SIDD_CMP_EQUAL_EACH,
+            _SIDD_NEGATIVE_POLARITY,
+        };
         if v < 100000000 {
             let a = unsafe { Self::convert_eight(v) };
-            let va = unsafe { _mm_add_epi8(_mm_packus_epi16(a, _mm_setzero_si128()), Self::FILL_ZERO) };
-            let digit = unsafe { _mm_cmpistri::<{ _SIDD_CMP_EQUAL_EACH | _SIDD_NEGATIVE_POLARITY }>(va, Self::FILL_ZERO) } as u32;
+            let va =
+                unsafe { _mm_add_epi8(_mm_packus_epi16(a, _mm_setzero_si128()), Self::FILL_ZERO) };
+            let digit = unsafe {
+                _mm_cmpistri::<{ _SIDD_CMP_EQUAL_EACH | _SIDD_NEGATIVE_POLARITY }>(
+                    va,
+                    Self::FILL_ZERO,
+                )
+            } as u32;
             let digit = digit.min(7);
             let result = unsafe { Self::shift_digits(va, digit) };
             let buffer: [u8; 16] = unsafe { transmute(result) };
@@ -300,15 +309,19 @@ impl<const N: usize> Writer<N> {
                 buffer[offset].write(d1);
             }
             let a = unsafe { Self::convert_eight(v) };
-            let va = unsafe { _mm_add_epi8(_mm_packus_epi16(a, _mm_setzero_si128()), Self::FILL_ZERO) };
+            let va =
+                unsafe { _mm_add_epi8(_mm_packus_epi16(a, _mm_setzero_si128()), Self::FILL_ZERO) };
             unsafe { _mm_storel_epi64(buffer[8..].as_mut_ptr() as _, va) };
             self.write(unsafe { MaybeUninit::slice_assume_init_ref(&buffer[offset..]) });
         }
     }
-    
+
     #[inline(always)]
     pub fn write_u64(&mut self, mut v: u64) {
-        use core::arch::x86_64::{_mm_add_epi8, _mm_storeu_si128, _mm_cmpistri, _SIDD_CMP_EQUAL_EACH, _SIDD_NEGATIVE_POLARITY};
+        use core::arch::x86_64::{
+            _mm_add_epi8, _mm_cmpistri, _mm_storeu_si128, _SIDD_CMP_EQUAL_EACH,
+            _SIDD_NEGATIVE_POLARITY,
+        };
         if v < 100000000 {
             self.write_u32(v as u32);
         } else if v < 10000000000000000 {
@@ -318,7 +331,12 @@ impl<const N: usize> Writer<N> {
             let a1 = unsafe { Self::convert_eight(v1) };
             let a = unsafe { _mm_packus_epi16(a0, a1) };
             let va = unsafe { _mm_add_epi8(a, Self::FILL_ZERO) };
-            let digit = unsafe { _mm_cmpistri::<{ _SIDD_CMP_EQUAL_EACH | _SIDD_NEGATIVE_POLARITY }>(va, Self::FILL_ZERO) } as u32;
+            let digit = unsafe {
+                _mm_cmpistri::<{ _SIDD_CMP_EQUAL_EACH | _SIDD_NEGATIVE_POLARITY }>(
+                    va,
+                    Self::FILL_ZERO,
+                )
+            } as u32;
             let result = unsafe { Self::shift_digits(va, digit) };
             let buffer: [u8; 16] = unsafe { transmute(result) };
             self.write(&buffer[..16 - digit as usize]);
@@ -359,7 +377,7 @@ impl<const N: usize> Writer<N> {
         }
         self.write_u8(v.abs_diff(0));
     }
-    
+
     #[inline(always)]
     pub fn write_i16(&mut self, v: i16) {
         if v.is_negative() {
@@ -383,20 +401,25 @@ impl<const N: usize> Writer<N> {
         }
         self.write_u64(v.abs_diff(0));
     }
-    
+
     #[inline(always)]
     pub fn write_isize(&mut self, v: isize) {
         self.write_i64(v as i64);
     }
 }
 
-use core::arch::x86_64::{__m128i, _mm_cvtsi32_si128, _mm_srli_epi64, _mm_mul_epu32, _mm_sub_epi32, _mm_unpacklo_epi16, _mm_slli_epi64, _mm_unpacklo_epi32, _mm_mulhi_epu16, _mm_mullo_epi16, _mm_sub_epi16, _mm_srli_si128, _mm_packus_epi16};
+use core::arch::x86_64::{
+    __m128i, _mm_cvtsi32_si128, _mm_mul_epu32, _mm_mulhi_epu16, _mm_mullo_epi16, _mm_packus_epi16,
+    _mm_slli_epi64, _mm_srli_epi64, _mm_srli_si128, _mm_sub_epi16, _mm_sub_epi32,
+    _mm_unpacklo_epi16, _mm_unpacklo_epi32,
+};
 use core::mem::transmute;
 
 impl<const N: usize> Writer<N> {
     const DIV_10000: __m128i = unsafe { transmute([0xd1b71759u32; 4]) };
     const MUL_10000: __m128i = unsafe { transmute([10000u32; 4]) };
-    const DIV_POWERS: __m128i = unsafe { transmute([8389u16, 5243, 13108, 32768, 8389, 5243, 13108, 32768]) };
+    const DIV_POWERS: __m128i =
+        unsafe { transmute([8389u16, 5243, 13108, 32768, 8389, 5243, 13108, 32768]) };
     const SHIFT_POWERS: __m128i = unsafe {
         transmute([
             1u16 << (16 - (23 + 2 - 16)),
@@ -427,7 +450,7 @@ impl<const N: usize> Writer<N> {
         let v6 = _mm_slli_epi64(v5, 16);
         _mm_sub_epi16(v4, v6)
     }
-    
+
     #[inline(always)]
     unsafe fn shift_digits(a: __m128i, digit: u32) -> __m128i {
         match digit {
