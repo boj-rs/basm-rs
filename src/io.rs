@@ -120,12 +120,12 @@ impl<const N: usize> Reader<N> {
         }
     }
     #[inline(always)]
-    pub fn next_line(&mut self, buf: &mut [u8]) -> usize {
+    pub fn next_until(&mut self, buf: &mut [u8], delim: u8) -> usize {
         let mut i = 0;
         loop {
             let b = self.peek();
             self.2 += 1;
-            if b == b'\n' {
+            if b == delim {
                 break i;
             } else {
                 buf[i] = b;
