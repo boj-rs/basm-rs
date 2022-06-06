@@ -7,7 +7,7 @@
 #![no_main]
 extern crate alloc;
 
-use core::arch::asm;
+use core::{arch::asm, cmp::Ordering};
 mod allocator;
 #[allow(dead_code)]
 mod io;
@@ -83,13 +83,14 @@ unsafe extern "C" fn memset(s: *mut u8, c: i32, n: usize) -> *mut u8 {
 #[no_mangle]
 unsafe extern "C" fn memcmp(mut s1: *const u8, mut s2: *const u8, n: usize) -> i32 {
     for _ in 0..n {
-        if *s1 > *s2 {
-            return 1;
-        } else if *s1 < *s2 {
-            return -1;
+        match (*s1).cmp(&*s2) {
+            Ordering::Less => return -1,
+            Ordering::Greater => return 1,
+            _ => {
+                s1 = s1.offset(1);
+                s2 = s2.offset(1);
+            }
         }
-        s1 = s1.offset(1);
-        s2 = s2.offset(1);
     }
     0
 }
