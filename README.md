@@ -43,10 +43,6 @@ C 외에 64bit Assembly도 지원합니다.
 
 ## 문제 해결
 
-- `memcpy`, `memmove` 등의 함수를 찾을 수 없다고 나오는 경우
-
-해당 함수를 직접 구현해주세요. `compiler_builtins` crate를 이용하시면 더 편합니다. 단, `#[no_mangle]`을 꼭 붙여 주세요.
-
 - 이유를 알 수 없는 Segmentation Fault가 로컬에서 발생하는 경우
 
 스택 크기를 확인해 주세요. 그래도 문제를 해결할 수 없는 경우 아직 발견된 해법이 없습니다.
