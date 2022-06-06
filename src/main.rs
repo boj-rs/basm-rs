@@ -14,6 +14,8 @@ mod io;
 mod solution;
 #[allow(dead_code)]
 mod sorts;
+#[allow(dead_code)]
+mod syscall;
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;

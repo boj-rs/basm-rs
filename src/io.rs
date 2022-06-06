@@ -1,5 +1,6 @@
-use core::arch::asm;
 use core::mem::MaybeUninit;
+
+use crate::syscall;
 
 pub struct Reader<const N: usize>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
 pub struct Writer<const N: usize>(pub [MaybeUninit<u8>; N], pub usize);
@@ -29,9 +30,9 @@ impl<const N: usize> Writer<N> {
     }
     #[inline(always)]
     pub fn flush(&mut self) {
-        unsafe {
-            asm!("syscall", in("rax") 1, in("rdi") 1, in("rsi") self.0.as_ptr(), in("rdx") self.1, out("rcx") _, out("r11") _, lateout("rax") _);
-        }
+        syscall::write(1, unsafe {
+            MaybeUninit::slice_assume_init_ref(&self.0[..self.1])
+        });
         self.1 = 0;
     }
 }
@@ -56,10 +57,9 @@ impl<const N: usize> Reader<N> {
     }
     #[inline(always)]
     pub fn fill(&mut self) {
-        let out = self.0.as_ptr();
-        unsafe {
-            asm!("syscall", in("rax") 0, in("rdi") 0, in("rsi") out, in("rdx") N, out("rcx") _, out("r11") _, lateout("rax") self.1);
-        }
+        self.1 = syscall::read(0, unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.0)
+        }) as usize;
         self.2 = 0;
     }
     #[inline(always)]
