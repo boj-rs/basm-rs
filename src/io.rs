@@ -228,6 +228,67 @@ impl<const N: usize> Print<usize> for Writer<N> {
     }
 }
 
+#[cfg(feature = "slow-io")]
+impl<const N: usize> Writer<N> {
+    #[inline(always)]
+    pub fn write_u8(&mut self, i: u8) {
+        self.write_usize(i as usize);
+    }
+    #[inline(always)]
+    pub fn write_u16(&mut self, i: u16) {
+        self.write_usize(i as usize);
+    }
+    #[inline(always)]
+    pub fn write_u32(&mut self, i: u32) {
+        self.write_usize(i as usize);
+    }
+    #[inline(always)]
+    pub fn write_u64(&mut self, i: u64) {
+        self.write_usize(i as usize);
+    }
+    #[inline(always)]
+    pub fn write_i8(&mut self, i: i8) {
+        if i.is_negative() {
+            self.write(b"-");
+        }
+        self.write_usize(i.abs_diff(0) as usize);
+    }
+    #[inline(always)]
+    pub fn write_i16(&mut self, i: i16) {
+        if i.is_negative() {
+            self.write(b"-");
+        }
+        self.write_usize(i.abs_diff(0) as usize);
+    }
+    #[inline(always)]
+    pub fn write_i32(&mut self, i: i32) {
+        if i.is_negative() {
+            self.write(b"-");
+        }
+        self.write_usize(i.abs_diff(0) as usize);
+    }
+    #[inline(always)]
+    pub fn write_i64(&mut self, i: i64) {
+        if i.is_negative() {
+            self.write(b"-");
+        }
+        self.write_usize(i.abs_diff(0) as usize);
+    }
+    #[inline(always)]
+    pub fn write_usize(&mut self, mut i: usize) {
+        let mut buf: [MaybeUninit<u8>; 20] = MaybeUninit::uninit_array();
+        let mut offset = buf.len() - 1;
+        buf[offset].write(b'0' + (i % 10) as u8);
+        i /= 10;
+        while i > 0 {
+            offset -= 1;
+            buf[offset].write(b'0' + (i % 10) as u8);
+            i /= 10;
+        }
+        self.write(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
+    }
+}
+
 // itoa implementation
 //
 // Copyright (C) 2014 Milo Yip
@@ -250,6 +311,7 @@ impl<const N: usize> Print<usize> for Writer<N> {
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[cfg(not(feature = "slow-io"))]
 impl<const N: usize> Writer<N> {
     #[inline(always)]
     pub fn write_u8(&mut self, mut v: u8) {
@@ -417,13 +479,16 @@ impl<const N: usize> Writer<N> {
     }
 }
 
+#[cfg(not(feature = "slow-io"))]
 use core::arch::x86_64::{
     __m128i, _mm_cvtsi32_si128, _mm_mul_epu32, _mm_mulhi_epu16, _mm_mullo_epi16, _mm_packus_epi16,
     _mm_slli_epi64, _mm_srli_epi64, _mm_srli_si128, _mm_sub_epi16, _mm_sub_epi32,
     _mm_unpacklo_epi16, _mm_unpacklo_epi32,
 };
+#[cfg(not(feature = "slow-io"))]
 use core::mem::transmute;
 
+#[cfg(not(feature = "slow-io"))]
 impl<const N: usize> Writer<N> {
     const DIV_10000: __m128i = unsafe { transmute([0xd1b71759u32; 4]) };
     const MUL_10000: __m128i = unsafe { transmute([10000u32; 4]) };
