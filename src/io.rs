@@ -229,52 +229,36 @@ impl<const N: usize> Print<usize> for Writer<N> {
 }
 
 #[cfg(feature = "slow-io")]
+macro_rules! write_u_impl {
+    ($name:ident, $type:ty) => {
+        pub fn $name(&mut self, i: $type) {
+            self.write_usize(i as usize);
+        }
+    };
+}
+
+#[cfg(feature = "slow-io")]
+macro_rules! write_i_impl {
+    ($name:ident, $type:ty) => {
+        pub fn $name(&mut self, i: $type) {
+            if i.is_negative() {
+                self.write(b"-");
+            }
+            self.write_usize(i.abs_diff(0) as usize);
+        }
+    };
+}
+
+#[cfg(feature = "slow-io")]
 impl<const N: usize> Writer<N> {
-    #[inline(always)]
-    pub fn write_u8(&mut self, i: u8) {
-        self.write_usize(i as usize);
-    }
-    #[inline(always)]
-    pub fn write_u16(&mut self, i: u16) {
-        self.write_usize(i as usize);
-    }
-    #[inline(always)]
-    pub fn write_u32(&mut self, i: u32) {
-        self.write_usize(i as usize);
-    }
-    #[inline(always)]
-    pub fn write_u64(&mut self, i: u64) {
-        self.write_usize(i as usize);
-    }
-    #[inline(always)]
-    pub fn write_i8(&mut self, i: i8) {
-        if i.is_negative() {
-            self.write(b"-");
-        }
-        self.write_usize(i.abs_diff(0) as usize);
-    }
-    #[inline(always)]
-    pub fn write_i16(&mut self, i: i16) {
-        if i.is_negative() {
-            self.write(b"-");
-        }
-        self.write_usize(i.abs_diff(0) as usize);
-    }
-    #[inline(always)]
-    pub fn write_i32(&mut self, i: i32) {
-        if i.is_negative() {
-            self.write(b"-");
-        }
-        self.write_usize(i.abs_diff(0) as usize);
-    }
-    #[inline(always)]
-    pub fn write_i64(&mut self, i: i64) {
-        if i.is_negative() {
-            self.write(b"-");
-        }
-        self.write_usize(i.abs_diff(0) as usize);
-    }
-    #[inline(always)]
+    write_u_impl!(write_u8, u8);
+    write_u_impl!(write_u16, u16);
+    write_u_impl!(write_u32, u32);
+    write_u_impl!(write_u64, u64);
+    write_i_impl!(write_i8, i8);
+    write_i_impl!(write_i16, i16);
+    write_i_impl!(write_i32, i32);
+    write_i_impl!(write_i64, i64);
     pub fn write_usize(&mut self, mut i: usize) {
         let mut buf: [MaybeUninit<u8>; 20] = MaybeUninit::uninit_array();
         let mut offset = buf.len() - 1;
