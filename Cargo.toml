@@ -17,3 +17,4 @@ lto = true
 
 [features]
 no-probe = []
+slow-io = []
