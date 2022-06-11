@@ -6,10 +6,11 @@ objcopy --strip-unneeded -j .init -j .text -j .rodata -O binary no-got $binary_p
 
 basename=$(basename $0)
 if [ "$basename" = 'release-asm.sh' ]; then
-    template_path=scripts/template.asm
+    ext=asm
 elif [ "$basename" = 'release-rs.sh' ]; then
-    template_path=scripts/template.rs
+    ext=rs
 else
-    template_path=scripts/template.c
+    ext=c
 fi
+template_path=scripts/template.$ext
 python3 scripts/gen.py $binary_path $template_path
