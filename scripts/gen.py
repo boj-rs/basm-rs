@@ -18,4 +18,4 @@ r = ",".join(min(str(i), hex(i), key=len) for i in arr)
 
 with open(template_path) as f:
     template = f.read().rstrip()
-print(template % r)
+print(template % {"len": len(arr), "text": r})
