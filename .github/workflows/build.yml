@@ -49,3 +49,13 @@ jobs:
           scripts/check.sh \
             "./release-asm.sh --features no-probe | tee /tmp/code.s" \
             "nasm -f elf64 /tmp/code.s -o /tmp/code.o && cc /tmp/code.o -o /tmp/bin"
+      - name: Check Rust
+        run: |
+          scripts/check.sh \
+            "./release-rs.sh | tee /tmp/code.rs" \
+            "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
+      - name: Check Rust (no-probe)
+        run: |
+          scripts/check.sh \
+            "./release-rs.sh --features no-probe | tee /tmp/code.rs" \
+            "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
