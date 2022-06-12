@@ -25,14 +25,14 @@ impl<const N: usize> Writer<N> {
             let len = N - self.1;
             let (current, next) = buf.split_at(len);
             buf = next;
-            for i in 0..len {
-                self.0[self.1 + i].write(current[i]);
+            for (i, &b) in current.iter().enumerate() {
+                self.0[self.1 + i].write(b);
             }
             self.1 = N;
             self.flush();
         }
-        for i in 0..buf.len() {
-            self.0[self.1 + i].write(buf[i]);
+        for (i, &b) in buf.iter().enumerate() {
+            self.0[self.1 + i].write(b);
         }
         self.1 += buf.len();
     }
