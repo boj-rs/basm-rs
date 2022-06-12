@@ -28,7 +28,7 @@ fn _start() {
     }
     solution::main();
     unsafe {
-        asm!("syscall", in("rax") 231, in("rdi") 0);
+        asm!("xor eax, eax", "mov al, 231", "syscall", in("rax") 231, in("rdi") 0);
     }
 }
 
