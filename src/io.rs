@@ -43,6 +43,40 @@ impl<const N: usize> Writer<N> {
         });
         self.1 = 0;
     }
+    #[inline(always)]
+    pub fn write_f64(&mut self, mut f: f64) {
+        // integer part
+        if f < 0.0 {
+            self.write(b"-");
+            f = -f;
+        }
+        let mut n = f as usize;
+        self.write_usize(n);
+
+        // fractional part
+        let frac = f - (n as f64);
+        if frac == 0.0 {
+            return;
+        }
+        let mut buf = [b'0'; 11];
+        buf[0] = b'.';
+        let mut i = buf.len();
+        n = (frac * 10_000_000_000.0) as usize;
+        while n > 0 {
+            i -= 1;
+            buf[i] = (n % 10) as u8 + b'0';
+            n /= 10;
+        }
+
+        // remove trailing zeros
+        let mut len = buf.len();
+        while len > 0 && buf[len - 1] == b'0' {
+            len -= 1;
+        }
+        if len > 1 {
+            self.write(&buf[..len]);
+        }
+    }
 }
 
 impl<const N: usize> Drop for Writer<N> {
@@ -127,6 +161,40 @@ impl<const N: usize> Reader<N> {
             }
         }
     }
+
+    pub fn next_f64(&mut self) -> f64 {
+        let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
+        let buf = unsafe { MaybeUninit::slice_assume_init_mut(&mut buf) };
+        let n = self.next_word(buf);
+        let mut int: usize = 0;
+        let mut i = 0;
+        let sign = if buf[0] == b'-' {
+            i += 1;
+            -1.0
+        } else {
+            1.0
+        };
+        while i < n && matches!(buf[i], b'0'..=b'9') {
+            int = int * 10 + (buf[i] - b'0') as usize;
+            i += 1;
+        }
+        if i == n {
+            return sign * int as f64;
+        }
+        // assert_eq!(buf[i], b'.');
+        if buf[i] == b'.' {
+            i += 1;
+        }
+        let mut d = 1;
+        let mut frac = 0;
+        while i < n {
+            frac = frac * 10 + (buf[i] - b'0') as usize;
+            d *= 10;
+            i += 1;
+        }
+        sign * (int as f64 + frac as f64 / d as f64)
+    }
+
     #[inline(always)]
     pub fn next_until(&mut self, buf: &mut [u8], delim: u8) -> usize {
         let mut i = 0;
@@ -232,6 +300,16 @@ impl<const N: usize> Print<usize> for Writer<N> {
     }
     fn println(&mut self, x: usize) {
         self.write_usize(x);
+        self.write(b"\n");
+    }
+}
+
+impl<const N: usize> Print<f64> for Writer<N> {
+    fn print(&mut self, x: f64) {
+        self.write_f64(x);
+    }
+    fn println(&mut self, x: f64) {
+        self.write_f64(x);
         self.write(b"\n");
     }
 }
