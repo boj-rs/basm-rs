@@ -22,20 +22,18 @@ impl<const N: usize> Writer<N> {
     #[inline(always)]
     pub fn write(&mut self, mut buf: &[u8]) {
         while self.1 + buf.len() > N {
-            let (current, next) = buf.split_at(N - self.1);
+            let len = N - self.1;
+            let (current, next) = buf.split_at(len);
             buf = next;
-            self.0[self.1..]
-                .iter_mut()
-                .zip(current)
-                .for_each(|(d, &s)| {
-                    d.write(s);
-                });
+            for i in 0..len {
+                self.0[self.1 + i].write(current[i]);
+            }
             self.1 = N;
             self.flush();
         }
-        self.0[self.1..].iter_mut().zip(buf).for_each(|(d, &s)| {
-            d.write(s);
-        });
+        for i in 0..buf.len() {
+            self.0[self.1 + i].write(buf[i]);
+        }
         self.1 += buf.len();
     }
     #[inline(always)]
