@@ -1,5 +1,2 @@
-section .text
-    global main
-
-main:
-    dq %(text)s
+global main
+main:dq %(text)s
