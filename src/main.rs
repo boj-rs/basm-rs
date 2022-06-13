@@ -2,8 +2,9 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(maybe_uninit_slice)]
 #![feature(maybe_uninit_array_assume_init)]
-#![no_builtins]
-#![no_std]
+#![feature(once_cell)]
+#![cfg_attr(not(test), no_builtins)]
+#![cfg_attr(not(test), no_std)]
 #![no_main]
 extern crate alloc;
 
