@@ -313,3 +313,81 @@ impl<const N: usize> Print<f64> for Writer<N> {
         self.write(b"\n");
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use syscall::dummy::{clear_stdout, get_stdout_content, prepare_stdin};
+
+    #[test]
+    fn read_numbers() {
+        let mut reader = Reader::<100>::new();
+        prepare_stdin(b"1234 -56\n-9999.9999\n");
+
+        assert_eq!(reader.next_usize(), 1234);
+        assert_eq!(reader.next_i32(), -56);
+        assert_eq!(reader.next_f64(), -9999.9999);
+    }
+
+    #[test]
+    fn read_word() {
+        let mut reader = Reader::<100>::new();
+        let mut buf = [0; 100];
+        prepare_stdin(b"Hello World\nBye\n");
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 5);
+        assert_eq!(&buf[..5], b"Hello");
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 5);
+        assert_eq!(&buf[..5], b"World");
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 3);
+        assert_eq!(&buf[..3], b"Bye");
+    }
+
+    #[test]
+    fn write_numbers_without_flush() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        assert_eq!(get_stdout_content(), b""); // not flushed yet
+    }
+
+    #[test]
+    fn write_numbers_with_explicit_flush() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1020");
+    }
+
+    #[test]
+    fn write_numbers_implicit_flush() {
+        clear_stdout();
+        let mut writer = Writer::<4>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        writer.write_usize(3);
+        assert_eq!(get_stdout_content(), b"1020");
+    }
+
+    #[test]
+    fn write_f64() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_f64(1.23);
+        writer.write_f64(-0.001);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1.23-0.001");
+    }
+}

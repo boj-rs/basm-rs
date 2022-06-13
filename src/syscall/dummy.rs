@@ -23,8 +23,28 @@ pub fn get_stdout_content() -> &'static [u8] {
     unsafe { STDOUT.get_or_init(Vec::new) }
 }
 
+/// Only for test
 pub fn get_stderr_content() -> &'static [u8] {
-    unsafe { STDOUT.get_or_init(Vec::new) }
+    unsafe { STDERR.get_or_init(Vec::new) }
+}
+
+/// Only for test
+pub fn clear_stdout() {
+    unsafe {
+        clear(&mut STDOUT);
+    }
+}
+
+/// Only for test
+pub fn clear_stderr() {
+    unsafe {
+        clear(&mut STDERR);
+    }
+}
+
+fn clear(stream: &mut OnceCell<Vec<u8>>) {
+    stream.get_or_init(Vec::new);
+    stream.get_mut().unwrap().clear();
 }
 
 pub fn read(fd: u32, s: &mut [u8]) -> isize {

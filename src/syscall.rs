@@ -4,9 +4,9 @@ pub use dummy::*;
 pub use real::*;
 
 #[cfg(test)]
-mod dummy;
+pub mod dummy;
 #[cfg(not(test))]
-mod real;
+pub mod real;
 
 #[repr(C)]
 pub struct Stat {
