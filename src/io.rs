@@ -330,6 +330,16 @@ mod test {
     }
 
     #[test]
+    #[ignore]
+    fn read_scientifi_notation() {
+        prepare_stdin(b"1e1\n1e-1\n");
+        let mut reader = Reader::<100>::new();
+
+        assert_eq!(reader.next_f64(), 10.0);
+        assert_eq!(reader.next_f64(), 1e-1);
+    }
+
+    #[test]
     fn read_word() {
         prepare_stdin(b"Hello World\nBye\n");
         let mut reader = Reader::<100>::new();
