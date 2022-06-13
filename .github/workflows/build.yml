@@ -29,6 +29,8 @@ jobs:
         run: cargo clippy
         env:
           RUSTFLAGS: "-D warnings"
+      - name: Test
+        run: cargo test
       - name: Check C
         run: |
           scripts/check.sh \
