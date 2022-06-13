@@ -29,8 +29,14 @@ jobs:
         run: cargo clippy
         env:
           RUSTFLAGS: "-D warnings"
-      - name: Test
-        run: ./test.sh
+      - name: Test (fast-io)
+        run: cargo test -- --test-threads1
+        env:
+          RUSTFLAGS: ""
+      - name: Test (slow-io)
+        run: cargo test --features slow-io -- --test-threads1
+        env:
+          RUSTFLAGS: ""
       - name: Check C
         run: |
           scripts/check.sh \
