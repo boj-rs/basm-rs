@@ -30,7 +30,7 @@ jobs:
         env:
           RUSTFLAGS: "-D warnings"
       - name: Test
-        run: cargo test -- --test-threads 1
+        run: ./test.sh
       - name: Check C
         run: |
           scripts/check.sh \
