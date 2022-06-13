@@ -1,6 +1,6 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-use std::lazy::OnceCell;
+use core::lazy::OnceCell;
 
 use super::Stat;
 
