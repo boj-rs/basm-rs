@@ -313,3 +313,119 @@ impl<const N: usize> Print<f64> for Writer<N> {
         self.write(b"\n");
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use syscall::dummy::{clear_stdout, get_stdout_content, prepare_stdin};
+
+    #[test]
+    fn read_numbers() {
+        prepare_stdin(b"1234 -56\n-9999.9999\n");
+        let mut reader = Reader::<100>::new();
+
+        assert_eq!(reader.next_usize(), 1234);
+        assert_eq!(reader.next_i32(), -56);
+        assert_eq!(reader.next_f64(), -9999.9999);
+    }
+
+    #[test]
+    #[ignore]
+    fn read_scientifi_notation() {
+        prepare_stdin(b"1e1\n1e-1\n");
+        let mut reader = Reader::<100>::new();
+
+        assert_eq!(reader.next_f64(), 10.0);
+        assert_eq!(reader.next_f64(), 1e-1);
+    }
+
+    #[test]
+    fn read_word() {
+        prepare_stdin(b"Hello World\nBye\n");
+        let mut reader = Reader::<100>::new();
+        let mut buf = [0; 100];
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 5);
+        assert_eq!(&buf[..n], b"Hello");
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 5);
+        assert_eq!(&buf[..n], b"World");
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 3);
+        assert_eq!(&buf[..n], b"Bye");
+    }
+
+    #[test]
+    #[ignore]
+    fn read_word_without_terminator() {
+        prepare_stdin(b"no-terminator");
+        let mut reader = Reader::<100>::new();
+        let mut buf = [0; 100];
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 13);
+        assert_eq!(&buf[..n], b"no-terminator");
+    }
+
+    #[test]
+    #[ignore]
+    fn read_word_multiple_space_in_between() {
+        // This also affects number reading.
+        prepare_stdin(b"1 \n5"); // Trailing space in first line
+        let mut reader = Reader::<100>::new();
+        let mut buf = [0; 100];
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 1);
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 1);
+        assert_eq!(&buf[..n], b"b");
+    }
+
+    #[test]
+    fn write_numbers_without_flush() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        assert_eq!(get_stdout_content(), b""); // not flushed yet
+    }
+
+    #[test]
+    fn write_numbers_with_explicit_flush() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1020");
+    }
+
+    #[test]
+    fn write_numbers_implicit_flush() {
+        clear_stdout();
+        let mut writer = Writer::<4>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        writer.write_usize(3);
+        assert_eq!(get_stdout_content(), b"1020");
+    }
+
+    #[test]
+    fn write_f64() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_f64(1.23);
+        writer.write_f64(-0.001);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1.23-0.001");
+    }
+}
