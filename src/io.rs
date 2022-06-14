@@ -153,7 +153,7 @@ impl<const N: usize> Reader<N> {
     pub fn skip_until(&mut self, delim: u8) -> usize {
         let mut skip = 0;
         loop {
-            if self.peek() == delim {
+            if self.peek() != delim {
                 self.2 += 1;
                 skip += 1;
             } else {
