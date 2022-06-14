@@ -138,12 +138,26 @@ impl<const N: usize> Reader<N> {
         n
     }
     #[inline(always)]
-    pub fn skip_white(&mut self) {
+    pub fn skip_white(&mut self) -> usize {
+        let mut skip = 0;
         loop {
             if self.peek() <= 32 {
                 self.2 += 1;
+                skip += 1;
             } else {
-                break;
+                break skip;
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn skip_until(&mut self, delim: u8) -> usize {
+        let mut skip = 0;
+        loop {
+            if self.peek() == delim {
+                self.2 += 1;
+                skip += 1;
+            } else {
+                break skip;
             }
         }
     }
