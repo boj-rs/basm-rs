@@ -1,4 +1,4 @@
-name: Check hhdr-rs
+name: Check
 
 on:
   - push
