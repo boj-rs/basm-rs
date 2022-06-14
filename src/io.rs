@@ -371,6 +371,21 @@ mod test {
     }
 
     #[test]
+    fn next_until() {
+        prepare_stdin(b"Hello World\nBye\n");
+        let mut reader = Reader::<100>::new();
+        let mut buf = [0; 100];
+
+        let n = reader.next_until(&mut buf, b'\n');
+        assert_eq!(n, 11);
+        assert_eq!(&buf[..n], b"Hello World");
+
+        let n = reader.next_word(&mut buf);
+        assert_eq!(n, 3);
+        assert_eq!(&buf[..n], b"Bye");
+    }
+
+    #[test]
     #[ignore]
     fn read_word_without_terminator() {
         prepare_stdin(b"no-terminator");
@@ -396,6 +411,22 @@ mod test {
         let n = reader.next_word(&mut buf);
         assert_eq!(n, 1);
         assert_eq!(&buf[..n], b"b");
+    }
+
+    #[test]
+    fn skip_white() {
+        prepare_stdin(b" \t\x0b\n5\n");
+        let mut reader = Reader::<100>::new();
+        assert_eq!(reader.skip_white(), 4);
+        assert_eq!(reader.next_usize(), 5);
+    }
+
+    #[test]
+    fn skip_until() {
+        prepare_stdin(b"garbage,5\n");
+        let mut reader = Reader::<100>::new();
+        assert_eq!(reader.skip_until(b','), b"garbage".len());
+        assert_eq!(reader.next_usize(), 5);
     }
 
     #[test]
@@ -439,5 +470,27 @@ mod test {
         writer.write_f64(-0.001);
         writer.flush();
         assert_eq!(get_stdout_content(), b"1.23-0.001");
+    }
+
+    #[test]
+    fn print() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+        writer.print(123usize);
+        writer.print(45i32);
+        writer.print(78.9_f64);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1234578.9");
+    }
+
+    #[test]
+    fn println() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+        writer.println(123usize);
+        writer.println(45i32);
+        writer.println(78.9_f64);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"123\n45\n78.9\n");
     }
 }
