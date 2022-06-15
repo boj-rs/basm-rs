@@ -298,6 +298,26 @@ impl<const N: usize> Print<&[u8]> for Writer<N> {
     }
 }
 
+impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
+    fn print(&mut self, x: &[u8; M]) {
+        self.write(x);
+    }
+    fn println(&mut self, x: &[u8; M]) {
+        self.write(x);
+        self.write(b"\n");
+    }
+}
+
+impl<const N: usize> Print<&str> for Writer<N> {
+    fn print(&mut self, x: &str) {
+        self.write(x.as_bytes());
+    }
+    fn println(&mut self, x: &str) {
+        self.write(x.as_bytes());
+        self.write(b"\n");
+    }
+}
+
 impl<const N: usize> Print<i32> for Writer<N> {
     fn print(&mut self, x: i32) {
         self.write_i32(x);
@@ -489,10 +509,12 @@ mod test {
         clear_stdout();
         let mut writer = Writer::<100>::new();
         writer.print(123usize);
+        writer.print(" ");
         writer.print(45i32);
+        writer.print(b" ");
         writer.print(78.9_f64);
         writer.flush();
-        assert_eq!(get_stdout_content(), b"1234578.9");
+        assert_eq!(get_stdout_content(), b"123 45 78.9");
     }
 
     #[test]
@@ -502,7 +524,9 @@ mod test {
         writer.println(123usize);
         writer.println(45i32);
         writer.println(78.9_f64);
+        writer.println("str");
+        writer.println(b"bytes");
         writer.flush();
-        assert_eq!(get_stdout_content(), b"123\n45\n78.9\n");
+        assert_eq!(get_stdout_content(), b"123\n45\n78.9\nstr\nbytes\n");
     }
 }
