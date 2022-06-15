@@ -3,7 +3,7 @@ set -e
 
 binary_path=basm.bin
 cargo +nightly build --release "$@"
-python3 scripts/remove-got.py -o no-got target/x86_64-unknown-linux-gnu/release/basm-rs
+python3 scripts/remove-got.py -o no-got target/x86_64-unknown-linux-gnu/release/basm
 objcopy --strip-unneeded -j .init -j .text -j .rodata -O binary no-got $binary_path
 
 basename=$(basename $0)
