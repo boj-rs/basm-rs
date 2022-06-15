@@ -30,11 +30,11 @@ jobs:
         env:
           RUSTFLAGS: "-D warnings"
       - name: Test (fast-io)
-        run: cargo test -- --test-threads 1
+        run: cargo test --lib -- --test-threads 1
         env:
           RUSTFLAGS: ""
       - name: Test (slow-io)
-        run: cargo test --features slow-io -- --test-threads 1
+        run: cargo test --lib --features slow-io -- --test-threads 1
         env:
           RUSTFLAGS: ""
       - name: Check C
