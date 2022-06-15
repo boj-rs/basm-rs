@@ -18,6 +18,16 @@ C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB�
 
 - 다양한 최적화 옵션을 선택할 수 있습니다.
 
+- 이미 구현된 자료구조와 알고리즘을 쉽게 가져다 쓸 수 있습니다.
+
+  - Jagged Array (인접 리스트에 사용할 수 있습니다)
+  
+  - Union-Find (by rank / rem algorithm)
+
+  - DFS (매크로)
+
+  - KMP (Iterator)
+
 ## 사용법
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.

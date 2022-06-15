@@ -12,4 +12,5 @@ pub mod graph;
 pub mod io;
 pub mod libc_string;
 pub mod sorts;
+pub mod strings;
 pub mod syscall;
