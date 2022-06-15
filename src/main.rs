@@ -2,7 +2,10 @@
 #![feature(maybe_uninit_slice)]
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(once_cell)]
-#![cfg_attr(not(test), feature(alloc_error_handler), no_builtins, no_std, no_main)]
+#![feature(alloc_error_handler)]
+#![no_builtins]
+#![no_std]
+#![no_main]
 extern crate alloc;
 
 mod codegen;

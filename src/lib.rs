@@ -7,5 +7,6 @@ extern crate alloc;
 
 pub mod allocator;
 pub mod io;
+pub mod libc_string;
 pub mod sorts;
 pub mod syscall;
