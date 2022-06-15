@@ -10,3 +10,4 @@ pub mod io;
 pub mod libc_string;
 pub mod sorts;
 pub mod syscall;
+pub mod collections;
