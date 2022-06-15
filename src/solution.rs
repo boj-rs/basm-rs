@@ -1,4 +1,4 @@
-use crate::io;
+use basm::io;
 
 #[inline(always)]
 pub fn main() {

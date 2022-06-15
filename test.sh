@@ -3,4 +3,4 @@
 # To override rustflags in .cargo/config.toml
 export RUSTFLAGS=
 
-cargo test -- --test-threads 1 "$@"
+cargo test --lib -- --test-threads 1 "$@"

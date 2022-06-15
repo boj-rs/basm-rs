@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "basm-rs"
+name = "basm"
 version = "0.1.0"

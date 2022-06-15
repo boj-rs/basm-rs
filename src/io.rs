@@ -79,6 +79,12 @@ impl<const N: usize> Writer<N> {
     }
 }
 
+impl<const N: usize> Default for Writer<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<const N: usize> Drop for Writer<N> {
     fn drop(&mut self) {
         self.flush();
@@ -232,6 +238,12 @@ impl<const N: usize> Reader<N> {
     #[inline(always)]
     pub fn iter_usize(&mut self) -> UsizeIterator<N> {
         UsizeIterator { inner: self }
+    }
+}
+
+impl<const N: usize> Default for Reader<N> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

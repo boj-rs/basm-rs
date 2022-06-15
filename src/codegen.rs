@@ -1,7 +1,7 @@
 use core::{arch::asm, cmp::Ordering};
 
-use crate::allocator;
 use crate::solution;
+use basm::allocator;
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
