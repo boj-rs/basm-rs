@@ -2,7 +2,8 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(once_cell)]
-#![cfg_attr(not(test), no_builtins, no_std)]
+#![feature(alloc_error_handler)]
+#![cfg_attr(not(test), no_std)]
 extern crate alloc;
 
 pub mod allocator;
