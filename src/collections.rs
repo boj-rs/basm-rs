@@ -4,8 +4,8 @@ use alloc::{vec, vec::Vec};
 ///
 /// Jagged Array is like an 2d array but length of each row is all different.
 pub struct JaggedVec<T> {
-    head: Vec<u32>,
-    link: Vec<(u32, T)>,
+    pub(crate) head: Vec<u32>,
+    pub(crate) link: Vec<(u32, T)>,
 }
 
 impl<T> JaggedVec<T> {
@@ -43,7 +43,10 @@ impl<T> JaggedVec<T> {
     }
 
     pub fn row_iter(&self, row: usize) -> RowIter<T> {
-        RowIter { vec: self, idx: self.head[row] }
+        RowIter {
+            vec: self,
+            idx: self.head[row],
+        }
     }
 }
 
@@ -60,7 +63,7 @@ pub struct RowIter<'a, T> {
 
 impl<'a, T> Iterator for RowIter<'a, T> {
     type Item = &'a T;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         (self.idx != u32::MAX).then(|| {
             let &(next, ref data) = &self.vec.link[self.idx as usize];
