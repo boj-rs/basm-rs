@@ -20,18 +20,18 @@ impl<Op: SegmentOp> SegmentTree<Op> {
         Self { v, n }
     }
 
+    #[allow(clippy::uninit_vec)]
     pub fn from_iter<I>(n: usize, iter: I) -> Self
     where
         I: IntoIterator<Item = Op::T>,
     {
         let off = n.next_power_of_two();
         let mut v = Vec::with_capacity(off * 2);
-        v.push(Op::e());
         // Safety: initializes right before return
         unsafe { v.set_len(off) };
         v.extend(iter.into_iter().take(n));
         v.resize(off * 2, Op::e());
-        for i in (0..off).rev() {
+        for i in (1..off).rev() {
             v[i] = Op::combine(&v[i * 2], &v[i * 2 + 1]);
         }
         Self { v, n: off }
@@ -128,6 +128,6 @@ mod test {
     fn from_iter() {
         let tree: SegmentTree<Add> = SegmentTree::from_iter(3, [1, 2, 3].into_iter());
         assert_eq!(tree.n, 4);
-        assert_eq!(tree.v, [6, 6, 3, 3, 1, 2, 3, 0]);
+        assert_eq!(&tree.v[1..], [6, 3, 3, 1, 2, 3, 0]);
     }
 }
