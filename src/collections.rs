@@ -6,3 +6,6 @@ pub use union_find::*;
 
 pub mod fenwick;
 pub use fenwick::*;
+
+pub mod segment_tree;
+pub use segment_tree::*;
