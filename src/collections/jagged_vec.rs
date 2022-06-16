@@ -56,7 +56,7 @@ impl<T> JaggedVec<T> {
     pub fn link(&self, id: usize) -> &T {
         &self.link[id].1
     }
-    
+
     pub fn link_mut(&mut self, id: usize) -> &mut T {
         &mut self.link[id].1
     }
