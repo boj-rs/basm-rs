@@ -20,13 +20,13 @@ impl<Op: SegmentOp> SegmentTree<Op> {
         Self { v, n }
     }
 
-    #[allow(clippy::uninit_vec)]
     pub fn from_iter<I>(n: usize, iter: I) -> Self
     where
         I: IntoIterator<Item = Op::T>,
     {
         let off = n.next_power_of_two();
         let mut v = Vec::with_capacity(off * 2);
+        v.push(Op::e());
         // Safety: initializes right before return
         unsafe { v.set_len(off) };
         v.extend(iter.into_iter().take(n));
@@ -102,5 +102,32 @@ impl<Op: SegmentOp> SegmentTree<Op> {
             }
             p - self.n
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct Add {}
+
+    impl SegmentOp for Add {
+        type T = usize;
+        type U = usize;
+        fn e() -> Self::T {
+            0
+        }
+        fn combine(l: &Self::T, r: &Self::T) -> Self::T {
+            l + r
+        }
+        fn apply(_v: &mut Self::T, _u: &Self::U) {
+            unimplemented!()
+        }
+    }
+    #[test]
+    fn from_iter() {
+        let tree: SegmentTree<Add> = SegmentTree::from_iter(3, [1, 2, 3].into_iter());
+        assert_eq!(tree.n, 4);
+        assert_eq!(tree.v, [6, 6, 3, 3, 1, 2, 3, 0]);
     }
 }
