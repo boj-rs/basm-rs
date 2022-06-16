@@ -31,7 +31,7 @@ impl<Op: SegmentOp> SegmentTree<Op> {
         unsafe { v.set_len(off) };
         v.extend(iter.into_iter().take(n));
         v.resize(off * 2, Op::e());
-        for i in (0..off).rev() {
+        for i in (1..off).rev() {
             v[i] = Op::combine(&v[i * 2], &v[i * 2 + 1]);
         }
         Self { v, n: off }
@@ -102,5 +102,32 @@ impl<Op: SegmentOp> SegmentTree<Op> {
             }
             p - self.n
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct Add {}
+
+    impl SegmentOp for Add {
+        type T = usize;
+        type U = usize;
+        fn e() -> Self::T {
+            0
+        }
+        fn combine(l: &Self::T, r: &Self::T) -> Self::T {
+            l + r
+        }
+        fn apply(_v: &mut Self::T, _u: &Self::U) {
+            unimplemented!()
+        }
+    }
+    #[test]
+    fn from_iter() {
+        let tree: SegmentTree<Add> = SegmentTree::from_iter(3, [1, 2, 3].into_iter());
+        assert_eq!(tree.n, 4);
+        assert_eq!(&tree.v[1..], [6, 3, 3, 1, 2, 3, 0]);
     }
 }
