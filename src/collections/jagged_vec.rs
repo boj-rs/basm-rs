@@ -52,6 +52,19 @@ impl<T> JaggedVec<T> {
             idx: self.head[row],
         }
     }
+
+    pub fn link(&self, id: usize) -> &T {
+        &self.link[id].1
+    }
+    
+    pub fn link_mut(&mut self, id: usize) -> &mut T {
+        &mut self.link[id].1
+    }
+
+    pub fn first_link(&self, row: usize) -> Option<usize> {
+        let head = self.head[row];
+        (head != u32::MAX).then(|| head as usize)
+    }
 }
 
 impl<T> Default for JaggedVec<T> {
@@ -63,6 +76,12 @@ impl<T> Default for JaggedVec<T> {
 pub struct RowIter<'a, T> {
     vec: &'a JaggedVec<T>,
     idx: u32,
+}
+
+impl<'a, T> RowIter<'a, T> {
+    pub fn id(&self) -> Option<usize> {
+        (self.idx != u32::MAX).then(|| self.idx as usize)
+    }
 }
 
 impl<'a, T> Iterator for RowIter<'a, T> {
