@@ -11,6 +11,7 @@ pub mod collections;
 pub mod graph;
 pub mod io;
 pub mod libc_string;
+pub mod math;
 pub mod sorts;
 pub mod strings;
 pub mod syscall;
