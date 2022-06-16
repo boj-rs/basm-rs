@@ -20,12 +20,14 @@ impl<Op: SegmentOp> SegmentTree<Op> {
         Self { v, n }
     }
 
+    #[allow(clippy::uninit_vec)]
     pub fn from_iter<I>(n: usize, iter: I) -> Self
     where
         I: IntoIterator<Item = Op::T>,
     {
         let off = n.next_power_of_two();
         let mut v = Vec::with_capacity(off * 2);
+        // Safety: initializes right before return
         unsafe { v.set_len(off) };
         v.extend(iter.into_iter().take(n));
         v.resize(off * 2, Op::e());
