@@ -1,3 +1,5 @@
+use alloc::{vec, vec::Vec};
+
 pub trait SegmentOp {
     type T: Clone;
     type U;
@@ -14,7 +16,7 @@ pub struct SegmentTree<Op: SegmentOp> {
 impl<Op: SegmentOp> SegmentTree<Op> {
     pub fn new(n: usize) -> Self {
         let n = n.next_power_of_two();
-        let v = vec![Op::e(); n];
+        let v = vec![Op::e(); n * 2];
         Self { v, n }
     }
 
@@ -22,18 +24,22 @@ impl<Op: SegmentOp> SegmentTree<Op> {
     where
         I: IntoIterator<Item = Op::T>,
     {
-        let n = n.next_power_of_two();
-        let mut v = Vec::new();
-        unsafe { v.set_len(n) };
+        let off = n.next_power_of_two();
+        let mut v = Vec::with_capacity(off * 2);
+        unsafe { v.set_len(off) };
         v.extend(iter.into_iter().take(n));
-        for i in (0..n).rev() {
+        v.resize(off * 2, Op::e());
+        for i in (0..off).rev() {
             v[i] = Op::combine(&v[i * 2], &v[i * 2 + 1]);
         }
-        Self { v, n }
+        Self { v, n: off }
     }
 
-    pub fn query<B: std::ops::RangeBounds<usize>>(&self, range: B) -> Op::T {
-        use std::ops::Bound::*;
+    pub fn query<B>(&self, range: B) -> Op::T
+    where
+        B: core::ops::RangeBounds<usize>,
+    {
+        use core::ops::Bound::*;
         let mut l = self.n
             + match range.start_bound() {
                 Included(&x) => x,
