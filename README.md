@@ -28,6 +28,8 @@ C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB�
 
   - KMP (Iterator)
 
+  - Fenwick Tree
+
 ## 사용법
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
