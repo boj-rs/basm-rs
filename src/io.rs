@@ -19,7 +19,7 @@ impl<const N: usize> Writer<N> {
     pub fn new() -> Self {
         Self(MaybeUninit::uninit_array(), 0)
     }
-    #[inline(always)]
+    #[inline]
     pub fn write(&mut self, mut buf: &[u8]) {
         while self.1 + buf.len() > N {
             let len = N - self.1;
@@ -36,14 +36,14 @@ impl<const N: usize> Writer<N> {
         }
         self.1 += buf.len();
     }
-    #[inline(always)]
+    #[inline]
     pub fn flush(&mut self) {
         syscall::write(1, unsafe {
             MaybeUninit::slice_assume_init_ref(&self.0[..self.1])
         });
         self.1 = 0;
     }
-    #[inline(always)]
+    #[inline]
     pub fn write_f64(&mut self, mut f: f64) {
         // integer part
         if f < 0.0 {
@@ -92,25 +92,25 @@ impl<const N: usize> Drop for Writer<N> {
 }
 
 impl<const N: usize> Reader<N> {
-    #[inline(always)]
+    #[inline]
     pub fn new() -> Self {
         Self(MaybeUninit::uninit_array(), 0, 0)
     }
-    #[inline(always)]
+    #[inline]
     fn peek(&mut self) -> u8 {
         if self.2 >= self.1 {
             self.fill();
         }
         unsafe { self.0.get_unchecked(self.2).assume_init_read() }
     }
-    #[inline(always)]
+    #[inline]
     pub fn fill(&mut self) {
         self.1 = syscall::read(0, unsafe {
             MaybeUninit::slice_assume_init_mut(&mut self.0)
         }) as usize;
         self.2 = 0;
     }
-    #[inline(always)]
+    #[inline]
     pub fn next_i64(&mut self) -> i64 {
         if self.peek() == b'-' {
             self.2 += 1;
@@ -119,7 +119,7 @@ impl<const N: usize> Reader<N> {
             self.next_usize() as i64
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn next_i32(&mut self) -> i32 {
         if self.peek() == b'-' {
             self.2 += 1;
@@ -128,7 +128,7 @@ impl<const N: usize> Reader<N> {
             self.next_usize() as i32
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn next_usize(&mut self) -> usize {
         let mut n = 0;
         loop {
@@ -143,7 +143,7 @@ impl<const N: usize> Reader<N> {
         }
         n
     }
-    #[inline(always)]
+    #[inline]
     pub fn skip_white(&mut self) -> usize {
         let mut skip = 0;
         loop {
@@ -155,7 +155,7 @@ impl<const N: usize> Reader<N> {
             }
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn skip_until(&mut self, delim: u8) -> usize {
         let mut skip = 0;
         while self.peek() != delim {
@@ -165,7 +165,7 @@ impl<const N: usize> Reader<N> {
         self.2 += 1;
         skip
     }
-    #[inline(always)]
+    #[inline]
     pub fn next_word(&mut self, buf: &mut [u8]) -> usize {
         let mut i = 0;
         loop {
@@ -213,7 +213,7 @@ impl<const N: usize> Reader<N> {
         sign * (int as f64 + frac as f64 / d as f64)
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn next_until(&mut self, buf: &mut [u8], delim: u8) -> usize {
         let mut i = 0;
         loop {
@@ -227,15 +227,15 @@ impl<const N: usize> Reader<N> {
             }
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn iter_i32(&mut self) -> I32Iterator<N> {
         I32Iterator { inner: self }
     }
-    #[inline(always)]
+    #[inline]
     pub fn iter_i64(&mut self) -> I64Iterator<N> {
         I64Iterator { inner: self }
     }
-    #[inline(always)]
+    #[inline]
     pub fn iter_usize(&mut self) -> UsizeIterator<N> {
         UsizeIterator { inner: self }
     }

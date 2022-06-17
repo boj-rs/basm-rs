@@ -30,7 +30,7 @@ use core::mem::{transmute, MaybeUninit};
 use crate::io::Writer;
 
 impl<const N: usize> Writer<N> {
-    #[inline(always)]
+    #[inline]
     pub fn write_u8(&mut self, mut v: u8) {
         let mut buf: [MaybeUninit<u8>; 3] = MaybeUninit::uninit_array();
         buf[2].write(v % 10 + b'0');
@@ -47,7 +47,7 @@ impl<const N: usize> Writer<N> {
         self.write(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_u16(&mut self, mut v: u16) {
         let mut buf: [MaybeUninit<u8>; 5] = MaybeUninit::uninit_array();
         buf[4].write((v % 10) as u8 + b'0');
@@ -64,7 +64,7 @@ impl<const N: usize> Writer<N> {
         self.write(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_u32(&mut self, mut v: u32) {
         use core::arch::x86_64::{
             _mm_add_epi8, _mm_cmpistri, _mm_setzero_si128, _mm_storel_epi64, _SIDD_CMP_EQUAL_EACH,
@@ -104,7 +104,7 @@ impl<const N: usize> Writer<N> {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_u64(&mut self, mut v: u64) {
         use core::arch::x86_64::{
             _mm_add_epi8, _mm_cmpistri, _mm_storeu_si128, _SIDD_CMP_EQUAL_EACH,
@@ -153,12 +153,12 @@ impl<const N: usize> Writer<N> {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_usize(&mut self, v: usize) {
         self.write_u64(v as u64);
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_i8(&mut self, v: i8) {
         if v.is_negative() {
             self.write(b"-");
@@ -166,7 +166,7 @@ impl<const N: usize> Writer<N> {
         self.write_u8(v.abs_diff(0));
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_i16(&mut self, v: i16) {
         if v.is_negative() {
             self.write(b"-");
@@ -174,7 +174,7 @@ impl<const N: usize> Writer<N> {
         self.write_u16(v.abs_diff(0));
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_i32(&mut self, v: i32) {
         if v.is_negative() {
             self.write(b"-");
@@ -182,7 +182,7 @@ impl<const N: usize> Writer<N> {
         self.write_u32(v.abs_diff(0));
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_i64(&mut self, v: i64) {
         if v.is_negative() {
             self.write(b"-");
@@ -190,7 +190,7 @@ impl<const N: usize> Writer<N> {
         self.write_u64(v.abs_diff(0));
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn write_isize(&mut self, v: isize) {
         self.write_i64(v as i64);
     }
@@ -216,7 +216,7 @@ impl<const N: usize> Writer<N> {
     const FILL_10: __m128i = unsafe { transmute([10u16; 8]) };
     const FILL_ZERO: __m128i = unsafe { transmute([b'0'; 16]) };
 
-    #[inline(always)]
+    #[inline]
     unsafe fn convert_eight(v: u32) -> __m128i {
         let abcdefgh = _mm_cvtsi32_si128(v as i32);
         let abcd = _mm_srli_epi64(_mm_mul_epu32(abcdefgh, Self::DIV_10000), 45);
@@ -232,7 +232,7 @@ impl<const N: usize> Writer<N> {
         _mm_sub_epi16(v4, v6)
     }
 
-    #[inline(always)]
+    #[inline]
     unsafe fn shift_digits(a: __m128i, digit: u32) -> __m128i {
         match digit {
             0 => a,
