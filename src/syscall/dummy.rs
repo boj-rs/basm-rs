@@ -1,6 +1,6 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-use core::lazy::OnceCell;
+use core::cell::OnceCell;
 
 use super::Stat;
 
