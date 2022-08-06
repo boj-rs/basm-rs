@@ -1,29 +1,26 @@
 pub mod miller_rabin;
 pub use miller_rabin::*;
 
-// reference: https://lemire.me/blog/2013/12/26/fastest-way-to-compute-the-greatest-common-divisor/
+// reference: https://nyaannyaan.github.io/library/trial/fast-gcd.hpp.html
 
 macro_rules! define_gcd_lcm {
-    ($gcd:ident, $lcm:ident, $unsigned:ty, $signed:ty) => {
+    ($gcd:ident, $lcm:ident, $unsigned:ty) => {
         pub fn $gcd(mut a: $unsigned, mut b: $unsigned) -> $unsigned {
-            if a == 0 {
-                b
-            } else if b == 0 {
-                a
+            if a == 0 || b == 0 {
+                a + b
             } else {
-                let shift = (a | b).trailing_zeros();
-                a >>= shift;
-                loop {
-                    b >>= b.trailing_zeros();
-                    b = b.wrapping_sub(a);
-                    let m = ((b as $signed) >> (<$signed>::BITS - 1)) as $unsigned;
-                    a = a.wrapping_add(b & m);
-                    b = b.wrapping_add(m) ^ m;
-                    if b == 0 {
-                        break;
-                    }
+                let n = a.trailing_zeros();
+                let m = b.trailing_zeros();
+                a >>= n;
+                b >>= m;
+                while a != b {
+                    let m = a.wrapping_sub(b);
+                    let f = a > b;
+                    let c = if f { a } else { b };
+                    b = if f { b } else { a };
+                    a = (c - b) >> m;
                 }
-                a << shift
+                a << n.min(m)
             }
         }
 
@@ -33,9 +30,9 @@ macro_rules! define_gcd_lcm {
     };
 }
 
-define_gcd_lcm!(gcd, lcm, u32, i32);
-define_gcd_lcm!(gcd_u64, lcm_u64, u64, i64);
-define_gcd_lcm!(gcd_usize, lcm_usize, usize, isize);
+define_gcd_lcm!(gcd, lcm, u32);
+define_gcd_lcm!(gcd_u64, lcm_u64, u64);
+define_gcd_lcm!(gcd_usize, lcm_usize, usize);
 
 #[cfg(test)]
 mod test {
