@@ -14,7 +14,7 @@ macro_rules! define_gcd_lcm {
                 a >>= n;
                 b >>= m;
                 while a != b {
-                    let m = a.wrapping_sub(b);
+                    let m = a.wrapping_sub(b).trailing_zeros();
                     let f = a > b;
                     let c = if f { a } else { b };
                     b = if f { b } else { a };
