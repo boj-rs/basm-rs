@@ -63,7 +63,7 @@ impl<T> JaggedVec<T> {
 
     pub fn first_link(&self, row: usize) -> Option<usize> {
         let head = self.head[row];
-        (head != u32::MAX).then(|| head as usize)
+        (head != u32::MAX).then_some(head as usize)
     }
 }
 
@@ -80,7 +80,7 @@ pub struct RowIter<'a, T> {
 
 impl<'a, T> RowIter<'a, T> {
     pub fn id(&self) -> Option<usize> {
-        (self.idx != u32::MAX).then(|| self.idx as usize)
+        (self.idx != u32::MAX).then_some(self.idx as usize)
     }
 }
 
