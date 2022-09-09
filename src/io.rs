@@ -113,6 +113,22 @@ impl<const N: usize> Reader<N> {
         self.2 = 0;
     }
     #[inline]
+    pub fn try_fill(&mut self) -> Result<(), ()> {
+        if self.2 < self.1 {
+            Ok(())
+        } else {
+            self.1 = syscall::read(0, unsafe {
+                MaybeUninit::slice_assume_init_mut(&mut self.0)
+            }) as usize;
+            self.2 = 0;
+            if self.1 == 0 {
+                Err(())
+            } else {
+                Ok(())
+            }
+        }
+    }
+    #[inline]
     pub fn next_ascii(&mut self) -> u8 {
         let c = self.peek();
         self.2 += 1;
