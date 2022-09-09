@@ -8,6 +8,31 @@ C 외에 64bit Assembly, Rust (메모리 사용량 감소)도 지원합니다.
 
 ## 효과
 
+- 입력이 매우 간편하고 직관적입니다.
+
+공백으로 구분된 a와 b를 받아 더한 결과를 출력하는 프로그램은 다음과 같이 작성할 수 있습니다.
+
+```rust
+let mut s = String::new();
+std::io::stdin().read_to_string(&mut s).unwrap();
+let mut input = s.split_whitespace().flat_map(str::parse);
+let a: usize = input.next().unwrap();
+let b: usize = input.next().unwrap();
+println!("{}", a + b);
+```
+
+이를 basm에서는 다음과 같이 작성할 수 있습니다.
+
+```rust
+use basm::io::{Reader, Writer};
+
+let mut reader: Reader = Default::default();
+let mut writer: Writer = Default::default();
+let a = reader.next_usize();
+let b = reader.next_usize();
+writer.write_usize(a + b);
+```
+
 - 표시되는 메모리 사용량이 줄어듭니다.
 
 C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB부터 시작합니다.

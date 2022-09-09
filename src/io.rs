@@ -12,8 +12,10 @@ mod fast;
 #[cfg(feature = "slow-io")]
 mod slow;
 
-pub struct Reader<const N: usize>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
-pub struct Writer<const N: usize>(pub [MaybeUninit<u8>; N], pub usize);
+pub struct Reader<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
+pub struct Writer<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize);
+
+const BUF_SIZE: usize = 1 << 16;
 
 impl<const N: usize> Writer<N> {
     pub fn new() -> Self {
@@ -97,7 +99,7 @@ impl<const N: usize> Reader<N> {
         Self(MaybeUninit::uninit_array(), 0, 0)
     }
     #[inline]
-    fn peek(&mut self) -> u8 {
+    pub fn peek(&mut self) -> u8 {
         if self.2 >= self.1 {
             self.fill();
         }
@@ -109,6 +111,12 @@ impl<const N: usize> Reader<N> {
             MaybeUninit::slice_assume_init_mut(&mut self.0)
         }) as usize;
         self.2 = 0;
+    }
+    #[inline]
+    pub fn next_ascii(&mut self) -> u8 {
+        let c = self.peek();
+        self.2 += 1;
+        c
     }
     #[inline]
     pub fn next_i64(&mut self) -> i64 {
