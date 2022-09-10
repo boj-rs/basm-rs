@@ -1,6 +1,5 @@
 use basm::io::{Reader, Writer};
 
-#[inline(always)]
 pub fn main() {
     // 여기에 코드 입력...
     // 아래는 예시 코드입니다

@@ -113,19 +113,15 @@ impl<const N: usize> Reader<N> {
         self.2 = 0;
     }
     #[inline]
-    pub fn try_fill(&mut self) -> Result<(), ()> {
+    pub fn try_fill(&mut self) -> bool {
         if self.2 < self.1 {
-            Ok(())
+            true
         } else {
             self.1 = syscall::read(0, unsafe {
                 MaybeUninit::slice_assume_init_mut(&mut self.0)
             }) as usize;
             self.2 = 0;
-            if self.1 == 0 {
-                Err(())
-            } else {
-                Ok(())
-            }
+            self.1 != 0
         }
     }
     #[inline]
