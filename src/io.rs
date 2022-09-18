@@ -1,3 +1,4 @@
+use core::arch::asm;
 use core::mem::MaybeUninit;
 
 use crate::syscall;
@@ -375,6 +376,133 @@ impl<const N: usize> Print<f64> for Writer<N> {
     fn println(&mut self, x: f64) {
         self.write_f64(x);
         self.write(b"\n");
+    }
+}
+
+const PAGE: usize = 4096;
+pub struct MmapReader<const N: usize = BUF_SIZE>(*const u8, usize, usize);
+
+impl<const N: usize> Default for MmapReader<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const N: usize> MmapReader<N> {
+    pub fn new() -> Self {
+        let ptr;
+        unsafe {
+            asm!(
+                "syscall",
+                in("rax") 9,
+                in("rdi") 0,
+                in("rsi") N,
+                in("rdx") 3,
+                in("r10") 2,
+                in("r8") 0,
+                in("r9") 0,
+                lateout("rax") ptr,
+                out("rcx") _,
+                out("r11") _,
+            );
+        }
+        Self(ptr, 0, 0)
+    }
+
+    pub fn try_fill(&mut self, len: usize) -> bool {
+        if self.1 + len >= N {
+            let ptr: *const u8;
+            unsafe {
+                asm!(
+                    "syscall",
+                    in("rax") 11,
+                    in("rdi") self.0.offset(-(self.1 as isize)),
+                    in("rdx") N,
+                    lateout("rax") _,
+                    out("rcx") _,
+                    out("r11") _,
+                );
+            }
+            self.2 += self.1;
+            let offset = self.2 & (PAGE - 1);
+            self.2 &= !(PAGE - 1);
+            unsafe {
+                asm!(
+                    "syscall",
+                    in("rax") 9,
+                    in("rdi") 0,
+                    in("rsi") N,
+                    in("rdx") 3,
+                    in("r10") 2,
+                    in("r8") 0,
+                    in("r9") self.2,
+                    lateout("rax") ptr,
+                    out("rcx") _,
+                    out("r11") _,
+                );
+            }
+            if ptr as isize == -1 {
+                false
+            } else {
+                self.0 = unsafe { ptr.add(offset) };
+                self.1 = offset;
+                true
+            }
+        } else {
+            true
+        }
+    }
+
+    pub fn next_usize(&mut self) -> usize {
+        let mut s = 0;
+        loop {
+            s = s * 10 + (unsafe { *self.0 } as usize & 15);
+            self.0 = unsafe { self.0.offset(1) };
+            self.1 += 1;
+            if unsafe { *self.0 } < 48 {
+                break s;
+            }
+        }
+    }
+
+    pub fn next_eight(&mut self) -> u32 {
+        let mut c = unsafe { *(self.0 as *const usize) };
+        if c & 0x3030_3030_3030_3030 == 0x3030_3030_3030_3030 {
+            self.0 = unsafe { self.0.offset(9) };
+            self.1 += 9;
+        } else if c & 0x0030_3030_3030_3030 == 0x0030_3030_3030_3030 {
+            self.0 = unsafe { self.0.offset(8) };
+            self.1 += 8;
+            c <<= 8;
+        } else if c & 0x0000_3030_3030_3030 == 0x0000_3030_3030_3030 {
+            self.0 = unsafe { self.0.offset(7) };
+            self.1 += 7;
+            c <<= 16;
+        } else if c & 0x0000_0030_3030_3030 == 0x0000_0030_3030_3030 {
+            self.0 = unsafe { self.0.offset(6) };
+            self.1 += 6;
+            c <<= 24;
+        } else if c & 0x3030_3030 == 0x3030_3030 {
+            self.0 = unsafe { self.0.offset(5) };
+            self.1 += 5;
+            c <<= 32;
+        } else if c & 0x0030_3030 == 0x0030_3030 {
+            self.0 = unsafe { self.0.offset(4) };
+            self.1 += 4;
+            c <<= 40;
+        } else if c & 0x0000_3030 == 0x0000_3030 {
+            self.0 = unsafe { self.0.offset(3) };
+            self.1 += 3;
+            c <<= 48;
+        } else {
+            self.0 = unsafe { self.0.offset(2) };
+            self.1 += 2;
+            c <<= 56;
+        }
+        c = ((c & 0x0F0F0F0F0F0F0F0F) * 2561) >> 8;
+        c = ((c & 0x00FF00FF00FF00FF) * 6553601) >> 16;
+        c = ((c & 0x0000FFFF0000FFFF) * 42949672960001) >> 32;
+        c as u32
     }
 }
 
