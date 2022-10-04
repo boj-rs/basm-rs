@@ -416,7 +416,7 @@ impl<const N: usize> MmapReader<N> {
                 asm!(
                     "syscall",
                     in("rax") 11,
-                    in("rdi") self.0.add(-(self.1 as isize)),
+                    in("rdi") self.0.sub(self.1),
                     in("rdx") N,
                     lateout("rax") _,
                     out("rcx") _,
