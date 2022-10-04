@@ -380,7 +380,7 @@ impl<const N: usize> Print<f64> for Writer<N> {
 }
 
 const PAGE: usize = 4096;
-pub struct MmapReader<const N: usize = BUF_SIZE>(*const u8, usize, usize);
+pub struct MmapReader<const N: usize = BUF_SIZE>(pub *mut u8, usize, usize);
 
 impl<const N: usize> Default for MmapReader<N> {
     fn default() -> Self {
@@ -411,12 +411,12 @@ impl<const N: usize> MmapReader<N> {
 
     pub fn try_fill(&mut self, len: usize) -> bool {
         if self.1 + len >= N {
-            let ptr: *const u8;
+            let ptr: *mut u8;
             unsafe {
                 asm!(
                     "syscall",
                     in("rax") 11,
-                    in("rdi") self.0.offset(-(self.1 as isize)),
+                    in("rdi") self.0.add(-(self.1 as isize)),
                     in("rdx") N,
                     lateout("rax") _,
                     out("rcx") _,
@@ -424,7 +424,7 @@ impl<const N: usize> MmapReader<N> {
                 );
             }
             self.2 += self.1;
-            let offset = self.2 & (PAGE - 1);
+            let add = self.2 & (PAGE - 1);
             self.2 &= !(PAGE - 1);
             unsafe {
                 asm!(
@@ -444,8 +444,8 @@ impl<const N: usize> MmapReader<N> {
             if ptr as isize == -1 {
                 false
             } else {
-                self.0 = unsafe { ptr.add(offset) };
-                self.1 = offset;
+                self.0 = unsafe { ptr.add(add) };
+                self.1 = add;
                 true
             }
         } else {
@@ -457,45 +457,54 @@ impl<const N: usize> MmapReader<N> {
         let mut s = 0;
         loop {
             s = s * 10 + (unsafe { *self.0 } as usize & 15);
-            self.0 = unsafe { self.0.offset(1) };
+            self.0 = unsafe { self.0.add(1) };
             self.1 += 1;
             if unsafe { *self.0 } < 48 {
+                self.0 = unsafe { self.0.add(1) };
                 break s;
             }
         }
     }
 
+    pub fn peek(&self) -> u8 {
+        unsafe { *self.0 }
+    }
+
+    pub fn consume(&mut self, byte: usize) {
+        self.0 = unsafe { self.0.add(byte) };
+    }
+
     pub fn next_eight(&mut self) -> u32 {
         let mut c = unsafe { *(self.0 as *const usize) };
         if c & 0x3030_3030_3030_3030 == 0x3030_3030_3030_3030 {
-            self.0 = unsafe { self.0.offset(9) };
+            self.0 = unsafe { self.0.add(9) };
             self.1 += 9;
         } else if c & 0x0030_3030_3030_3030 == 0x0030_3030_3030_3030 {
-            self.0 = unsafe { self.0.offset(8) };
+            self.0 = unsafe { self.0.add(8) };
             self.1 += 8;
             c <<= 8;
         } else if c & 0x0000_3030_3030_3030 == 0x0000_3030_3030_3030 {
-            self.0 = unsafe { self.0.offset(7) };
+            self.0 = unsafe { self.0.add(7) };
             self.1 += 7;
             c <<= 16;
         } else if c & 0x0000_0030_3030_3030 == 0x0000_0030_3030_3030 {
-            self.0 = unsafe { self.0.offset(6) };
+            self.0 = unsafe { self.0.add(6) };
             self.1 += 6;
             c <<= 24;
         } else if c & 0x3030_3030 == 0x3030_3030 {
-            self.0 = unsafe { self.0.offset(5) };
+            self.0 = unsafe { self.0.add(5) };
             self.1 += 5;
             c <<= 32;
         } else if c & 0x0030_3030 == 0x0030_3030 {
-            self.0 = unsafe { self.0.offset(4) };
+            self.0 = unsafe { self.0.add(4) };
             self.1 += 4;
             c <<= 40;
         } else if c & 0x0000_3030 == 0x0000_3030 {
-            self.0 = unsafe { self.0.offset(3) };
+            self.0 = unsafe { self.0.add(3) };
             self.1 += 3;
             c <<= 48;
         } else {
-            self.0 = unsafe { self.0.offset(2) };
+            self.0 = unsafe { self.0.add(2) };
             self.1 += 2;
             c <<= 56;
         }
