@@ -458,6 +458,30 @@ impl<const N: usize> MmapReader<N> {
         }
     }
 
+    pub fn next_i32(&mut self) -> i32 {
+        let sign = self.peek() == b'-';
+        if sign {
+            self.consume(1);
+        }
+        let mut v = self.next_usize() as u32;
+        if sign {
+            v = v.wrapping_neg();
+        }
+        v as i32
+    }
+
+    pub fn next_i64(&mut self) -> i64 {
+        let sign = self.peek() == b'-';
+        if sign {
+            self.consume(1);
+        }
+        let mut v = self.next_usize() as u64;
+        if sign {
+            v = v.wrapping_neg();
+        }
+        v as i64
+    }
+
     pub fn peek(&self) -> u8 {
         unsafe { *self.0 }
     }
