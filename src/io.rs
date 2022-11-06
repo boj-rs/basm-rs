@@ -380,7 +380,7 @@ impl<const N: usize> Print<f64> for Writer<N> {
 }
 
 const PAGE: usize = 4096;
-pub struct MmapReader<const N: usize = BUF_SIZE>(pub *mut u8, usize, usize);
+pub struct MmapReader<const N: usize = BUF_SIZE>(pub *mut u8, pub usize, pub usize);
 
 impl<const N: usize> Default for MmapReader<N> {
     fn default() -> Self {
@@ -409,45 +409,50 @@ impl<const N: usize> MmapReader<N> {
         Self(ptr, 0, 0)
     }
 
+    pub fn fill(&mut self) -> bool {
+        let ptr: *mut u8;
+        let origin = unsafe { self.0.sub(self.1) };
+        unsafe {
+            asm!(
+                "syscall",
+                in("rax") 11,
+                in("rdi") origin,
+                in("rdx") N,
+                lateout("rax") _,
+                out("rcx") _,
+                out("r11") _,
+            );
+        }
+        self.2 += self.1;
+        let add = self.2 & (PAGE - 1);
+        self.2 &= !(PAGE - 1);
+        unsafe {
+            asm!(
+                "syscall",
+                in("rax") 9,
+                in("rdi") origin,
+                in("rsi") N,
+                in("rdx") 3,
+                in("r10") 2,
+                in("r8") 0,
+                in("r9") self.2,
+                lateout("rax") ptr,
+                out("rcx") _,
+                out("r11") _,
+            );
+        }
+        if ptr as isize == -1 {
+            false
+        } else {
+            self.0 = unsafe { ptr.add(add) };
+            self.1 = add;
+            true
+        }
+    }
+
     pub fn try_fill(&mut self, len: usize) -> bool {
         if self.1 + len >= N {
-            let ptr: *mut u8;
-            unsafe {
-                asm!(
-                    "syscall",
-                    in("rax") 11,
-                    in("rdi") self.0.sub(self.1),
-                    in("rdx") N,
-                    lateout("rax") _,
-                    out("rcx") _,
-                    out("r11") _,
-                );
-            }
-            self.2 += self.1;
-            let add = self.2 & (PAGE - 1);
-            self.2 &= !(PAGE - 1);
-            unsafe {
-                asm!(
-                    "syscall",
-                    in("rax") 9,
-                    in("rdi") 0,
-                    in("rsi") N,
-                    in("rdx") 3,
-                    in("r10") 2,
-                    in("r8") 0,
-                    in("r9") self.2,
-                    lateout("rax") ptr,
-                    out("rcx") _,
-                    out("r11") _,
-                );
-            }
-            if ptr as isize == -1 {
-                false
-            } else {
-                self.0 = unsafe { ptr.add(add) };
-                self.1 = add;
-                true
-            }
+            self.fill()
         } else {
             true
         }
