@@ -461,6 +461,7 @@ impl<const N: usize> MmapReader<N> {
             self.1 += 1;
             if unsafe { *self.0 } < 48 {
                 self.0 = unsafe { self.0.add(1) };
+                self.1 += 1;
                 break s;
             }
         }
