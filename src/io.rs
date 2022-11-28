@@ -203,7 +203,7 @@ impl<const N: usize> Reader<N> {
         } else {
             1.0
         };
-        while i < n && matches!(buf[i], b'0'..=b'9') {
+        while i < n && buf[i].is_ascii_digit() {
             int = int * 10 + (buf[i] - b'0') as usize;
             i += 1;
         }
