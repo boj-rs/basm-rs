@@ -29,12 +29,8 @@ jobs:
         run: cargo clippy
         env:
           RUSTFLAGS: "-D warnings"
-      - name: Test (fast-io)
+      - name: Test
         run: cargo test --lib -- --test-threads 1
-        env:
-          RUSTFLAGS: ""
-      - name: Test (slow-io)
-        run: cargo test --lib --features slow-io -- --test-threads 1
         env:
           RUSTFLAGS: ""
       - name: Check C
@@ -42,28 +38,13 @@ jobs:
           scripts/check.sh \
             "./release.sh | tee /tmp/code.c" \
             "cc -w /tmp/code.c -o /tmp/bin"
-      - name: Check C (no-probe)
-        run: |
-          scripts/check.sh \
-            "./release.sh --features no-probe | tee /tmp/code.c" \
-            "cc -w /tmp/code.c -o /tmp/bin"
       - name: Check ASM
         run: |
           scripts/check.sh \
             "./release-asm.sh | tee /tmp/code.s" \
             "nasm -f elf64 /tmp/code.s -o /tmp/code.o && cc /tmp/code.o -o /tmp/bin"
-      - name: Check ASM (no-probe)
-        run: |
-          scripts/check.sh \
-            "./release-asm.sh --features no-probe | tee /tmp/code.s" \
-            "nasm -f elf64 /tmp/code.s -o /tmp/code.o && cc /tmp/code.o -o /tmp/bin"
       - name: Check Rust
         run: |
           scripts/check.sh \
             "./release-rs.sh | tee /tmp/code.rs" \
-            "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
-      - name: Check Rust (no-probe)
-        run: |
-          scripts/check.sh \
-            "./release-rs.sh --features no-probe | tee /tmp/code.rs" \
             "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
