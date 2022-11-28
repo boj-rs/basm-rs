@@ -8,13 +8,10 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
 
 #[no_mangle]
 #[link_section = ".init"]
-fn _start() {
-    unsafe {
-        asm!("and rsp, 0xFFFFFFFFFFFFFFF0");
-    }
+fn _start() -> ! {
     solution::main();
     unsafe {
-        asm!("xor eax, eax", "mov al, 231", "syscall", in("rax") 231, in("rdi") 0);
+        asm!("syscall", in("rax") 231, in("rdi") 0, options(nomem, noreturn));
     }
 }
 
@@ -29,7 +26,3 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 fn alloc_fail(_: core::alloc::Layout) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
-
-#[cfg(feature = "no-probe")]
-#[no_mangle]
-fn __rust_probestack() {}

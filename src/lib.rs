@@ -5,12 +5,12 @@
 #![feature(alloc_error_handler)]
 #![cfg_attr(not(test), no_std)]
 extern crate alloc;
+extern crate compiler_builtins;
 
 pub mod allocator;
 pub mod collections;
 pub mod graph;
 pub mod io;
-pub mod libc_string;
 pub mod math;
 pub mod sorts;
 pub mod strings;

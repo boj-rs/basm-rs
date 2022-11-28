@@ -4,15 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+compiler_builtins = { version = "0.1.84", features = ["mem"] }
 
 [profile.dev]
 panic = "abort"
 
 [profile.release]
 panic = "abort"
-opt-level = "s"
+opt-level = "z"
 lto = true
-
-[features]
-no-probe = []
-slow-io = []
