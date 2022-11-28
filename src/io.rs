@@ -728,4 +728,3 @@ impl<const N: usize> Writer<N> {
         self.write(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
     }
 }
-

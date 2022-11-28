@@ -8,8 +8,14 @@ except ValueError:
     sys.exit(1)
 
 with open(binary_path, "rb") as f:
-    # remove prologue
-    code = f.read()[4:]
+    code = f.read()
+
+# remove prologue
+i = 0
+for i, byte in enumerate(code):
+    if byte not in range(0x50, 0x58) and byte != 0x41:
+        break
+code = code[i:]
 
 rem = len(code) % 8
 if rem:

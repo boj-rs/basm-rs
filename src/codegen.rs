@@ -9,6 +9,9 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
 #[no_mangle]
 #[link_section = ".init"]
 fn _start() -> ! {
+    unsafe {
+        asm!("and rsp, 0xFFFFFFFFFFFFFFF0", options(nomem));
+    }
     solution::main();
     unsafe {
         asm!("syscall", in("rax") 231, in("rdi") 0, options(nomem, noreturn));
