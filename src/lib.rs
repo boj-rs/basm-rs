@@ -5,6 +5,7 @@
 #![feature(alloc_error_handler)]
 #![cfg_attr(not(test), no_std)]
 extern crate alloc;
+#[cfg(not(test))]
 extern crate compiler_builtins;
 
 pub mod allocator;
