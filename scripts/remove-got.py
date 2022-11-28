@@ -26,6 +26,8 @@ for line in readelf:
         break
 
 if got is None:
+    with open(args.output, "wb") as f:
+        f.write(binary)
     exit(0)
 
 objdump = subprocess.check_output(["objdump", "-Fd", args.binary_path]).decode("utf-8").splitlines()

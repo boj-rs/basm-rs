@@ -1,5 +1,4 @@
 import array
-import os
 import sys
 
 try:
@@ -8,9 +7,13 @@ except ValueError:
     print(f"Usage: {sys.argv[0]} binary_path template_path", file=sys.stderr)
     sys.exit(1)
 
-code = bytearray((os.path.getsize(binary_path) + 7) // 8 * 8)
 with open(binary_path, "rb") as f:
-    f.readinto(code)
+    # remove prologue
+    code = f.read()[4:]
+
+rem = len(code) % 8
+if rem:
+    code += b"\x00" * (8 - rem)
 
 arr = array.array('Q')
 arr.frombytes(code)
