@@ -15,6 +15,11 @@
 // 매크로
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+#ifndef __GNUC__
+#define __asm__ asm
+#endif
+
 // 기본 데이터 타입을 정의한 매크로
 typedef uint16_t Elf64_Half;
 typedef int16_t Elf64_SHalf;
@@ -294,12 +299,10 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
 {
     Elf64_Ehdr* pstELFHeader;
     Elf64_Shdr* pstSectionHeader;
-    Elf64_Shdr* pstSectionNameTableHeader;
     Elf64_Xword qwLastSectionSize;
     Elf64_Addr qwLastSectionAddress;
     int i;
     uint64_t qwMemorySize;
-    uint64_t qwStackAddress;
     uint8_t* pbLoadedAddress;
 
     //--------------------------------------------------------------------------
@@ -307,7 +310,6 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
     //--------------------------------------------------------------------------
     pstELFHeader = ( Elf64_Ehdr* ) pbFileBuffer;
     pstSectionHeader = ( Elf64_Shdr* ) ( pbFileBuffer + pstELFHeader->e_shoff );
-    pstSectionNameTableHeader = pstSectionHeader + pstELFHeader->e_shstrndx;
     
     // ELF의 ID와 클래스, 인코딩, 그리고 타입을 확인하여 올바른 응용프로그램인지 확인
     if( ( pstELFHeader->e_ident[ EI_MAG0 ] != ELFMAG0 ) ||
@@ -427,7 +429,7 @@ static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress )
     Elf64_Ehdr* pstELFHeader;
     Elf64_Shdr* pstSectionHeader;
     int i;
-    int j;
+    Elf64_Xword j;
     int iSymbolTableIndex;
     int iSectionIndexInSymbol;
     int iSectionIndexToRelocation;
@@ -658,21 +660,6 @@ static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress )
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-/** Lookup table to convert a binary number in a base 85 digit. */
-static char const bintodigit[] = {
-
-    '0','1','2','3','4','5','6','7','8','9',
-
-    'A','B','C','D','E','F','G','H','I','J','K','L','M',
-    'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
-
-    'a','b','c','d','e','f','g','h','i','j','k','l','m',
-    'n','o','p','q','r','s','t','u','v','w','x','y','z',
-
-    '!','#','$','%','&','(',')','*','+','-',';',
-    '<','=','>','?','@','^','_','`','{','|','}','~',
-};
-
 /** Escape values. */
 enum escape {
     notadigit = 85u /**< Return value when a non-digit-base-85 is found. */
@@ -709,72 +696,20 @@ static unsigned char const digittobin[] = {
 /** Powers of 85 list. */
 static unsigned long const pow85[] = { p854, p853, p852, p851, p850 };
 
-/** Converts a integer of 4 bytes in 5 digits of base 85.
-  * @param dest Memory block where to put the 5 digits of base 85.
-  * @param value Value of the integer of 4 bytes. */
-static void ultob85( char* dest, unsigned int long value ) {
-
-    unsigned int const digitsQty = sizeof pow85 / sizeof *pow85;
-
-    for( unsigned int i = 0; i < digitsQty; ++i ) {
-        unsigned int const bin = value / pow85[ i ];
-        dest[ i ] = bintodigit[ bin ];
-        value -= bin * pow85[ i ];
-    }
-}
-
 /** Helper constant to get the endianness of the running machine. */
 static short const endianness = 1;
 
 /** Points to 1 if little-endian or points to 0 if big-endian. */
 static char const* const littleEndian = (char const*)&endianness;
 
-/** Convert a big-endian array of  bytes in a unsigned long.
-  * @param src Pointer to array of bytes.
-  * @param sz Size in bytes of array from 0 until 4.
-  * @return  The unsigned long value. */
-static unsigned long betoul( void const* src, int sz ) {
-
-    unsigned long value = 0;
-    char* const d = (char*)&value;
-    char const* const s = (char const*)src;
-
-    for( int i = 0; i < sz; ++i )
-        d[ *littleEndian ? 3 - i : i ] = s[ i ];
-
-    for( int i = sz; i < 4; ++i )
-        d[ *littleEndian ? 3 - i : i ] = 0;
-
-    return value;
-}
-
-char* bintob85( char* restrict dest, void const* restrict src, size_t size ) {
-
-    size_t const quartets = size / 4;
-    char const* s = (char*)src + 4 * quartets;
-    dest += 5 * quartets;
-
-    int const remainder = size % 4;
-    if ( remainder )
-        ultob85( dest, betoul( s, remainder ) );
-
-    char* rslt = dest + ( remainder ? 5 : 0 );
-    *rslt = '\0';
-
-    for( size_t i = 0; i < quartets; ++i )
-        ultob85( dest -= 5, betoul( s -= 4, 4 ) );
-
-    return rslt;
-}
-
 /** Copy a unsigned long in a big-endian array of 4 bytes.
   * @param dest Destination memory block.
   * @param value Value to copy.
   * @return  dest + 4 */
-static void* ultobe( void* dest, unsigned long value ) {
+static uint8_t* ultobe( uint8_t* dest, uint32_t value ) {
 
-    char* const d = (char*)dest;
-    char const* const s = (char*)&value;
+    uint8_t* const d = (uint8_t*)dest;
+    uint8_t const* const s = (uint8_t*)&value;
 
     for( int i = 0; i < 4; ++i )
         d[ i ] = s[ *littleEndian ? 3 - i : i ];
@@ -783,15 +718,15 @@ static void* ultobe( void* dest, unsigned long value ) {
 }
 
 /* Convert a base85 string to binary format. */
-void* b85tobin( void* restrict dest, char const* restrict src ) {
+void b85tobin( uint8_t* dest, char const* src ) {
 
-    for( unsigned char const* s = (unsigned char const*)src;; ) {
+    for( char const* s = (char const*)src;; ) {
 
-        unsigned long value = 0;
-        for( int i = 0; i < sizeof pow85 / sizeof *pow85; ++i, ++s ) {
-            unsigned int const bin = digittobin[ *s ];
+        uint32_t value = 0;
+        for( uint32_t i = 0; i < sizeof pow85 / sizeof *pow85; ++i, ++s ) {
+            uint32_t bin = digittobin[ (int) *s ];
             if ( bin == notadigit )
-                return i == 0 ? dest : 0;
+				return;
             value += bin * pow85[ i ];
         }
 
@@ -800,7 +735,7 @@ void* b85tobin( void* restrict dest, char const* restrict src ) {
 }
 
 char ELF_binary_base85[] = "$$$$binary_base85$$$$"; // ELF linked as a static PIE encoded as base85 (PIE: position independent executable)
-uint8_t ELF_binary[ $$$$len$$$$ + 20];
+uint8_t ELF_binary[ $$$$len$$$$ ];
 int ELF_binary_len = $$$$len$$$$;
 
 int main(int argc, char *argv[]) {

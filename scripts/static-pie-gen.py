@@ -16,7 +16,7 @@ while len(code) % 4 != 0:
     code.append(0)
 
 r = base64.b85encode(code, pad=False) # already padded
-r = r.decode('ascii')
+r = r.decode('ascii').replace("?", "\?")
 
 with open(template_path, encoding='utf8') as f:
     template = f.read()
