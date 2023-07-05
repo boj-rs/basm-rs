@@ -4,9 +4,8 @@
 //     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
 //     https://github.com/rafagafe/base85/blob/master/base85.c
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
+#include <stddef.h>
 #include <memory.h>
 #include <sys/mman.h>
 
@@ -349,18 +348,15 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
         0xfffffffffffff000;
 
     // 응용프로그램에서 사용할 메모리를 할당
-    pbLoadedAddress = ( uint8_t * ) malloc( qwMemorySize );
-    if( pbLoadedAddress == NULL )
+    pbLoadedAddress = ( uint8_t * ) mmap(NULL, qwMemorySize,
+		PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if( pbLoadedAddress == MAP_FAILED )
     {
         return false;
     }
     else
     {
         pbLoadedAddress = ( uint8_t *) ( ((uint64_t)pbLoadedAddress + 0x1000 - 1) & 0xfffffffffffff000 );
-    }
-    int err = mprotect(pbLoadedAddress, qwMemorySize, PROT_READ | PROT_WRITE | PROT_EXEC);
-    if (err != 0) {
-        return false;
     }
 
     //--------------------------------------------------------------------------
