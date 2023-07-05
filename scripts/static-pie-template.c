@@ -726,7 +726,7 @@ void b85tobin( uint8_t* dest, char const* src ) {
         for( uint32_t i = 0; i < sizeof pow85 / sizeof *pow85; ++i, ++s ) {
             uint32_t bin = digittobin[ (int) *s ];
             if ( bin == notadigit )
-				return;
+                return;
             value += bin * pow85[ i ];
         }
 
@@ -739,7 +739,7 @@ uint8_t ELF_binary[ $$$$len$$$$ ];
 int ELF_binary_len = $$$$len$$$$;
 
 int main(int argc, char *argv[]) {
-	b85tobin(ELF_binary, ELF_binary_base85);
+    b85tobin(ELF_binary, ELF_binary_base85);
     kExecuteProgram(ELF_binary);
     return 0; // should never be reached
 }
