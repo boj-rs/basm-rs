@@ -37,38 +37,10 @@ impl<const N: usize> Writer<N> {
         self.1 = 0;
     }
     #[inline]
-    pub fn write_f64(&mut self, mut f: f64) {
-        // integer part
-        if f < 0.0 {
-            self.write(b"-");
-            f = -f;
-        }
-        let mut n = f as usize;
-        self.write_usize(n);
-
-        // fractional part
-        let frac = f - (n as f64);
-        if frac == 0.0 {
-            return;
-        }
-        let mut buf = [b'0'; 11];
-        buf[0] = b'.';
-        let mut i = buf.len();
-        n = (frac * 10_000_000_000.0) as usize;
-        while n > 0 {
-            i -= 1;
-            buf[i] = (n % 10) as u8 + b'0';
-            n /= 10;
-        }
-
-        // remove trailing zeros
-        let mut len = buf.len();
-        while len > 0 && buf[len - 1] == b'0' {
-            len -= 1;
-        }
-        if len > 1 {
-            self.write(&buf[..len]);
-        }
+    pub fn write_f64(&mut self, f: f64) {
+        let mut buffer = dtoa::Buffer::new();
+        let printed = buffer.format(f);
+        self.write(printed.as_bytes());
     }
 }
 
