@@ -1,1 +1,1 @@
-scripts/release.sh
+scripts/static-pie-release.sh
