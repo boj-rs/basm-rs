@@ -289,7 +289,7 @@ bool kExecuteProgram( uint8_t *pbFileBuffer )
     {
         return false;
     }
-	printf("EntryPoint: %16llx\n", qwEntryPointAddress);
+    printf("EntryPoint: %16llx\n", qwEntryPointAddress);
     __asm__ volatile("call *%0" : : "r" (qwEntryPointAddress));
     return true; // should never be reached
 }
@@ -354,7 +354,7 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
 
     // 응용프로그램에서 사용할 메모리를 할당
     pbLoadedAddress = ( uint8_t * ) mmap(NULL, qwMemorySize,
-		PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if( pbLoadedAddress == MAP_FAILED )
     {
         return false;
@@ -683,7 +683,7 @@ void* kMemSet( void* pvDestination, uint8_t bData, size_t iSize )
     {
         ( ( uint8_t* ) pvDestination )[ iRemainByteStartOffset++ ] = bData;
     }
-	return pvDestination;
+    return pvDestination;
 }
 
 
