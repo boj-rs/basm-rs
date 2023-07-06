@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <memory.h>
 #include <sys/mman.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -260,8 +261,6 @@ static bool kLoadProgramAndRelocate( uint8_t *pbFileBuffer,
         uint64_t* pqwApplicationMemoryAddress, uint64_t* pqwApplicationMemorySize, 
         uint64_t* pqwEntryPointAddress );
 static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress );
-static void* kMemSet( void* pvDestination, uint8_t bData, size_t iSize );
-static void* kMemCpy( void* pvDestination, const void* pvSource, size_t iSize );
 
 
 
@@ -382,12 +381,12 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
         if( pstSectionHeader[ i ].sh_type == SHT_NOBITS)
         {
             // 응용프로그램에게 할당된 메모리를 0으로 설정
-            kMemSet( (void *) pstSectionHeader[ i ].sh_addr, 0, pstSectionHeader[ i ].sh_size );
+            memset( (void *) pstSectionHeader[ i ].sh_addr, 0, pstSectionHeader[ i ].sh_size );
         }
         else
         {
             // 파일 버퍼의 내용을 응용프로그램에게 할당된 메모리로 복사
-            kMemCpy( (void *) pstSectionHeader[ i ].sh_addr, 
+            memcpy( (void *) pstSectionHeader[ i ].sh_addr, 
                     pbFileBuffer + pstSectionHeader[ i ].sh_offset,
                     pstSectionHeader[ i ].sh_size );
         }
@@ -652,66 +651,6 @@ static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress )
     }
     return true;
 }
-
-
-/**
- *  메모리를 특정 값으로 채움
- */
-void* kMemSet( void* pvDestination, uint8_t bData, size_t iSize )
-{
-    size_t i;
-    uint64_t qwData;
-    int iRemainByteStartOffset;
-    
-    // 8 바이트 데이터를 채움
-    qwData = 0;
-    for( i = 0 ; i < 8 ; i++ )
-    {
-        qwData = ( qwData << 8 ) | bData;
-    }
-    
-    // 8 바이트씩 먼저 채움
-    for( i = 0 ; i < ( iSize / 8 ) ; i++ )
-    {
-        ( ( uint64_t* ) pvDestination )[ i ] = qwData;
-    }
-    
-    // 8 바이트씩 채우고 남은 부분을 마무리
-    iRemainByteStartOffset = i * 8;
-    for( i = 0 ; i < ( iSize % 8 ) ; i++ )
-    {
-        ( ( uint8_t* ) pvDestination )[ iRemainByteStartOffset++ ] = bData;
-    }
-    return pvDestination;
-}
-
-
-/**
- *  메모리 복사
- */
-void* kMemCpy( void* pvDestination, const void* pvSource, size_t iSize )
-{
-    size_t i;
-    size_t iRemainByteStartOffset;
-    
-    // 8 바이트씩 먼저 복사
-    for( i = 0 ; i < ( iSize / 8 ) ; i++ )
-    {
-        ( ( uint64_t* ) pvDestination )[ i ] = ( ( uint64_t* ) pvSource )[ i ];
-    }
-    
-    // 8 바이트씩 채우고 남은 부분을 마무리
-    iRemainByteStartOffset = i * 8;
-    for( i = 0 ; i < ( iSize % 8 ) ; i++ )
-    {
-        ( ( uint8_t* ) pvDestination )[ iRemainByteStartOffset ] = 
-            ( ( uint8_t* ) pvSource )[ iRemainByteStartOffset ];
-        iRemainByteStartOffset++;
-    }
-    return pvDestination;
-}
-
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
