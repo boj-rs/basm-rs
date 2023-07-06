@@ -1,5 +1,7 @@
 use core::arch::asm;
 use core::mem::MaybeUninit;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 use crate::syscall;
 
@@ -161,6 +163,19 @@ impl<const N: usize> Reader<N> {
                 i += 1;
             }
         }
+    }
+    pub fn next_string(&mut self) -> String {
+        let mut buf = Vec::new();
+        loop {
+            let b = self.peek();
+            self.2 += 1;
+            if b <= 32 {
+                break;
+            } else {
+                buf.push(b);
+            }
+        }
+        return String::from_utf8(buf).unwrap();
     }
 
     pub fn next_f64(&mut self) -> f64 {
