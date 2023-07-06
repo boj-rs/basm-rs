@@ -13,7 +13,8 @@ except ValueError:
 with open(solution_src_path, encoding='utf8') as f:
     sol = f.readlines()
 
-sol = ["//" + line for line in sol]
+sol = [line.replace("\ufeff", "") for line in sol]
+sol = ["//" + line.rstrip() + "\n" for line in sol]
 sol = "".join(sol)
 
 # binary
