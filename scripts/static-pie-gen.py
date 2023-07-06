@@ -15,6 +15,8 @@ with open(solution_src_path, encoding='utf8') as f:
 
 sol = [line.replace("\ufeff", "") for line in sol]
 sol = ["//" + line.rstrip() + "\n" for line in sol]
+if len(sol) > 0:
+    sol[-1] = sol[-1].rstrip()
 sol = "".join(sol)
 
 # binary
