@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-compiler_builtins = { version = "0.1.84", features = ["mem"] }
+compiler_builtins = { version = "0.1.95", features = ["mem"] }
 dtoa = "1.0.8"
 libm = "0.2.7"
 
