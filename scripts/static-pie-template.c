@@ -289,7 +289,6 @@ bool kExecuteProgram( uint8_t *pbFileBuffer )
     {
         return false;
     }
-    printf("EntryPoint: %16llx\n", qwEntryPointAddress);
     __asm__ volatile("call *%0" : : "r" (qwEntryPointAddress));
     return true; // should never be reached
 }
