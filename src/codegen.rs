@@ -29,3 +29,17 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 fn alloc_fail(_: core::alloc::Layout) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
+
+
+#[cfg(not(test))]
+#[no_mangle]
+#[allow(non_snake_case)]
+pub fn _Unwind_Resume() {
+    unsafe { core::hint::unreachable_unchecked() }
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub fn rust_eh_personality() {
+    unsafe { core::hint::unreachable_unchecked() }
+}
