@@ -175,7 +175,7 @@ impl<const N: usize> Reader<N> {
                 buf.push(b);
             }
         }
-        return String::from_utf8(buf).unwrap();
+        String::from_utf8(buf).unwrap()
     }
 
     pub fn next_f64(&mut self) -> f64 {
