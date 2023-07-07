@@ -1,63 +1,45 @@
 use core::alloc::GlobalAlloc;
-use core::arch::asm;
 
 pub struct Allocator;
+
+type NativeFuncA = unsafe extern "C" fn(usize) -> *mut u8;
+type NativeFuncB = unsafe extern "C" fn(*mut u8);
+type NativeFuncC = unsafe extern "C" fn(*mut u8, usize) -> *mut u8;
+
+static mut PTR_ALLOC: Option<NativeFuncA> = None;
+static mut PTR_ALLOC_ZEROED: Option<NativeFuncA> = None;
+static mut PTR_DEALLOC: Option<NativeFuncB> = None;
+static mut PTR_REALLOC: Option<NativeFuncC> = None;
+
+impl Allocator {
+    pub unsafe fn init(&self, service_functions: usize) {
+        PTR_ALLOC           = core::mem::transmute(core::ptr::read((service_functions + 0 * core::mem::size_of::<usize>()) as *mut usize));
+        PTR_ALLOC_ZEROED    = core::mem::transmute(core::ptr::read((service_functions + 1 * core::mem::size_of::<usize>()) as *mut usize));
+        PTR_DEALLOC         = core::mem::transmute(core::ptr::read((service_functions + 2 * core::mem::size_of::<usize>()) as *mut usize));
+        PTR_REALLOC         = core::mem::transmute(core::ptr::read((service_functions + 3 * core::mem::size_of::<usize>()) as *mut usize));
+    }
+}
 
 unsafe impl GlobalAlloc for Allocator {
     #[inline(always)]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        let out;
-        asm!(
-            "syscall",
-            in("rax") 9,
-            in("rdi") 0,
-            in("rsi") layout.size(),
-            in("rdx") 0x3,
-            in("r10") 0x22,
-            in("r8") -1,
-            in("r9") 0,
-            lateout("rax") out,
-            out("rcx") _,
-            out("r11") _,
-        );
-        out
+        PTR_ALLOC.unwrap()(layout.size())
     }
     #[inline(always)]
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
-        self.alloc(layout)
+        PTR_ALLOC_ZEROED.unwrap()(layout.size())
     }
     #[inline(always)]
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        asm!(
-            "syscall",
-            in("rax") 11,
-            in("rdi") ptr,
-            in("rsi") layout.size(),
-            lateout("rax") _,
-            out("rcx") _,
-            out("r11") _,
-        );
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+        PTR_DEALLOC.unwrap()(ptr)
     }
     #[inline(always)]
     unsafe fn realloc(
         &self,
         ptr: *mut u8,
-        layout: core::alloc::Layout,
+        _layout: core::alloc::Layout,
         new_size: usize,
     ) -> *mut u8 {
-        let out;
-        asm!(
-            "syscall",
-            in("rax") 25,
-            in("rdi") ptr,
-            in("rsi") layout.size(),
-            in("rdx") new_size,
-            in("r10") 1,
-            in("r8") 0,
-            lateout("rax") out,
-            out("rcx") _,
-            out("r11") _,
-        );
-        out
+        PTR_REALLOC.unwrap()(ptr, new_size)
     }
 }

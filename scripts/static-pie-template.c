@@ -20,6 +20,7 @@ $$$$solution_src$$$$
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <memory.h>
 #include <sys/mman.h>
 
@@ -270,7 +271,7 @@ typedef struct
 // 함수
 //
 ////////////////////////////////////////////////////////////////////////////////
-bool kExecuteProgram( uint8_t *pbFileBuffer );
+bool kExecuteProgram( uint8_t *pbFileBuffer, void *pServiceFunctions );
 static bool kLoadProgramAndRelocate( uint8_t *pbFileBuffer, 
         uint64_t* pqwApplicationMemoryAddress, uint64_t* pqwApplicationMemorySize, 
         uint64_t* pqwEntryPointAddress );
@@ -288,7 +289,7 @@ static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress );
 /**
  *  응용프로그램을 실행
  */
-bool kExecuteProgram( uint8_t *pbFileBuffer )
+bool kExecuteProgram( uint8_t *pbFileBuffer, void *pServiceFunctions )
 {
     uint64_t qwApplicationMemory;
     uint64_t qwMemorySize;
@@ -302,7 +303,11 @@ bool kExecuteProgram( uint8_t *pbFileBuffer )
     {
         return false;
     }
-    __asm__ volatile("call *%0" : : "r" (qwEntryPointAddress));
+    __asm__ volatile(
+        "movq %0, %%rdi\t\n"
+        "call *%1"
+            : : "r" (pServiceFunctions), "r" (qwEntryPointAddress))
+    ;
     return true; // should never be reached
 }
 
@@ -751,9 +756,37 @@ char ELF_binary_base85[] = "$$$$binary_base85$$$$"; // ELF linked as a static PI
 uint8_t ELF_binary[ $$$$len$$$$ ];
 int ELF_binary_len = $$$$len$$$$;
 
+#pragma pack(push, 1)
+
+typedef struct {
+    void *ptr_alloc;
+    void *ptr_alloc_zeroed;
+    void *ptr_dealloc;
+    void *ptr_realloc;
+} SERVICE_FUNCTIONS;
+
+#pragma pack(pop)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+void *alloc_zeroed(size_t size) {
+    return calloc(1, size);
+}
+#ifdef __cplusplus
+}
+#endif
+
+SERVICE_FUNCTIONS g_sf;
+
 int main() {
+    g_sf.ptr_alloc        = (void *) malloc;
+    g_sf.ptr_alloc_zeroed = (void *) alloc_zeroed;
+    g_sf.ptr_dealloc      = (void *) free;
+    g_sf.ptr_realloc      = (void *) realloc;
+
     b85tobin(ELF_binary, ELF_binary_base85);
-    kExecuteProgram(ELF_binary);
+    kExecuteProgram(ELF_binary, &g_sf);
     return 0; // should never be reached
 }
 //==============================================================================

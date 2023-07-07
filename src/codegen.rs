@@ -8,9 +8,10 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
 
 #[no_mangle]
 #[link_section = ".init"]
-fn _start() -> ! {
+fn _start(service_functions: usize) -> ! {
     unsafe {
         asm!("and rsp, 0xFFFFFFFFFFFFFFF0", options(nomem));
+        ALLOC.init(service_functions);
     }
     solution::main();
     unsafe {
