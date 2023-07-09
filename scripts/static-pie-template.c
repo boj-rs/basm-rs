@@ -31,10 +31,6 @@ $$$$solution_src$$$$
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef __GNUC__
-#define __asm__ asm
-#endif
-
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS 0x20
 #endif
@@ -286,6 +282,7 @@ static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress );
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef void (*entry_ptr)(void *);
 
 /**
  *  응용프로그램을 실행
@@ -304,11 +301,7 @@ bool kExecuteProgram( uint8_t *pbFileBuffer, void *pServiceFunctions )
     {
         return false;
     }
-    __asm__ volatile(
-        "movq %0, %%rdi\t\n"
-        "call *%1"
-            : : "r" (pServiceFunctions), "r" (qwEntryPointAddress))
-    ;
+    ( (entry_ptr) qwEntryPointAddress )( pServiceFunctions );
     return true; // should never be reached
 }
 
