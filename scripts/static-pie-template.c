@@ -360,19 +360,16 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
     }
 
     // 마지막 섹션의 위치로 최대 메모리 량을 계산, 4Kbyte 단위로 정렬
-    qwMemorySize = ( qwLastSectionAddress + qwLastSectionSize + 0x2000 - 1 ) & 
+    qwMemorySize = ( qwLastSectionAddress + qwLastSectionSize + 0x1000 - 1 ) & 
         0xfffffffffffff000;
 
     // 응용프로그램에서 사용할 메모리를 할당
+    // mmap은 항상 page-aligned address를 반환함
     pbLoadedAddress = ( uint8_t * ) mmap(NULL, qwMemorySize,
         PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if( pbLoadedAddress == MAP_FAILED )
     {
         return false;
-    }
-    else
-    {
-        pbLoadedAddress = ( uint8_t *) ( ((uint64_t)pbLoadedAddress + 0x1000 - 1) & 0xfffffffffffff000 );
     }
 
     //--------------------------------------------------------------------------
