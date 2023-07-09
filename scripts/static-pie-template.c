@@ -22,6 +22,7 @@ $$$$solution_src$$$$
 #include <stddef.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <unistd.h>
 #include <sys/mman.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -763,6 +764,9 @@ typedef struct {
     void *ptr_alloc_zeroed;
     void *ptr_dealloc;
     void *ptr_realloc;
+    void *ptr_exit;
+    void *ptr_read_stdio;
+    void *ptr_write_stdio;
 } SERVICE_FUNCTIONS;
 
 #pragma pack(pop)
@@ -770,8 +774,40 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-void *alloc_zeroed(size_t size) {
+void *svc_alloc(size_t size) {
+    return malloc(size);
+}
+void *svc_alloc_zeroed(size_t size) {
     return calloc(1, size);
+}
+void svc_free(void *ptr) {
+    free(ptr);
+}
+void *svc_realloc(void* memblock, size_t size) {
+    return realloc(memblock, size);
+}
+void svc_exit(size_t status) {
+    exit((int) status);
+}
+size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
+    int fd_os;
+    switch (fd) {
+    case 0: fd_os = STDIN_FILENO; break;
+    case 1: fd_os = STDOUT_FILENO; break;
+    case 2: fd_os = STDERR_FILENO; break;
+    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
+    }
+    return read(fd_os, buf, count);
+}
+size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
+    int fd_os;
+    switch (fd) {
+    case 0: fd_os = STDIN_FILENO; break;
+    case 1: fd_os = STDOUT_FILENO; break;
+    case 2: fd_os = STDERR_FILENO; break;
+    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
+    }
+    return write(fd_os, buf, count);
 }
 #ifdef __cplusplus
 }
@@ -780,10 +816,13 @@ void *alloc_zeroed(size_t size) {
 SERVICE_FUNCTIONS g_sf;
 
 int main() {
-    g_sf.ptr_alloc        = (void *) malloc;
-    g_sf.ptr_alloc_zeroed = (void *) alloc_zeroed;
-    g_sf.ptr_dealloc      = (void *) free;
-    g_sf.ptr_realloc      = (void *) realloc;
+    g_sf.ptr_alloc        = (void *) svc_alloc;
+    g_sf.ptr_alloc_zeroed = (void *) svc_alloc_zeroed;
+    g_sf.ptr_dealloc      = (void *) svc_free;
+    g_sf.ptr_realloc      = (void *) svc_realloc;
+    g_sf.ptr_exit         = (void *) svc_exit;
+    g_sf.ptr_read_stdio   = (void *) svc_read_stdio;
+    g_sf.ptr_write_stdio  = (void *) svc_write_stdio;
 
     b85tobin(ELF_binary, ELF_binary_base85);
     kExecuteProgram(ELF_binary, &g_sf);

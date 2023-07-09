@@ -1,13 +1,14 @@
 #[cfg(test)]
 pub use dummy::*;
-#[cfg(not(test))]
+#[cfg(all(not(test), target_arch = "x86_64"))]
 pub use real::*;
 
 #[cfg(test)]
 pub mod dummy;
-#[cfg(not(test))]
+#[cfg(all(not(test), target_arch = "x86_64"))]
 pub mod real;
 
+#[cfg(target_arch = "x86_64")]
 #[repr(C)]
 pub struct Stat {
     pub dev: u64,

@@ -2,6 +2,7 @@ use core::arch::asm;
 
 use crate::solution;
 use basm::allocator;
+use basm::services;
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
@@ -10,13 +11,14 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
 #[link_section = ".init"]
 fn _start(service_functions: usize) -> ! {
     unsafe {
+        #[cfg(target_arch = "x86_64")]
         asm!("and rsp, 0xFFFFFFFFFFFFFFF0", options(nomem));
-        ALLOC.init(service_functions);
+        #[cfg(target_arch = "x86")]
+        asm!("and esp, 0xFFFFFFF0", options(nomem));
     }
+    services::init(service_functions);
     solution::main();
-    unsafe {
-        asm!("syscall", in("rax") 231, in("rdi") 0, options(nomem, noreturn));
-    }
+    services::exit(0)
 }
 
 #[cfg(not(test))]
