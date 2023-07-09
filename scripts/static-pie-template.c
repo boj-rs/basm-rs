@@ -761,9 +761,6 @@ typedef struct {
 
 #pragma pack(pop)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 void *svc_alloc(size_t size) {
     return malloc(size);
 }
@@ -799,9 +796,6 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
     }
     return write(fd_os, buf, count);
 }
-#ifdef __cplusplus
-}
-#endif
 
 SERVICE_FUNCTIONS g_sf;
 
