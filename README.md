@@ -125,7 +125,7 @@ pub fn main() {
     let mut writer: Writer = Default::default();
     let a = Int::from_str(&reader.next_string()).unwrap();
     let b = Int::from_str(&reader.next_string()).unwrap();
-    let ans = &a * &b;
+    let ans = &a + &b;
     writer.write(ans.to_string().as_bytes());
     writer.write(b"\n");
 }
