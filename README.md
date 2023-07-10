@@ -95,13 +95,15 @@ writer.write_usize(a + b);
 
 ## 문제 해결
 
-- ~~이유를 알 수 없는 Segmentation Fault가 로컬에서 발생하는 경우~~
+- ~~이유를 알 수 없는 Segmentation Fault가 로컬에서 발생하는 경우~~ 이 버그는 현재 해결된 상태입니다.
 
-이 버그는 현재 해결된 상태입니다.
+- 생성되는 코드의 크기는 추후 줄일 예정입니다.
+
+- 문의사항이 있으시면 원본 저장소인 https://github.com/kiwiyou/basm-rs에 이슈를 남겨주세요.
 
 ## 예제: 큰 수 A+B (BOJ 10757)
 
-이 프로젝트를 다운로드 또는 클론한 다음, 위의 `주의사항'에 나열된 대로 Nightly Rust를 셋업합니다.
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
 
 그런 다음, Cargo.toml의 [dependencies] 항목에 다음을 추가합니다.
 
