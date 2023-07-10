@@ -20,10 +20,16 @@ $$$$solution_src$$$$
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#else
 #include <unistd.h>
 #include <sys/mman.h>
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -263,13 +269,21 @@ static bool kLoadProgram( uint8_t* pbFileBuffer,
         0xfffff000;
 
     // 응용프로그램에서 사용할 메모리를 할당
-    // mmap은 항상 page-aligned address를 반환함
+    // VirtualAlloc 및 mmap은 항상 page-aligned address를 반환함
+#ifdef _WIN32
+    pbLoadedAddress = ( uint8_t * ) VirtualAlloc(NULL, qwMemorySize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if ( pbLoadedAddress == NULL )
+    {
+        return false;
+    }
+#else
     pbLoadedAddress = ( uint8_t * ) mmap(NULL, qwMemorySize,
         PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if( pbLoadedAddress == MAP_FAILED )
     {
         return false;
     }
+#endif
 
     //--------------------------------------------------------------------------
     // 파일에 있는 내용을 메모리에 복사(로딩)
@@ -428,6 +442,28 @@ void *svc_realloc(void* memblock, size_t size) {
 void svc_exit(size_t status) {
     exit((int) status);
 }
+#ifdef _WIN32
+size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
+    int fd_os;
+    switch (fd) {
+    case 0: fd_os = _fileno(stdin); break;
+    case 1: fd_os = _fileno(stdout); break;
+    case 2: fd_os = _fileno(stderr); break;
+    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
+    }
+    return _read(fd_os, buf, count);
+}
+size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
+    int fd_os;
+    switch (fd) {
+    case 0: fd_os = _fileno(stdin); break;
+    case 1: fd_os = _fileno(stdout); break;
+    case 2: fd_os = _fileno(stderr); break;
+    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
+    }
+    return _write(fd_os, buf, count);
+}
+#else
 size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
     int fd_os;
     switch (fd) {
@@ -448,6 +484,7 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
     }
     return write(fd_os, buf, count);
 }
+#endif
 
 SERVICE_FUNCTIONS g_sf;
 typedef void (*entry_ptr)(void *);
