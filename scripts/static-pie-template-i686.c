@@ -26,6 +26,7 @@ $$$$solution_src$$$$
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <io.h>
 #else
 #include <unistd.h>
 #include <sys/mman.h>
@@ -388,7 +389,7 @@ static uint8_t* ultobe( uint8_t* dest, uint32_t value ) {
 }
 
 /* Convert a base85 string to binary format. */
-void b85tobin( uint8_t* dest, char const* src ) {
+uint8_t* b85tobin( uint8_t* dest, char const* src ) {
 
     for( char const* s = (char const*)src;; ) {
 
@@ -396,7 +397,7 @@ void b85tobin( uint8_t* dest, char const* src ) {
         for( uint32_t i = 0; i < sizeof pow85 / sizeof *pow85; ++i, ++s ) {
             uint32_t bin = digittobin[ (int) *s ];
             if ( bin == notadigit )
-                return;
+                return dest;
             value += bin * pow85[ i ];
         }
 
@@ -489,7 +490,7 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
 SERVICE_FUNCTIONS g_sf;
 typedef void (*entry_ptr)(void *);
 
-char ELF_binary_base85[] = "$$$$binary_base85$$$$"; // ELF linked as a static PIE encoded as base85 (PIE: position independent executable)
+const char *ELF_binary_base85[] = $$$$binary_base85$$$$; // ELF linked as a static PIE encoded as base85 (PIE: position independent executable)
 uint8_t ELF_binary[ $$$$len$$$$ ];
 int ELF_binary_len = $$$$len$$$$;
 
@@ -498,7 +499,10 @@ int main() {
     uint32_t qwMemorySize;
     uint32_t qwEntryPointAddress;
 
-    b85tobin(ELF_binary, ELF_binary_base85);
+    uint8_t *dest = ELF_binary;
+    for (size_t p = 0; p < sizeof(ELF_binary_base85)/sizeof(ELF_binary_base85[0]); p++) {
+        dest = b85tobin(dest, ELF_binary_base85[p]);
+    }
     if (!kLoadProgram(ELF_binary, &qwLoadedAddress, 
             &qwMemorySize, &qwEntryPointAddress)) return 1;
 

@@ -48,17 +48,16 @@ unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
-        "push   ebp",
-        "mov    ebp, esp",
-        "mov    edi, DWORD PTR [ebp + 8]",
+        "mov    edi, DWORD PTR [esp + 4]",
+        "and    esp, 0xFFFFFFF0",
         "call   {2}",
         "mov    ebx, DWORD PTR [edi]",
         "add    eax, ebx",
+        "sub    esp, 8",
         "push   eax",
         "push   ebx",
         "call   {0}",
-        "add    esp, 8",
-        "push   0",
+        "add    esp, 4",
         "push   edi",
         "call   {1}",
         sym basm::platform::i686::relocate,

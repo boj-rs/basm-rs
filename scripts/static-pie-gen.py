@@ -27,8 +27,15 @@ code = bytearray(code)
 while len(code) % 4 != 0:
     code.append(0)
 
-r = base64.b85encode(code, pad=False) # already padded
-r = r.decode('ascii').replace("?", "\?")
+L = 4096
+s = []
+for i in range(0, len(code), L):
+    x = code[i:min(i+L,len(code))]
+    x = base64.b85encode(x, pad=False)
+    x = x.decode('ascii').replace("?", "\?")
+    x = '"' + x + '",\n'
+    s.append(x)
+r = "{\n" + "".join(s) + "}"
 
 # template
 with open(template_path, encoding='utf8') as f:
