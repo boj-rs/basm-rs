@@ -22,7 +22,6 @@ unsafe extern "sysv64" fn _start() -> ! {
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
         "mov    rdi, r12",
-        "and    rsp, 0xFFFFFFFFFFFFFFF0",
         "call   {1}",
         sym basm::platform::amd64::relocate, sym _start_rust, options(noreturn)
     );
