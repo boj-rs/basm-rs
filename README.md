@@ -99,9 +99,9 @@ writer.write_usize(a + b);
 
 - 생성되는 코드의 크기는 추후 줄일 예정입니다.
 
-- 문의사항이 있으시면 원본 저장소인 https://github.com/kiwiyou/basm-rs에 이슈를 남겨주세요.
+- 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
 
-## 예제: 큰 수 A+B (BOJ 10757)
+## 예제: 큰 수 A+B ([BOJ 10757](https://www.acmicpc.net/problem/10757))
 
 이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
 
