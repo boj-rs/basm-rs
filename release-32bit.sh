@@ -1,0 +1,1 @@
+scripts/static-pie-release.sh i686-unknown-linux-gnu "$@"

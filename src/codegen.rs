@@ -13,6 +13,8 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
 #[naked]
 #[link_section = ".init"]
 unsafe extern "sysv64" fn _start() -> ! {
+    // AMD64 System V ABI requires RSP to be aligned
+    //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
         "mov    r12, rdi",
@@ -26,9 +28,48 @@ unsafe extern "sysv64" fn _start() -> ! {
     );
 }
 
-#[cfg(all(not(target_arch = "x86_64")))]
-compile_error!("The target architecture is not supported.");
+#[cfg(target_arch = "x86")]
+#[no_mangle]
+#[naked]
+#[link_section = ".data"]
+unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
+    asm!(
+        "lea    eax, [_DYNAMIC]",
+        "ret",
+        options(noreturn)
+    );
+}
 
+#[cfg(target_arch = "x86")]
+#[no_mangle]
+#[naked]
+#[link_section = ".init"]
+unsafe extern "cdecl" fn _start() -> ! {
+    // i386 System V ABI requires ESP to be aligned
+    //   on the 16-byte boundary BEFORE `call' instruction
+    asm!(
+        "push   ebp",
+        "mov    ebp, esp",
+        "mov    edi, DWORD PTR [ebp + 8]",
+        "call   {2}",
+        "mov    ebx, DWORD PTR [edi]",
+        "add    eax, ebx",
+        "push   eax",
+        "push   ebx",
+        "call   {0}",
+        "add    esp, 8",
+        "push   0",
+        "push   edi",
+        "call   {1}",
+        sym basm::platform::i686::relocate,
+        sym _start_rust,
+        sym _get_dynamic_section_offset,
+        options(noreturn)
+    );
+}
+
+#[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86")))]
+compile_error!("The target architecture is not supported.");
 
 extern "C" fn _start_rust(service_functions: usize) -> ! {
     services::init(service_functions);
