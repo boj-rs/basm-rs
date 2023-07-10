@@ -7,15 +7,30 @@ use basm::services;
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
 
+
+#[cfg(target_arch = "x86_64")]
 #[no_mangle]
+#[naked]
 #[link_section = ".init"]
-fn _start(service_functions: usize) -> ! {
-    unsafe {
-        #[cfg(target_arch = "x86_64")]
-        asm!("and rsp, 0xFFFFFFFFFFFFFFF0", options(nomem));
-        #[cfg(target_arch = "x86")]
-        asm!("and esp, 0xFFFFFFF0", options(nomem));
-    }
+unsafe extern "sysv64" fn _start() -> ! {
+    asm!(
+        "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "mov    r12, rdi",
+        "mov    rdi, QWORD PTR [rdi + 0]",
+        "lea    rsi, [rip + _DYNAMIC]",
+        "call   {0}",
+        "mov    rdi, r12",
+        "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "call   {1}",
+        sym basm::platform::amd64::relocate, sym _start_rust, options(noreturn)
+    );
+}
+
+#[cfg(all(not(target_arch = "x86_64")))]
+compile_error!("The target architecture is not supported.");
+
+
+extern "C" fn _start_rust(service_functions: usize) -> ! {
     services::init(service_functions);
     solution::main();
     services::exit(0)

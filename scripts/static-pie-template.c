@@ -158,41 +158,6 @@ typedef uint16_t Elf64_Section;
 #define SHN_COMMON      0xFFF2
 #define SHN_HIRESERVE   0xFFFF
 
-// Relocation Type
-#define R_X86_64_NONE       0       // none
-#define R_X86_64_64         1       // word64   S + A
-#define R_X86_64_PC32       2       // word32   S + A - P
-#define R_X86_64_GOT32      3       // word32   G + A
-#define R_X86_64_PLT32      4       // word32   L + A - P
-#define R_X86_64_COPY       5       // none
-#define R_X86_64_GLOB_DAT   6       // word64   S
-#define R_X86_64_JUMP_SLOT  7       // word64   S
-#define R_X86_64_RELATIVE   8       // word64   B + A
-#define R_X86_64_GOTPCREL   9       // word32   G + GOT + A - P
-#define R_X86_64_32         10      // word32   S + A
-#define R_X86_64_32S        11      // word32   S + A
-#define R_X86_64_16         12      // word16   S + A
-#define R_X86_64_PC16       13      // word16   S + A - P
-#define R_X86_64_8          14      // word8    S + A
-#define R_X86_64_PC8        15      // word8    S + A - P
-#define R_X86_64_DPTMOD64   16      // word64
-#define R_X86_64_DTPOFF64   17      // word64
-#define R_X86_64_TPOFF64    18      // word64
-#define R_X86_64_TLSGD      19      // word32
-#define R_X86_64_TLSLD      20      // word32
-#define R_X86_64_DTPOFF32   21      // word32
-#define R_X86_64_GOTTPOFF   22      // word32
-#define R_X86_64_TPOFF32    23      // word32
-#define R_X86_64_PC64       24      // word64   S + A - P
-#define R_X86_64_GOTOFF64   25      // word64   S + A - GOT
-#define R_X86_64_GOTPC32    26      // word32   GOT + A - P 
-#define R_X86_64_SIZE32     32      // word32   Z + A
-#define R_X86_64_SIZE64     33      // word64   Z + A
-
-// 상위 32비트와 하위 32비트 값을 추출하는 매크로
-#define RELOCATION_UPPER32( x )     ( ( x ) >> 32 )
-#define RELOCATION_LOWER32( x )     ( ( x ) & 0xFFFFFFFF )
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // 구조체
@@ -235,45 +200,7 @@ typedef struct
     Elf64_Xword sh_entsize;         // 섹션에 들어있는 데이터 엔트리의 크기
 } Elf64_Shdr;
 
-// ELF64의 심볼 테이블 엔트리 자료구조
-typedef struct
-{
-    Elf64_Word st_name;             // 심볼 이름이 저장된 오프셋
-    unsigned char st_info;          // 심볼 타입과 바인딩(Binding) 속성
-    unsigned char st_other;         // 예약됨(Reserved)
-    Elf64_Half st_shndx;            // 심볼이 정의된 섹션 헤더의 인덱스
-    Elf64_Addr st_value;            // 심볼의 값
-    Elf64_Xword st_size;            // 심볼의 크기
-} Elf64_Sym;
-
-// ELF64의 재배치 엔트리 자료구조(SHT_REL 섹션 타입)
-typedef struct
-{
-    Elf64_Addr r_offset;            // 재배치를 수행할 어드레스
-    Elf64_Xword r_info;             // 심볼의 인덱스와 재배치 타입
-} Elf64_Rel;
-
-// ELF64의 재배치 엔트리 자료구조(SHT_RELA 섹션 타입)
-typedef struct
-{
-    Elf64_Addr r_offset;            // 재배치를 수행할 어드레스
-    Elf64_Xword r_info;             // 심볼의 인덱스와 재배치 타입
-    Elf64_Sxword r_addend;          // 더하는 수(상수 부분)
-} Elf64_Rela;
-
 #pragma pack(pop)
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// 함수
-//
-////////////////////////////////////////////////////////////////////////////////
-bool kExecuteProgram( uint8_t *pbFileBuffer, void *pServiceFunctions );
-static bool kLoadProgramAndRelocate( uint8_t *pbFileBuffer, 
-        uint64_t* pqwApplicationMemoryAddress, uint64_t* pqwApplicationMemorySize, 
-        uint64_t* pqwEntryPointAddress );
-static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress );
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -282,33 +209,10 @@ static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress );
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef void (*entry_ptr)(void *);
-
-/**
- *  응용프로그램을 실행
- */
-bool kExecuteProgram( uint8_t *pbFileBuffer, void *pServiceFunctions )
-{
-    uint64_t qwApplicationMemory;
-    uint64_t qwMemorySize;
-    uint64_t qwEntryPointAddress;
-
-    //--------------------------------------------------------------------------
-    // 파일의 내용을 분석하여 섹션을 로딩하고 재배치를 수행
-    //--------------------------------------------------------------------------
-    if( kLoadProgramAndRelocate( pbFileBuffer, &qwApplicationMemory, 
-            &qwMemorySize, &qwEntryPointAddress ) == false )
-    {
-        return false;
-    }
-    ( (entry_ptr) qwEntryPointAddress )( pServiceFunctions );
-    return true; // should never be reached
-}
-
 /**
  *  응용프로그램의 섹션을 로딩하고 재배치를 수행
  */
-static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer, 
+static bool kLoadProgram( uint8_t* pbFileBuffer, 
         uint64_t* pqwApplicationMemoryAddress, uint64_t* pqwApplicationMemorySize, 
         uint64_t* pqwEntryPointAddress )
 {
@@ -402,263 +306,11 @@ static bool kLoadProgramAndRelocate( uint8_t* pbFileBuffer,
         }
     }
 
-    //--------------------------------------------------------------------------
-    // 재배치를 수행
-    //--------------------------------------------------------------------------
-    if( kRelocate( pbFileBuffer, ( uint64_t ) pbLoadedAddress ) == false )
-    {
-        return false;
-    }
-
     // 응용프로그램의 어드레스와 엔트리 포인트의 어드레스를 반환
     *pqwApplicationMemoryAddress = ( uint64_t ) pbLoadedAddress;
     *pqwApplicationMemorySize = qwMemorySize;
     *pqwEntryPointAddress = pstELFHeader->e_entry + ( uint64_t ) pbLoadedAddress;
 
-    return true;
-}
-
-
-/**
- *  재배치를 수행
- *      섹션 헤더에는 메모리 어드레스가 할당되어 있어야 함
-*/
-#define PATCH_RELOCATION(rel_type, target, value) \
-    if ((rel_type) == SHT_REL) \
-    { \
-        (target) += (value); \
-    } \
-    else /* (rel_type) == SH_RELA */ \
-    { \
-        (target) = (value); \
-    }
-
-static bool kRelocate( uint8_t* pbFileBuffer, uint64_t qwLoadedAddress )
-{
-    Elf64_Ehdr* pstELFHeader;
-    Elf64_Shdr* pstSectionHeader;
-    int i;
-    Elf64_Xword j;
-    int iSymbolTableIndex;
-    int iSectionIndexInSymbol;
-    int iSectionIndexToRelocation;
-    Elf64_Addr ulOffset;
-    Elf64_Xword ulInfo;
-    Elf64_Sxword lAddend;
-    Elf64_Sxword lResult;
-    int iNumberOfBytes;
-    Elf64_Rel* pstRel;
-    Elf64_Rela* pstRela;
-    Elf64_Sym* pstSymbolTable;
-    
-    // ELF 헤더와 섹션 헤더 테이블의 첫 번째 헤더를 찾음
-    pstELFHeader = ( Elf64_Ehdr* ) pbFileBuffer;
-    pstSectionHeader = ( Elf64_Shdr* ) ( pbFileBuffer + pstELFHeader->e_shoff );
-
-    //--------------------------------------------------------------------------
-    // 모든 섹션 헤더를 검색하여 SHT_REL 또는 SHT_RELA 타입을 가지는 섹션을 찾아 
-    // 재배치를 수행
-    //--------------------------------------------------------------------------
-    for( i = 1 ; i < pstELFHeader->e_shnum ; i++ )
-    {
-        if( ( pstSectionHeader[ i ].sh_type != SHT_RELA ) && 
-            ( pstSectionHeader[ i ].sh_type != SHT_REL ) )
-        {
-            continue;
-        }
-
-        // sh_info 필드에 재배치를 수행해야 할 섹션 헤더의 인덱스가 저장되어 있음
-        iSectionIndexToRelocation = pstSectionHeader[ i ].sh_info;
-        
-        // sh_link에는 참고하는 심볼 테이블 섹션 헤더의 인덱스가 저장되어 있음
-        iSymbolTableIndex = pstSectionHeader[ i ].sh_link;
-
-        // 심볼 테이블 섹션의 첫 번째 엔트리를 저장
-        pstSymbolTable = ( Elf64_Sym* ) 
-            ( pbFileBuffer + pstSectionHeader[ iSymbolTableIndex ].sh_offset );
-
-        //----------------------------------------------------------------------
-        // 재배치 섹션의 엔트리를 모두 찾아 재배치를 수행 
-        //----------------------------------------------------------------------
-        for( j = 0 ; j < pstSectionHeader[ i ].sh_size ; )
-        {
-            // SHT_REL 타입
-            if( pstSectionHeader[ i ].sh_type == SHT_REL )
-            {
-                // SHT_REL 타입은 더해야하는 값(Addend)가 없으므로 0으로 설정
-                pstRel = ( Elf64_Rel* ) 
-                    ( pbFileBuffer + pstSectionHeader[ i ].sh_offset + j );
-                ulOffset = pstRel->r_offset;
-                ulInfo = pstRel->r_info;
-                lAddend = 0;
-
-                // SHT_REL 자료구조의 크기만큼 이동
-                j += sizeof( Elf64_Rel );
-            }
-            // SHT_RELA 타입
-            else
-            {
-                pstRela = ( Elf64_Rela* ) 
-                    ( pbFileBuffer + pstSectionHeader[ i ].sh_offset + j );
-                ulOffset = pstRela->r_offset;
-                ulInfo = pstRela->r_info;
-                lAddend = pstRela->r_addend;
-
-                // SHT_RELA 자료구조의 크기만큼 이동
-                j += sizeof( Elf64_Rela );
-            }
-
-            // 절대 어드레스 타입(Absolute Type)의 경우는 재배치가 필요 없음
-            if( pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_shndx == SHN_ABS )
-            {
-                continue;
-            }
-            // 공통 타입 심볼(Common Type)의 경우는 지원하지 않으므로 오류를 표시하고 종료
-            else if( pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_shndx == 
-                SHN_COMMON )
-            {
-                return false;
-            }
-
-            //------------------------------------------------------------------
-            // 재배치 타입을 구하여 재배치를 수행할 값을 계산
-            //------------------------------------------------------------------
-            switch( RELOCATION_LOWER32( ulInfo ) )
-            {
-                // S(st_value) + A(r_addend)로 계산하는 타입
-            case R_X86_64_64:
-            case R_X86_64_32:
-            case R_X86_64_32S:
-            case R_X86_64_16:
-            case R_X86_64_8:
-                // 심볼이 존재하는 섹션 헤더의 인덱스
-                iSectionIndexInSymbol = 
-                    pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_shndx;
-                
-                lResult = ( pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_value + 
-                    pstSectionHeader[ iSectionIndexInSymbol ].sh_addr ) + lAddend;
-                break;
-
-                // S(st_value) + A(r_addend) - P(r_offset)로 계산하는 타입
-            case R_X86_64_PC32:
-            case R_X86_64_PC16:
-            case R_X86_64_PC8:
-            case R_X86_64_PC64:
-                // 심볼이 존재하는 섹션 헤더의 인덱스
-                iSectionIndexInSymbol = 
-                    pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_shndx;
-                
-                lResult = ( pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_value + 
-                    pstSectionHeader[ iSectionIndexInSymbol ].sh_addr ) + lAddend - 
-                    ( ulOffset + pstSectionHeader[ iSectionIndexToRelocation ].sh_addr );
-                break;
-
-                // B(sh_addr) + A(r_ddend)로 계산하는 타입
-            case R_X86_64_RELATIVE:
-                lResult = qwLoadedAddress + lAddend;
-                break;
-
-                // Z(st_size) + A(r_addend)로 계산하는 타입
-            case R_X86_64_SIZE32:
-            case R_X86_64_SIZE64:
-                lResult = pstSymbolTable[ RELOCATION_UPPER32( ulInfo ) ].st_size +
-                    lAddend;
-                break;
-
-                // 그 외의 경우는 지원하지 않으므로 오류를 표시하고 종료
-            default:
-                return false;
-            }
-
-            //------------------------------------------------------------------
-            // 재배치 타입으로 적용할 범위를 계산
-            //------------------------------------------------------------------
-            switch( RELOCATION_LOWER32( ulInfo ) )
-            {
-                // 64비트 크기
-            case R_X86_64_64:
-            case R_X86_64_PC64:
-            case R_X86_64_SIZE64:
-            case R_X86_64_RELATIVE:
-                iNumberOfBytes = 8;
-                break;
-
-                // 32비트 크기
-            case R_X86_64_PC32:
-            case R_X86_64_32:
-            case R_X86_64_32S:
-            case R_X86_64_SIZE32:
-                iNumberOfBytes = 4;
-                break;
-
-                // 16비트 크기
-            case R_X86_64_16:
-            case R_X86_64_PC16:
-                iNumberOfBytes = 2;
-                break;
-
-                // 8비트 크기
-            case R_X86_64_8:
-            case R_X86_64_PC8:
-                iNumberOfBytes = 1;
-                break;
-
-                // 기타 타입은 오류를 표시하고 종료 
-            default:
-                return false;
-            }
-
-            //------------------------------------------------------------------
-            // 계산 결과와 적용할 범위가 나왔으므로 해당 섹션에 적용
-            //------------------------------------------------------------------
-            switch( iNumberOfBytes )
-            {
-            case 8:
-                PATCH_RELOCATION(
-                    pstSectionHeader[ i ].sh_type,
-                    *( ( Elf64_Sxword* ) 
-                       ( pstSectionHeader[ iSectionIndexToRelocation ].sh_addr + 
-                         ulOffset ) ),
-                    lResult
-                );
-                break;
-
-            case 4:
-                PATCH_RELOCATION(
-                    pstSectionHeader[ i ].sh_type,
-                    *( ( int* ) 
-                       ( pstSectionHeader[ iSectionIndexToRelocation ].sh_addr + 
-                         ulOffset ) ),
-                    ( int ) lResult
-                );
-                break;
-
-            case 2:
-                PATCH_RELOCATION(
-                    pstSectionHeader[ i ].sh_type,
-                    *( ( short* ) 
-                       ( pstSectionHeader[ iSectionIndexToRelocation ].sh_addr + 
-                         ulOffset ) ),
-                    ( short ) lResult
-                );
-                break;
-            
-            case 1:
-                PATCH_RELOCATION(
-                    pstSectionHeader[ i ].sh_type,
-                    *( ( char* ) 
-                       ( pstSectionHeader[ iSectionIndexToRelocation ].sh_addr + 
-                         ulOffset ) ),
-                    ( char ) lResult
-                );
-                break;
-
-                // 그 외의 크기는 지원하지 않으므로 오류를 표시하고 종료
-            default:
-                return false;
-            }
-        }
-    }
     return true;
 }
 
@@ -743,20 +395,25 @@ void b85tobin( uint8_t* dest, char const* src ) {
     }
 }
 
-char ELF_binary_base85[] = "$$$$binary_base85$$$$"; // ELF linked as a static PIE encoded as base85 (PIE: position independent executable)
-uint8_t ELF_binary[ $$$$len$$$$ ];
-int ELF_binary_len = $$$$len$$$$;
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Service functions
+//
+////////////////////////////////////////////////////////////////////////////////
+
 
 #pragma pack(push, 1)
 
 typedef struct {
-    void *ptr_alloc;
-    void *ptr_alloc_zeroed;
-    void *ptr_dealloc;
-    void *ptr_realloc;
-    void *ptr_exit;
-    void *ptr_read_stdio;
-    void *ptr_write_stdio;
+    void *ptr_imagebase;            // pointer to data
+    void *ptr_alloc;                // pointer to function
+    void *ptr_alloc_zeroed;         // pointer to function
+    void *ptr_dealloc;              // pointer to function
+    void *ptr_realloc;              // pointer to function
+    void *ptr_exit;                 // pointer to function
+    void *ptr_read_stdio;           // pointer to function
+    void *ptr_write_stdio;          // pointer to function
 } SERVICE_FUNCTIONS;
 
 #pragma pack(pop)
@@ -798,8 +455,22 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
 }
 
 SERVICE_FUNCTIONS g_sf;
+typedef void (*entry_ptr)(void *);
+
+char ELF_binary_base85[] = "$$$$binary_base85$$$$"; // ELF linked as a static PIE encoded as base85 (PIE: position independent executable)
+uint8_t ELF_binary[ $$$$len$$$$ ];
+int ELF_binary_len = $$$$len$$$$;
 
 int main() {
+    uint64_t qwLoadedAddress;
+    uint64_t qwMemorySize;
+    uint64_t qwEntryPointAddress;
+
+    b85tobin(ELF_binary, ELF_binary_base85);
+    if (!kLoadProgram(ELF_binary, &qwLoadedAddress, 
+            &qwMemorySize, &qwEntryPointAddress)) return 1;
+
+    g_sf.ptr_imagebase    = (void *) qwLoadedAddress;
     g_sf.ptr_alloc        = (void *) svc_alloc;
     g_sf.ptr_alloc_zeroed = (void *) svc_alloc_zeroed;
     g_sf.ptr_dealloc      = (void *) svc_free;
@@ -808,8 +479,7 @@ int main() {
     g_sf.ptr_read_stdio   = (void *) svc_read_stdio;
     g_sf.ptr_write_stdio  = (void *) svc_write_stdio;
 
-    b85tobin(ELF_binary, ELF_binary_base85);
-    kExecuteProgram(ELF_binary, &g_sf);
+    ((entry_ptr) qwEntryPointAddress)(&g_sf); // call the EntryPoint
     return 0; // should never be reached
 }
 //==============================================================================
