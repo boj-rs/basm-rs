@@ -97,6 +97,8 @@ writer.write_usize(a + b);
 
 - ~~이유를 알 수 없는 Segmentation Fault가 로컬에서 발생하는 경우~~ 이 버그는 현재 해결된 상태입니다.
 
+- 빌드 결과 생성된 실행 파일(ELF)을 직접 실행하면 작동하지 않습니다. 이는 해당 실행 파일이 로더(scripts/static-pie-template-\*.c) 코드의 기능에 의존하기 때문입니다. 생성된 코드를 컴파일하여 실행하셔야 합니다.
+
 - 생성되는 코드의 크기는 추후 줄일 예정입니다.
 
 - 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
