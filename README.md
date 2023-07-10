@@ -99,6 +99,8 @@ writer.write_usize(a + b);
 
 - 빌드 결과 생성된 실행 파일(ELF)을 직접 실행하면 작동하지 않습니다. 이는 해당 실행 파일이 로더(scripts/static-pie-template-\*.c) 코드의 기능에 의존하기 때문입니다. 생성된 코드를 컴파일하여 실행하셔야 합니다.
 
+- 생성되는 코드가 느리다면 Cargo.toml에서 opt-level을 기본값인 "z" (크기 우선 최적화)에서 3 (속도 우선 최적화)으로 변경해보세요. 다만 생성되는 코드의 길이가 늘어날 수 있습니다.
+
 - 생성되는 코드의 크기는 추후 줄일 예정입니다.
 
 - 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
