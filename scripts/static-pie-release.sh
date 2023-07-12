@@ -20,4 +20,4 @@ cargo +nightly build --target "$target_name" --release "$@"
 cp target/"$target_name"/release/basm target/"$target_name"/release/basm_stripped
 objcopy --strip-all target/"$target_name"/release/basm_stripped
 objcopy --remove-section .eh_frame target/"$target_name"/release/basm_stripped
-python3 scripts/static-pie-gen.py src/solution.rs target/"$target_name"/release/basm_stripped scripts/"$template"
+python3 scripts/static-pie-gen.py src/solution.rs target/"$target_name"/release/basm_stripped target/"$target_name"/release/basm_stripped.bin scripts/"$template"
