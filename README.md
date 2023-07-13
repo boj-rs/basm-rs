@@ -101,7 +101,7 @@ writer.write_usize(a + b);
 
 - 생성되는 코드가 느리다면 Cargo.toml에서 opt-level을 기본값인 "z" (크기 우선 최적화)에서 3 (속도 우선 최적화)으로 변경해보세요. 다만 생성되는 코드의 길이가 늘어날 수 있습니다.
 
-- 생성되는 코드의 크기는 추후 줄일 예정입니다.
+- ~~생성되는 코드의 크기는 추후 줄일 예정입니다.~~ 현재 LZMA compression이 적용되어 있습니다.
 
 - 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
 
@@ -160,4 +160,27 @@ chmod +x ./output
 gcc output-32.c -o output-32 -m32
 chmod +x ./output-32
 ./output-32
+```
+
+## Open Source Attributions
+
+[Micro LZMA decoder](https://github.com/ilyakurdyukov/micro-lzmadec)
+```
+Copyright (c) 2022, Ilya Kurdyukov
+All rights reserved.
+
+Micro LZMA decoder for x86 (static)
+Micro LZMA decoder for x86_64 (static)
+
+This software is distributed under the terms of the
+Creative Commons Attribution 3.0 License (CC-BY 3.0)
+http://creativecommons.org/licenses/by/3.0/
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 ```

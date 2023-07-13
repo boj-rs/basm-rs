@@ -5,8 +5,10 @@ target_name="$1"
 shift
 
 if [[ "$target_name" == "x86_64-unknown-linux-gnu" ]]; then
+  stub="static-pie-stub-amd64.bin"
   template="static-pie-template-amd64.c"
 elif [[ "$target_name" == "i686-unknown-linux-gnu" ]]; then
+  stub="static-pie-stub-i686.bin"
   template="static-pie-template-i686.c"
 else
   >&2 echo "Unknown target ${target_name}"
@@ -20,4 +22,4 @@ cargo +nightly build --target "$target_name" --release "$@"
 cp target/"$target_name"/release/basm target/"$target_name"/release/basm_stripped
 objcopy --strip-all target/"$target_name"/release/basm_stripped
 objcopy --remove-section .eh_frame target/"$target_name"/release/basm_stripped
-python3 scripts/static-pie-gen.py src/solution.rs target/"$target_name"/release/basm_stripped target/"$target_name"/release/basm_stripped.bin scripts/"$template"
+python3 scripts/static-pie-gen.py src/solution.rs target/"$target_name"/release/basm_stripped scripts/"$stub" scripts/"$template"
