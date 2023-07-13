@@ -151,7 +151,6 @@ void *svc_alloc_rwx(size_t size) {
 
 SERVICE_FUNCTIONS g_sf;
 typedef void * (*stub_ptr)(void *, void *, size_t);
-typedef void (*entry_ptr)(void *);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
 char binary_base85[][4096] = $$$$binary_base85$$$$;
