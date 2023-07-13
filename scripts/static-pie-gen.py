@@ -31,7 +31,6 @@ compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_ALONE, pres
 compressed_memory_bin = bytearray(compressed_memory_bin)
 compressed_memory_bin[5:13] = len(memory_bin).to_bytes(8, byteorder='little')   # fill the "Uncompressed Size" field
 compressed_memory_bin = bytes(compressed_memory_bin)
-print(len(memory_bin), file=sys.stderr)
 with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 
