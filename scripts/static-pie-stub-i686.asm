@@ -21,6 +21,7 @@
 
 BITS 32
 ORG 0
+section .text
 
 %assign loc_pos 0
 %macro LOC 1-3 4, dword
