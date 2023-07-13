@@ -6,9 +6,12 @@ import subprocess
 import sys
 
 try:
-    solution_src_path, elf_path, stub_path, template_path = sys.argv[1:]
+    solution_src_path, elf_path, stub_path, lang_name, template_path = sys.argv[1:]
 except ValueError:
-    print(f"Usage: {sys.argv[0]} solution_src_path elf_path stub_path template_path", file=sys.stderr)
+    print(f"Usage: {sys.argv[0]} solution_src_path elf_path stub_path lang_name template_path", file=sys.stderr)
+    sys.exit(1)
+if lang_name not in ["C", "Rust"]:
+    print(f"Unsupported language {lang_name}", file=sys.stderr)
     sys.exit(1)
 
 binary_path = elf_path + ".bin"
@@ -51,16 +54,19 @@ with open(compressed_binary_path, "rb") as f:
 code = bytearray(code)
 while len(code) % 4 != 0:
     code.append(0)
-
 code_b85 = base64.b85encode(code, pad=False).decode('ascii') + ']'
-L = 4095
-s = []
-for i in range(0, len(code_b85), L):
-    x = code_b85[i:min(i+L,len(code_b85))]
-    x = x.replace("?", "\?")
-    x = '"' + x + '",\n'
-    s.append(x)
-r = "{\n" + "".join(s) + "}"
+
+if lang_name == "C":
+    L = 4095
+    s = []
+    for i in range(0, len(code_b85), L):
+        x = code_b85[i:min(i+L,len(code_b85))]
+        x = x.replace("?", "\?")
+        x = '"' + x + '",\n'
+        s.append(x)
+    r = "{\n" + "".join(s) + "}"
+else:
+    r = '"' + code_b85 + '"'
 
 # stub
 with open(stub_path, "rb") as f:
@@ -70,7 +76,9 @@ stub = bytearray(stub)
 while len(stub) % 4 != 0:
     stub.append(0)
 stub = base64.b85encode(stub, pad=False).decode('ascii') + ']'
-stub = '"' + stub.replace("?", "\?") + '"'
+if lang_name == "C":
+    stub = stub.replace("?", "\?")
+stub = '"' + stub + '"'
 
 # template
 with open(template_path, encoding='utf8') as f:
@@ -86,6 +94,7 @@ out = multiple_replace(template, {
     "$$$$solution_src$$$$": sol,
     "$$$$stub_base85$$$$": stub,
     "$$$$binary_base85$$$$": r,
+    "$$$$binary_base85_len$$$$": str(len(code_b85)),
     "$$$$entrypoint_offset$$$$": entrypoint_offset_str,
 })
 print(out)
