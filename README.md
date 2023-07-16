@@ -162,6 +162,85 @@ chmod +x ./output-32
 ./output-32
 ```
 
+## 예제: 할 수 있다([BOJ 1287](https://www.acmicpc.net/problem/1287))
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+그런 다음, Cargo.toml의 [dependencies] 항목에 다음을 추가합니다.
+
+```
+nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
+dashu = { git = "https://github.com/cmpute/dashu.git", default-features = false, features = [] }
+```
+
+src/solution.rs를 다음과 같이 수정합니다.
+
+
+```rust
+use basm::io::{Reader, Writer};
+use alloc::string::ToString;
+use core::str::FromStr;
+use dashu::Integer;
+
+use nom::{
+    IResult,
+    branch::alt,
+    bytes::complete::{tag, take_while},
+    character::is_digit,
+    character::complete::one_of,
+    combinator::{all_consuming, map_res},
+    multi::many0,
+    sequence::{delimited, pair},
+};
+
+
+fn number_literal(input: &str) -> IResult<&str, Integer> {
+    map_res(take_while(|x: char| is_digit(x as u8)), |s: &str| Integer::from_str(s))(input)
+}
+fn op(input: &str) -> IResult<&str, char> {
+    one_of("+-*/")(input)
+}
+fn wrapped(input: &str) -> IResult<&str, Integer> {
+    delimited(tag("("), expr, tag(")"))(input)
+}
+fn number(input: &str) -> IResult<&str, Integer> {
+    alt((number_literal, wrapped))(input)
+}
+fn expr(input: &str) -> IResult<&str, Integer> {
+    map_res(
+        pair(number, many0(pair(op, number))),
+        |x| -> Result<Integer, usize> {
+            let (mut a, mut b) = (Integer::ZERO, x.0);
+            for p in x.1 {
+                match p.0 {
+                    '+' => { (a, b) = (a + b, p.1); },
+                    '-' => { (a, b) = (a + b, -p.1); },
+                    '*' => { b *= p.1; },
+                    '/' => if p.1 == Integer::ZERO { return Err(1); } else { b /= p.1; },
+                    _ => unreachable!()
+                }
+            }
+            Ok(a + b)
+        }
+    )(input)
+}
+
+#[inline(always)]
+pub fn main() {
+    let mut reader: Reader = Default::default();
+    let mut writer: Writer = Default::default();
+    let input = reader.next_string();
+    if let Ok((_, ans)) = all_consuming(expr)(&input) {
+        writer.write(ans.to_string().as_bytes());
+    } else {
+        writer.write(b"ROCK");
+    }
+    writer.write(b"\n");
+}
+```
+
+이후 실행 과정은 위의 "큰 수 A+B"와 동일하게 진행하면 됩니다.
+
 ## Open Source Attributions
 
 [Micro LZMA decoder](https://github.com/ilyakurdyukov/micro-lzmadec)
