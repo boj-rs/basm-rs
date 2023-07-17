@@ -26,9 +26,7 @@ $$$$solution_src$$$$
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <io.h>
 #else
-#include <unistd.h>
 #include <sys/mman.h>
 #endif
 
@@ -94,49 +92,14 @@ void *svc_realloc(void* memblock, size_t size) {
 void svc_exit(size_t status) {
     exit((int) status);
 }
-#ifdef _WIN32
 size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
-    int fd_os;
-    switch (fd) {
-    case 0: fd_os = _fileno(stdin); break;
-    case 1: fd_os = _fileno(stdout); break;
-    case 2: fd_os = _fileno(stderr); break;
-    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
-    }
-    return _read(fd_os, buf, count);
+    if (fd != 0) return 0;
+    return fread(buf, 1, count, stdin);
 }
 size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
-    int fd_os;
-    switch (fd) {
-    case 0: fd_os = _fileno(stdin); break;
-    case 1: fd_os = _fileno(stdout); break;
-    case 2: fd_os = _fileno(stderr); break;
-    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
-    }
-    return _write(fd_os, buf, count);
+    if (fd != 1 && fd != 2) return 0;
+    return fwrite(buf, 1, count, (fd == 1) ? stdout : stderr);
 }
-#else
-size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
-    int fd_os;
-    switch (fd) {
-    case 0: fd_os = STDIN_FILENO; break;
-    case 1: fd_os = STDOUT_FILENO; break;
-    case 2: fd_os = STDERR_FILENO; break;
-    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
-    }
-    return read(fd_os, buf, count);
-}
-size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
-    int fd_os;
-    switch (fd) {
-    case 0: fd_os = STDIN_FILENO; break;
-    case 1: fd_os = STDOUT_FILENO; break;
-    case 2: fd_os = STDERR_FILENO; break;
-    default: return 0; // we only support stdin(=0), stdout(=1), stderr(=2)
-    }
-    return write(fd_os, buf, count);
-}
-#endif
 void *svc_alloc_rwx(size_t size) {
 #ifdef _WIN32
     return (void *) VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
