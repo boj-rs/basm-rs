@@ -17,17 +17,17 @@ $$$$solution_src$$$$
 //     https://github.com/rafagafe/base85/blob/master/base85.c
 //==============================================================================
 
-#include <stdbool.h>
 #include <stdint.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #else
 #include <sys/mman.h>
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS 0x20
+#endif
 #endif
 
 

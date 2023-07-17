@@ -17,12 +17,9 @@ $$$$solution_src$$$$
 //     https://github.com/rafagafe/base85/blob/master/base85.c
 //==============================================================================
 
-#include <stdbool.h>
 #include <stdint.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 #ifdef _WIN32
 #if defined(_WIN64) && defined(_MSC_VER)
 #error "64bit target on Windows is not supported with the Microsoft compiler; please use gcc or other non-Microsoft compilers"
@@ -31,6 +28,9 @@ $$$$solution_src$$$$
 #include <Windows.h>
 #else
 #include <sys/mman.h>
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS 0x20
+#endif
 #endif
 
 
