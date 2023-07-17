@@ -170,7 +170,7 @@ chmod +x ./output-32
 
 ```
 nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
-dashu = { git = "https://github.com/cmpute/dashu.git", default-features = false, features = [] }
+dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
 ```
 
 src/solution.rs를 다음과 같이 수정합니다.
