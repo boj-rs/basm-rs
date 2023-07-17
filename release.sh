@@ -1,1 +1,0 @@
-scripts/static-pie-release.sh x86_64-unknown-linux-gnu C "$@"
