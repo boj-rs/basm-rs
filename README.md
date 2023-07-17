@@ -112,7 +112,7 @@ writer.write_usize(a + b);
 그런 다음, Cargo.toml의 [dependencies] 항목에 다음을 추가합니다.
 
 ```
-dashu = { git = "https://github.com/cmpute/dashu.git", default-features = false, features = [] }
+dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
 ```
 
 src/solution.rs를 다음과 같이 수정합니다.
