@@ -19,6 +19,7 @@ $$$$solution_src$$$$
 
 use std::alloc::{alloc, alloc_zeroed, dealloc, realloc, Layout};
 use std::arch::asm;
+use std::env;
 use std::io::{Read, Write, stdin, stdout, stderr};
 use std::mem::size_of;
 use std::ptr::{null, null_mut};
@@ -158,12 +159,20 @@ pub fn mmap(
     }
     out
 }
+static mut G_DEBUG: u32 = 0;
+static mut RUN_COUNT: usize = 0;
 unsafe extern "C" fn svc_alloc_rwx(size: usize) -> *mut u8 {
     // currently Linux-only
-    mmap(null(), size, 0x7, 0x22, 0xffffffff, 0)
+    if RUN_COUNT == 1 && G_DEBUG != 0 {
+        RUN_COUNT += 1;
+        mmap(0x2000_0000usize as *const u8, size, 0x7, 0x32, 0xffffffff, 0)
+    } else {
+        if RUN_COUNT < 2 { RUN_COUNT += 1; }
+        mmap(null(), size, 0x7, 0x22, 0xffffffff, 0)
+    }
 }
 
-type StubPtr = unsafe extern "C" fn(*mut u8, *const u8, usize) -> !;
+type StubPtr = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> !;
 
 const STUB_BASE85: &[u8] = b$$$$stub_base85$$$$;
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
@@ -171,6 +180,10 @@ const ENTRYPOINT_OFFSET: usize = $$$$entrypoint_offset$$$$;
 
 fn main() {
     unsafe {
+        let args: Vec<String> = env::args().collect();
+        if args.len() >= 2 && args[1] == "--debug" {
+            G_DEBUG = 1;
+        }
         let mut sf = ServiceFunctions {
             ptr_imagebase:      0,
             ptr_alloc:          svc_alloc,
@@ -187,7 +200,7 @@ fn main() {
         b85tobin(stub, STUB_BASE85.as_ptr());
         b85tobin(BINARY_BASE85.as_mut_ptr(), BINARY_BASE85.as_ptr());
         let stub_fn: StubPtr = core::mem::transmute(stub);
-        stub_fn(core::mem::transmute(std::ptr::addr_of_mut!(sf)), BINARY_BASE85.as_ptr(), ENTRYPOINT_OFFSET);
+        stub_fn(core::mem::transmute(std::ptr::addr_of_mut!(sf)), BINARY_BASE85.as_ptr(), ENTRYPOINT_OFFSET, G_DEBUG as usize);
     }
 }
 //==============================================================================

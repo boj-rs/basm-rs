@@ -16,6 +16,7 @@ unsafe extern "sysv64" fn _start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
+        "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
         "mov    r12, rdi",
         "mov    rdi, QWORD PTR [rdi + 0]",
@@ -47,6 +48,7 @@ unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
+        "nop",
         "mov    edi, DWORD PTR [esp + 4]",
         "and    esp, 0xFFFFFFF0",
         "call   {2}",

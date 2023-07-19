@@ -52,9 +52,11 @@ LOC _state, 8
 
 
 _start:
-    push    rdx             ; rbp -  8
-    push    rsi             ; rbp - 16
-    push    rdi             ; rbp - 24
+    sub     rsp, 24         ; for alignment
+    push    rcx             ; rsp + 24
+    push    rdx             ; rsp + 16
+    push    rsi             ; rsp +  8
+    push    rdi             ; rsp +  0
 
     movzx   eax, byte [rsi + 0]
     xor     edx, edx
@@ -107,7 +109,11 @@ _start:
     mov     rax, qword [rbx + 0]
     mov     rcx, qword [rsp + 16]
     add     rax, rcx
-    mov     rdi, rbx        ; the SERVICE_FUNCTIONS table
+    mov     rdx, qword [rsp + 24]
+    bt      rdx, 0
+    jnc     _f
+    mov     byte [rax], 0xcc    ; int 3
+_f: mov     rdi, rbx        ; the SERVICE_FUNCTIONS table
     call    rax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 

@@ -50,6 +50,7 @@ LOC _state
 %define Temp dword [ebp+8]
 
 
+; [ebp + 16] = g_debug
 ; [ebp + 12] = entrypoint_offset
 ; [ebp +  8] = Src
 ; [ebp +  4] = the SERVICE_FUNCTIONS table
@@ -133,7 +134,11 @@ _start:
     mov     eax, dword [ebx + 0]
     mov     ecx, dword [ebp + 12]
     add     eax, ecx
-    mov     dword [esp + 0], ebx    ; the SERVICE_FUNCTIONS table
+    mov     edx, dword [ebp + 16]
+    bt      edx, 0
+    jnc     _f
+    mov     byte [eax], 0xcc    ; int 3
+_f: mov     dword [esp + 0], ebx    ; the SERVICE_FUNCTIONS table
     call    eax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 

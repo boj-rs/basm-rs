@@ -77,6 +77,20 @@ writer.write_usize(a + b);
 
 ~~`release-asm.sh`를 실행하면 제출 가능한 64bit Assembly 코드가 출력됩니다.~~ 추후 구현 예정입니다.
 
+## 디버깅
+
+> Windows 11 64비트, Windows Subsystems for Linux 2 (WSL2)에서 테스트되었습니다. 다른 환경에서 작동에 문제가 있을 시 이슈를 남겨주세요.
+
+1. 64비트 리눅스에서 Visual Studio Code를 설치하신 다음, rust-analyzer 확장 및 CodeLLDB 확장을 설치해주세요. WSL을 사용하시는 경우 반드시 WSL 내부에 확장을 설치하셔야 합니다.
+
+2. Launch configuration에서 `Debug executable 'basm' (amd64)`를 선택하여 실행하시면 생성된 코드의 진입점(EntryPoint)에 중단점(breakpoint)이 잡힙니다. 여기서부터 디버깅을 진행하시면 됩니다.
+
+3. 기술적인 문제로 인해, 진입점에 중단점이 잡히기 전에 소스 코드에 설정한 중단점은 바로 적용되지 않습니다. 이를 해결하시려면 중단점 목록을 보여주는 `Breakpoints` 뷰에서 우측 상단의 동그라미 두 개가 겹쳐 있는 아이콘(`Toggle Breakpoints`)을 두 번 눌러주세요. 만약 그래도 중단점이 제대로 적용되지 않으면 이슈를 남겨주세요.
+
+4. Launch configuration에서 `Debug executable 'basm' (i686)`을 선택하여 실행하시면 32비트로 빌드된 프로그램을 디버깅하실 수 있습니다.
+
+5. 디버깅이 완료된 후에는 위의 "사용법"에 기술된 대로 `release.sh` 등을 실행하시면 Release 모드로 최종 프로그램을 빌드하실 수 있습니다.
+
 ## 주의사항
 
 - Nightly Rust를 요구합니다.
@@ -91,8 +105,6 @@ writer.write_usize(a + b);
 
 - ~~백준 채점 환경인 Ubuntu 16.04를 기준으로 동작합니다.~~ 백준 온라인 저지와 코드포스 폴리곤에서 테스트되었습니다.
 
-- 디버깅 지원은 추후 보강할 예정입니다.
-
 ## 문제 해결
 
 - ~~이유를 알 수 없는 Segmentation Fault가 로컬에서 발생하는 경우~~ 이 버그는 현재 해결된 상태입니다.
@@ -102,6 +114,10 @@ writer.write_usize(a + b);
 - 생성되는 코드가 느리다면 Cargo.toml에서 opt-level을 기본값인 "z" (크기 우선 최적화)에서 3 (속도 우선 최적화)으로 변경해보세요. 다만 생성되는 코드의 길이가 늘어날 수 있습니다.
 
 - ~~생성되는 코드의 크기는 추후 줄일 예정입니다.~~ 현재 LZMA compression이 적용되어 있습니다.
+
+- WSL을 사용하지 않는 Windows 환경에서의 네이티브 컴파일 및 디버깅은 추후 지원 예정입니다.
+
+- 현재 ARM은 32비트/64비트 둘 다 지원되지 않습니다.
 
 - 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
 
