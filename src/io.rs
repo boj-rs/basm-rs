@@ -176,6 +176,19 @@ impl<const N: usize> Reader<N> {
         }
         String::from_utf8(buf).unwrap()
     }
+    pub fn read_line(&mut self) -> String {
+        let mut buf = Vec::new();
+        loop {
+            let b = self.peek();
+            self.2 += 1;
+            if b == b'\n' {
+                break;
+            } else {
+                if b != b'\r' { buf.push(b); }
+            }
+        }
+        String::from_utf8(buf).unwrap()
+    }
 
     pub fn next_f64(&mut self) -> f64 {
         let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();

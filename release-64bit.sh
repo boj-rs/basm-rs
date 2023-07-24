@@ -1,1 +1,1 @@
-scripts/static-pie-release.sh x86_64-unknown-linux-gnu "$@"
+scripts/static-pie.sh x86_64-unknown-linux-gnu C Release "$@"
