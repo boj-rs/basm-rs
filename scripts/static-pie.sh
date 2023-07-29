@@ -26,6 +26,16 @@ elif [[ "$target_name" == "i686-unknown-linux-gnu" ]]; then
     >&2 echo "Language ${lang_name} is not supported for target ${target_name}"
     exit
   fi
+elif [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
+  stub="static-pie-stub-amd64.bin"
+  if [[ "$lang_name" == "C" ]]; then
+    template="static-pie-template-amd64.c"
+  elif [[ "$lang_name" == "Rust" ]]; then
+    template="static-pie-template-amd64.rs"
+  else
+    >&2 echo "Language ${lang_name} is not supported for target ${target_name}"
+    exit
+  fi
 else
   >&2 echo "Unknown target ${target_name}"
   exit
@@ -47,7 +57,11 @@ else
   cargo +nightly build --target "$target_name" --release "$@"
 fi
 
-cp target/"$target_name"/"$build_mode_dir"/basm target/"$target_name"/"$build_mode_dir"/basm_stripped
-objcopy --strip-all target/"$target_name"/"$build_mode_dir"/basm_stripped
-objcopy --remove-section .eh_frame target/"$target_name"/"$build_mode_dir"/basm_stripped
-python3 scripts/static-pie-gen.py src/solution.rs target/"$target_name"/"$build_mode_dir"/basm_stripped scripts/"$stub" "$lang_name" scripts/"$template"
+if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
+  python3 scripts/static-pie-gen.py src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm.exe scripts/"$stub" "$lang_name" scripts/"$template"
+else
+  cp target/"$target_name"/"$build_mode_dir"/basm target/"$target_name"/"$build_mode_dir"/basm_stripped
+  objcopy --strip-all target/"$target_name"/"$build_mode_dir"/basm_stripped
+  objcopy --remove-section .eh_frame target/"$target_name"/"$build_mode_dir"/basm_stripped
+  python3 scripts/static-pie-gen.py src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm_stripped scripts/"$stub" "$lang_name" scripts/"$template"
+fi

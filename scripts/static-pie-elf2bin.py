@@ -1,4 +1,5 @@
-﻿import sys
+﻿import json
+import sys
 
 # e_ident[]의 index 의미
 EI_MAG0         = 0
@@ -182,4 +183,9 @@ if __name__ == '__main__':
     with open(binary_path, "wb") as f:
         f.write(bytes(memory_bin))
 
-    print(entrypoint_offset)    # callers of this script can capture stdout to get this value
+    fdict = {}
+    fdict['entrypoint_offset'] = entrypoint_offset
+    fdict['pe_image_base'] = 0
+    fdict['pe_off_reloc'] = 0
+    fdict['pe_size_reloc'] = 0
+    print(json.dumps(fdict))    # callers of this script can capture stdout to get this value

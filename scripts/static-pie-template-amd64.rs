@@ -56,12 +56,12 @@ unsafe fn b85tobin(dest: *mut u8, mut src: *const u8) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-type NativeFuncA = unsafe extern "C" fn(usize) -> *mut u8;
-type NativeFuncB = unsafe extern "C" fn(*mut u8);
-type NativeFuncC = unsafe extern "C" fn(*mut u8, usize) -> *mut u8;
-type NativeFuncD = unsafe extern "C" fn(usize) -> !;
-type NativeFuncE = unsafe extern "C" fn(usize, *mut u8, usize) -> usize;
-type NativeFuncF = unsafe extern "C" fn(usize, *const u8, usize) -> usize;
+type NativeFuncA = unsafe extern "win64" fn(usize) -> *mut u8;
+type NativeFuncB = unsafe extern "win64" fn(*mut u8);
+type NativeFuncC = unsafe extern "win64" fn(*mut u8, usize) -> *mut u8;
+type NativeFuncD = unsafe extern "win64" fn(usize) -> !;
+type NativeFuncE = unsafe extern "win64" fn(usize, *mut u8, usize) -> usize;
+type NativeFuncF = unsafe extern "win64" fn(usize, *const u8, usize) -> usize;
 
 #[repr(packed)]
 #[allow(dead_code)]
@@ -77,7 +77,7 @@ struct ServiceFunctions {
     ptr_alloc_rwx:      NativeFuncA,
 }
 
-unsafe extern "C" fn svc_alloc(size: usize) -> *mut u8 {
+unsafe extern "win64" fn svc_alloc(size: usize) -> *mut u8 {
     let layout = Layout::array::<u8>(size_of::<usize>() + size).unwrap();
     let mut ptr = alloc(layout);
     if ptr != null_mut() {
@@ -87,7 +87,7 @@ unsafe extern "C" fn svc_alloc(size: usize) -> *mut u8 {
     }
     ptr
 }
-unsafe extern "C" fn svc_alloc_zeroed(size: usize) -> *mut u8 {
+unsafe extern "win64" fn svc_alloc_zeroed(size: usize) -> *mut u8 {
     let layout = Layout::array::<u8>(size_of::<usize>() + size).unwrap();
     let mut ptr = alloc_zeroed(layout);
     if ptr != null_mut() {
@@ -97,14 +97,14 @@ unsafe extern "C" fn svc_alloc_zeroed(size: usize) -> *mut u8 {
     }
     ptr
 }
-unsafe extern "C" fn svc_free(ptr: *mut u8) {
+unsafe extern "win64" fn svc_free(ptr: *mut u8) {
     let ptr_orig = ptr.wrapping_sub(size_of::<usize>());
     let ptr_size: *mut usize = core::mem::transmute(ptr_orig);
     let size_orig = *ptr_size;
     let layout = Layout::array::<u8>(size_of::<usize>() + size_orig).unwrap();
     dealloc(ptr_orig, layout);
 }
-unsafe extern "C" fn svc_realloc(memblock: *mut u8, size: usize) -> *mut u8 {
+unsafe extern "win64" fn svc_realloc(memblock: *mut u8, size: usize) -> *mut u8 {
     let ptr_orig = memblock.wrapping_sub(size_of::<usize>());
     let ptr_size: *mut usize = core::mem::transmute(ptr_orig);
     let size_orig = *ptr_size;
@@ -117,10 +117,10 @@ unsafe extern "C" fn svc_realloc(memblock: *mut u8, size: usize) -> *mut u8 {
     }
     ptr
 }
-unsafe extern "C" fn svc_exit(status: usize) -> ! {
+unsafe extern "win64" fn svc_exit(status: usize) -> ! {
     std::process::exit(status as i32)
 }
-unsafe extern "C" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
+unsafe extern "win64" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
     let slice = std::slice::from_raw_parts_mut(buf, count);
     match fd {
         0 => match stdin().read(slice) {
@@ -130,7 +130,7 @@ unsafe extern "C" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> us
         _ => { 0 },
     }
 }
-unsafe extern "C" fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
+unsafe extern "win64" fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
     let slice = std::slice::from_raw_parts(buf, count);
     match fd {
         1 => match stdout().write(slice) {
@@ -161,7 +161,7 @@ pub fn mmap(
 }
 static mut G_DEBUG: u32 = 0;
 static mut RUN_COUNT: usize = 0;
-unsafe extern "C" fn svc_alloc_rwx(size: usize) -> *mut u8 {
+unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> *mut u8 {
     // currently Linux-only
     if RUN_COUNT == 1 && G_DEBUG != 0 {
         RUN_COUNT += 1;
@@ -172,7 +172,7 @@ unsafe extern "C" fn svc_alloc_rwx(size: usize) -> *mut u8 {
     }
 }
 
-type StubPtr = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> !;
+type StubPtr = unsafe extern "win64" fn(*mut u8, *const u8, usize, usize) -> !;
 
 const STUB_BASE85: &[u8] = b$$$$stub_base85$$$$;
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;

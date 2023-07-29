@@ -22,9 +22,6 @@ $$$$solution_src$$$$
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
-#if defined(_WIN64) && defined(_MSC_VER)
-#error "64bit target on Windows is not supported with the Microsoft compiler; please use gcc or other non-Microsoft compilers"
-#endif
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #else
@@ -32,6 +29,19 @@ $$$$solution_src$$$$
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS 0x20
 #endif
+#endif
+
+// Use cdecl on x86 (32bit), Microsoft x64 calling convention on amd64 (64bit)
+#if defined(__LP64__) // LP64 machine, OS X or Linux
+#define BASMCALL __attribute__((ms_abi))
+#elif defined(_WIN64) // LLP64 machine, Windows
+#if defined(_MSC_VER)
+#define BASMCALL
+#else
+#define BASMCALL __attribute__((ms_abi))
+#endif
+#else // 32-bit machine, Windows or Linux or OS X
+#define BASMCALL
 #endif
 
 
@@ -68,6 +78,14 @@ void b85tobin(void *dest, char const *src) {
 #pragma pack(push, 1)
 
 typedef struct {
+    uint64_t    env_id;
+    uint64_t    env_flags;
+    uint64_t    pe_image_base;
+    uint64_t    pe_off_reloc;
+    uint64_t    pe_size_reloc;
+} PLATFORM_DATA;
+
+typedef struct {
     void *ptr_imagebase;            // pointer to data
     void *ptr_alloc;                // pointer to function
     void *ptr_alloc_zeroed;         // pointer to function
@@ -77,35 +95,41 @@ typedef struct {
     void *ptr_read_stdio;           // pointer to function
     void *ptr_write_stdio;          // pointer to function
     void *ptr_alloc_rwx;            // pointer to function
+    void *ptr_platform;             // pointer to data
 } SERVICE_FUNCTIONS;
 
 #pragma pack(pop)
 
-void *svc_alloc(size_t size) {
+#define ENV_ID_UNKNOWN              0
+#define ENV_ID_WINDOWS              1
+#define ENV_ID_LINUX                2
+#define ENV_FLAGS_DISABLE_CHKSTK    0x0001
+
+BASMCALL void *svc_alloc(size_t size) {
     return malloc(size);
 }
-void *svc_alloc_zeroed(size_t size) {
+BASMCALL void *svc_alloc_zeroed(size_t size) {
     return calloc(1, size);
 }
-void svc_free(void *ptr) {
+BASMCALL void svc_free(void *ptr) {
     free(ptr);
 }
-void *svc_realloc(void* memblock, size_t size) {
+BASMCALL void *svc_realloc(void* memblock, size_t size) {
     return realloc(memblock, size);
 }
-void svc_exit(size_t status) {
+BASMCALL void svc_exit(size_t status) {
     exit((int) status);
 }
-size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
+BASMCALL size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
     if (fd != 0) return 0;
     return fread(buf, 1, count, stdin);
 }
-size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
+BASMCALL size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
     if (fd != 1 && fd != 2) return 0;
     return fwrite(buf, 1, count, (fd == 1) ? stdout : stderr);
 }
 static uint32_t g_debug = 0;
-void *svc_alloc_rwx(size_t size) {
+BASMCALL void *svc_alloc_rwx(size_t size) {
     static int run_count = 0;
     if (run_count == 1 && g_debug) {
         run_count++;
@@ -126,8 +150,9 @@ void *svc_alloc_rwx(size_t size) {
     }
 }
 
+PLATFORM_DATA g_pd;
 SERVICE_FUNCTIONS g_sf;
-typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
+typedef void * (BASMCALL *stub_ptr)(void *, void *, size_t, size_t);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
 char binary_base85[][4096] = $$$$binary_base85$$$$;
@@ -137,6 +162,19 @@ int main(int argc, char *argv[]) {
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }
+#if defined(_WIN32)
+    g_pd.env_id             = ENV_ID_WINDOWS;
+#elif defined(__linux__)
+    g_pd.env_id             = ENV_ID_LINUX;
+#else
+    g_pd.env_id             = ENV_ID_UNKNOWN;
+#endif
+#if defined(BOJ)
+    g_pd.env_flags          |= ENV_FLAGS_DISABLE_CHKSTK;
+#endif
+    g_pd.pe_image_base      = $$$$pe_image_base$$$$ULL;
+    g_pd.pe_off_reloc       = $$$$pe_off_reloc$$$$ULL;
+    g_pd.pe_size_reloc      = $$$$pe_size_reloc$$$$ULL;
     g_sf.ptr_imagebase      = NULL;
     g_sf.ptr_alloc          = (void *) svc_alloc;
     g_sf.ptr_alloc_zeroed   = (void *) svc_alloc_zeroed;
@@ -146,6 +184,7 @@ int main(int argc, char *argv[]) {
     g_sf.ptr_read_stdio     = (void *) svc_read_stdio;
     g_sf.ptr_write_stdio    = (void *) svc_write_stdio;
     g_sf.ptr_alloc_rwx      = (void *) svc_alloc_rwx;
+    g_sf.ptr_platform       = (void *) &g_pd;
 
     stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x1000);
     b85tobin((void *) stub, stub_base85);
