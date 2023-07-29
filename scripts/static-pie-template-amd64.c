@@ -103,7 +103,7 @@ typedef struct {
 #define ENV_ID_UNKNOWN              0
 #define ENV_ID_WINDOWS              1
 #define ENV_ID_LINUX                2
-#define ENV_FLAGS_DISABLE_CHKSTK    0x0001
+#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
 
 BASMCALL void *svc_alloc(size_t size) {
     return malloc(size);
@@ -162,16 +162,17 @@ int main(int argc, char *argv[]) {
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }
+    g_pd.env_flags          = 0; // not strictly necessary but for clarity
 #if defined(_WIN32)
     g_pd.env_id             = ENV_ID_WINDOWS;
 #elif defined(__linux__)
     g_pd.env_id             = ENV_ID_LINUX;
+    // Linux's stack growth works differently than Windows.
+    // However, we do make sure the stack grows since we cannot rely on
+    //   Microsoft compiler's behavior on the stack usage.
+    g_pd.env_flags          |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
 #else
     g_pd.env_id             = ENV_ID_UNKNOWN;
-#endif
-    g_pd.env_flags          = 0; // not strictly necessary but for clarity
-#if defined(BOJ)
-    g_pd.env_flags          |= ENV_FLAGS_DISABLE_CHKSTK;
 #endif
     g_pd.pe_image_base      = $$$$pe_image_base$$$$ULL;
     g_pd.pe_off_reloc       = $$$$pe_off_reloc$$$$ULL;

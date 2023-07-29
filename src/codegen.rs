@@ -54,8 +54,20 @@ unsafe extern "win64" fn _start() -> ! {
         "mov    rdx, QWORD PTR [rax + 8]",
         "btc    rdx, 0",
         "jnc    1f",
+        // BEGIN Linux patch
+        // Linux ABI requires us to actually move the stack pointer
+        //   `before' accessing the yet-to-be-committed stack pages.
+        // However, it is not necessary to touch all pages in between.
+        // See: https://stackoverflow.com/a/46791370
+        // 0:  48 29 c4                sub    rsp, rax
+        // 3:  48 85 04 24             test   QWORD PTR [rsp], rax
+        // 7:  48 01 c4                add    rsp, rax
+        // a:  c3                      ret 
         "lea    rcx, QWORD PTR [rip + {2}]",
-        "mov    BYTE PTR [rcx], 0xC3",      // put a `ret' instruction at the beginning of the function
+        "mov    DWORD PTR [rcx], 0x48C42948",
+        "mov    DWORD PTR [rcx + 4], 0x48240485",
+        "mov    DWORD PTR [rcx + 8], 0x90C3C401",
+        // END Linux patch
         "1:",
         "mov    rcx, rbx",
         "call   {1}",
