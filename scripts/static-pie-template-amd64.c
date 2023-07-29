@@ -169,6 +169,7 @@ int main(int argc, char *argv[]) {
 #else
     g_pd.env_id             = ENV_ID_UNKNOWN;
 #endif
+    g_pd.env_flags          = 0; // not strictly necessary but for clarity
 #if defined(BOJ)
     g_pd.env_flags          |= ENV_FLAGS_DISABLE_CHKSTK;
 #endif
