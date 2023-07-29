@@ -55,7 +55,7 @@ unsafe extern "win64" fn _start() -> ! {
         "btc    rdx, 0",
         "jnc    1f",
         "lea    rcx, QWORD PTR [rip + {2}]",
-        "mov    BYTE PTR [rcx], 0xC3",
+        "mov    BYTE PTR [rcx], 0xC3",      // put a `ret' instruction at the beginning of the function
         "1:",
         "mov    rcx, rbx",
         "call   {1}",
