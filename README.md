@@ -38,7 +38,7 @@ writer.write_usize(a + b);
 - 표시되는 메모리 사용량이 줄어듭니다.
 
 ~~C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB부터 시작합니다.~~
-현재 구현은 C runtime을 사용하기 때문에 1144KB부터 시작합니다. 156KB보다는 크지만 Rust의 2188KB보다는 많이 작은 값입니다.
+현재 구현은 C runtime을 사용하기 때문에 1144KB부터 시작합니다.
 
 - **외부 crate를 사용할 수 있습니다.**
 
@@ -77,6 +77,10 @@ writer.write_usize(a + b);
 
 `release-64bit-windows.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다. 단, Windows 환경에서의 작동은 Python 3 라이브러리인 `pefile`을 필요로 하므로 `pip install pefile`로 설치하십시오.
 
+Windows 환경에서는 VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
+
+Linux (WSL 포함) 환경에서는 VS Code의 `build-release-amd64-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
+
 ~~`release-asm.sh`를 실행하면 제출 가능한 64bit Assembly 코드가 출력됩니다.~~ 추후 구현 예정입니다.
 
 ## 디버깅
@@ -101,7 +105,9 @@ writer.write_usize(a + b);
 
 - Python 3을 요구합니다.
 
-- Binutils를 요구합니다.
+- Linux에서 Binutils를 요구합니다.
+
+- Windows에서 Python 3 라이브러리 `pefile`을 요구합니다.
 
 - `std`를 사용할 수 없습니다.
 
