@@ -45,6 +45,32 @@
             "dependsOn": ["build-debug-amd64-win-cargo", "build-debug-amd64-win-loader"],
         },
         {
+            "label": "build-release-amd64-win-cargo",
+            "type": "shell",
+            "command": "mkdir ./target/x86_64-pc-windows-msvc/release; ./release-64bit-windows.cmd > ./target/x86_64-pc-windows-msvc/release/loader.c",
+            "problemMatcher": ["$rustc"],
+        },
+        {
+            "label": "build-release-amd64-win-submit",
+            "type": "shell",
+            "command": "code --reuse-window ./target/x86_64-pc-windows-msvc/release/loader.c",
+            "dependsOn": ["build-release-amd64-win-cargo"],
+            "problemMatcher": ["$rustc"],
+        },
+        {
+            "label": "build-release-amd64-cargo",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/release; ./release-64bit.sh > ./target/x86_64-unknown-linux-gnu/release/loader.c",,
+            "problemMatcher": ["$rustc"],
+        },
+        {
+            "label": "build-release-amd64-submit",
+            "type": "shell",
+            "command": "code --reuse-window ./target/x86_64-unknown-linux-gnu/release/loader.c",
+            "dependsOn": ["build-release-amd64-cargo"],
+            "problemMatcher": ["$rustc"],
+        },
+        {
             "label": "build-debug-i686-cargo",
             "type": "shell",
             "command": "mkdir -p ./target/i686-unknown-linux-gnu/debug; ./scripts/static-pie.sh i686-unknown-linux-gnu C Debug > ./target/i686-unknown-linux-gnu/debug/loader.c",
