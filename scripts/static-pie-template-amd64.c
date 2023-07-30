@@ -129,14 +129,19 @@ BASMCALL size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
     return fwrite(buf, 1, count, (fd == 1) ? stdout : stderr);
 }
 static uint32_t g_debug = 0;
+#ifdef _WIN64
+static size_t g_debug_base = 0x920000000ULL;
+#else
+static size_t g_debug_base = 0x20000000ULL;
+#endif
 BASMCALL void *svc_alloc_rwx(size_t size) {
     static int run_count = 0;
     if (run_count == 1 && g_debug) {
         run_count++;
 #ifdef _WIN32
-        return (void *) VirtualAlloc((LPVOID) 0x20000000, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+        return (void *) VirtualAlloc((LPVOID) g_debug_base, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #else
-        void *ret = (void *) mmap((void *) 0x20000000, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+        void *ret = (void *) mmap((void *) g_debug_base, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
         return (ret == MAP_FAILED) ? NULL : ret;
 #endif
     } else {
@@ -159,6 +164,10 @@ char binary_base85[][4096] = $$$$binary_base85$$$$;
 const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 int main(int argc, char *argv[]) {
+    if (sizeof(size_t) < 8) {
+        printf("Error: sizeof(size_t) = %zu for amd64\n", sizeof(size_t));
+        exit(1);
+    }
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }

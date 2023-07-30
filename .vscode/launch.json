@@ -7,6 +7,24 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug executable 'basm' (amd64-win)",
+            "args": ["--debug"],
+            "preLaunchTask": "build-debug-amd64-win",
+            "program": "${workspaceFolder}/target/x86_64-pc-windows-msvc/debug/loader.exe",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "sourceLanguages": ["rust"],
+            "env": {
+                "LLDB_USE_NATIVE_PDB_READER": "1",
+            },
+            "postRunCommands": [
+                "target modules add target/x86_64-pc-windows-msvc/debug/basm.exe",
+                "target modules load --file basm.exe --slide 0x920000000",
+            ],
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug executable 'basm' (amd64)",
             "args": ["--debug"],
             "preLaunchTask": "build-debug-amd64",

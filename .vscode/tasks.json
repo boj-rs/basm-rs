@@ -25,6 +25,26 @@
             "dependsOn": ["build-debug-amd64-cargo", "build-debug-amd64-loader", "build-debug-amd64-chmod"],
         },
         {
+            "label": "build-debug-amd64-win-cargo",
+            "type": "shell",
+            "command": "mkdir ./target/x86_64-pc-windows-msvc/debug; ./debug-64bit-windows.cmd > ./target/x86_64-pc-windows-msvc/debug/loader.c",
+        },
+        {
+            "label": "build-debug-amd64-win-loader",
+            "type": "shell",
+            "command": "cl ./target/x86_64-pc-windows-msvc/debug/loader.c /F268435456 /Fe./target/x86_64-pc-windows-msvc/debug/loader.exe",
+            "dependsOn": ["build-debug-amd64-win-cargo"],
+            "problemMatcher": ["$msCompile"],
+            "group": {
+              "kind": "build",
+              "isDefault": true,
+            },
+        },
+        {
+            "label": "build-debug-amd64-win",
+            "dependsOn": ["build-debug-amd64-win-cargo", "build-debug-amd64-win-loader"],
+        },
+        {
             "label": "build-debug-i686-cargo",
             "type": "shell",
             "command": "mkdir -p ./target/i686-unknown-linux-gnu/debug; ./scripts/static-pie.sh i686-unknown-linux-gnu C Debug > ./target/i686-unknown-linux-gnu/debug/loader.c",

@@ -42,7 +42,7 @@ writer.write_usize(a + b);
 
 - **외부 crate를 사용할 수 있습니다.**
 
-- **백준 온라인 저지와 코드포스 폴리곤에서 테스트되었습니다.**
+- **백준 온라인 저지(64비트), 코드포스(64비트), 코드포스 폴리곤(32비트)에서 테스트되었습니다.**
 
 - AVX, AVX2, SSE 등의 SIMD를 사용할 수 있습니다.
 
@@ -69,13 +69,13 @@ writer.write_usize(a + b);
 `src/solution.rs` main() 에 원하는 코드를 삽입하시고,
 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
 
-`release.sh` 또는 `release-64bit.sh`를 실행하면 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C 코드가 출력됩니다.
+`release.sh` 또는 `release-64bit.sh`를 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다.
 
 `release-32bit.sh`를 실행하면 32비트 환경(코드포스 폴리곤 등)에 제출 가능한 C 코드가 출력됩니다.
 
 `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다.
 
-Windows 64비트 환경에서 `release-64bit-windows.bat'를 실행하면 64비트 환경에 제출 가능한 C 코드가 출력됩니다.
+`release-64bit-windows.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다. 단, Windows 환경에서의 작동은 Python 3 라이브러리인 `pefile`을 필요로 하므로 `pip install pefile`로 설치하십시오.
 
 ~~`release-asm.sh`를 실행하면 제출 가능한 64bit Assembly 코드가 출력됩니다.~~ 추후 구현 예정입니다.
 
@@ -93,6 +93,8 @@ Windows 64비트 환경에서 `release-64bit-windows.bat'를 실행하면 64비�
 
 5. 디버깅이 완료된 후에는 위의 "사용법"에 기술된 대로 `release.sh` 등을 실행하시면 Release 모드로 최종 프로그램을 빌드하실 수 있습니다.
 
+6. 네이티브 Windows 64비트 환경에서는 Launch configuration에서 `Debug executable 'basm' (amd64-win)`를 선택하여 실행하시면 디버깅이 가능합니다. 단, Visual Studio Code를 `x64 Native Tools Command Prompt for Visual Studio 2022` 등에서 실행하셔야 합니다(로컬 환경에 따라 연도는 바뀔 수 있음). 해당 명령 프롬프트에서 `code`라고 입력하여 Visual Studio Code를 실행하신 다음 1-5를 동일하게 진행하시면 됩니다.
+
 ## 주의사항
 
 - Nightly Rust를 요구합니다.
@@ -105,7 +107,7 @@ Windows 64비트 환경에서 `release-64bit-windows.bat'를 실행하면 64비�
 
 - `libc`를 사용할 수 없습니다.
 
-- ~~백준 채점 환경인 Ubuntu 16.04를 기준으로 동작합니다.~~ 백준 온라인 저지와 코드포스 폴리곤에서 테스트되었으며, 네이티브 64비트 Windows 환경도 지원합니다.
+- ~~백준 채점 환경인 Ubuntu 16.04를 기준으로 동작합니다.~~ 백준 온라인 저지, 코드포스, 코드포스 폴리곤에서 테스트되었으며, 네이티브 64비트 Windows 환경도 지원합니다.
 
 ## 문제 해결
 
@@ -117,7 +119,7 @@ Windows 64비트 환경에서 `release-64bit-windows.bat'를 실행하면 64비�
 
 - ~~생성되는 코드의 크기는 추후 줄일 예정입니다.~~ 현재 LZMA compression이 적용되어 있습니다.
 
-- (WSL을 사용하지 않는) 네이티브 Windows 환경에서의 디버깅은 추후 지원 예정입니다. 만약 빌드 및 실행 자체에 문제가 있는 경우 이슈를 남겨주세요.
+- 빌드 및 실행 또는 디버깅에 문제가 있는 경우 이슈를 남겨주세요.
 
 - 현재 ARM은 32비트/64비트 둘 다 지원되지 않습니다. 지원이 필요하시면 이슈를 남겨주세요.
 

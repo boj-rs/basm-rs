@@ -1,6 +1,7 @@
 use basm::io::{Reader, Writer};
 
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
+#[cfg_attr(debug_assertions, inline(never))]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
