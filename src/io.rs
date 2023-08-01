@@ -95,13 +95,28 @@ impl<const N: usize> Reader<N> {
         c
     }
     #[inline]
+    fn next_u64_noskip(&mut self) -> u64 {
+        let mut n = 0;
+        loop {
+            let b = self.peek();
+            self.2 += 1;
+            if b > 32 {
+                n *= 10;
+                n += b as u64 & 0x0F;
+            } else {
+                break;
+            }
+        }
+        n
+    }
+    #[inline]
     pub fn next_i64(&mut self) -> i64 {
         self.skip_white();
         if self.peek() == b'-' {
             self.2 += 1;
-            -(self.next_usize() as i64)
+            -(self.next_u64_noskip() as i64)
         } else {
-            self.next_usize() as i64
+            self.next_u64_noskip() as i64
         }
     }
     #[inline]
@@ -109,26 +124,25 @@ impl<const N: usize> Reader<N> {
         self.skip_white();
         if self.peek() == b'-' {
             self.2 += 1;
-            -(self.next_usize() as i32)
+            -(self.next_u64_noskip() as i32)
         } else {
-            self.next_usize() as i32
+            self.next_u64_noskip() as i32
         }
+    }
+    #[inline]
+    pub fn next_u64(&mut self) -> u64 {
+        self.skip_white();
+        self.next_u64_noskip()
+    }
+    #[inline]
+    pub fn next_u32(&mut self) -> u32 {
+        self.skip_white();
+        self.next_u64_noskip() as u32
     }
     #[inline]
     pub fn next_usize(&mut self) -> usize {
         self.skip_white();
-        let mut n = 0;
-        loop {
-            let b = self.peek();
-            self.2 += 1;
-            if b > 32 {
-                n *= 10;
-                n += b as usize & 0x0F;
-            } else {
-                break;
-            }
-        }
-        n
+        self.next_u64_noskip() as usize
     }
     #[inline]
     pub fn skip_white(&mut self) -> usize {
