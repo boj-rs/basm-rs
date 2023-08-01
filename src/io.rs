@@ -96,6 +96,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline]
     pub fn next_i64(&mut self) -> i64 {
+        self.skip_white();
         if self.peek() == b'-' {
             self.2 += 1;
             -(self.next_usize() as i64)
@@ -105,6 +106,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline]
     pub fn next_i32(&mut self) -> i32 {
+        self.skip_white();
         if self.peek() == b'-' {
             self.2 += 1;
             -(self.next_usize() as i32)
@@ -114,6 +116,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline]
     pub fn next_usize(&mut self) -> usize {
+        self.skip_white();
         let mut n = 0;
         loop {
             let b = self.peek();
@@ -151,6 +154,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline]
     pub fn next_word(&mut self, buf: &mut [u8]) -> usize {
+        self.skip_white();
         let mut i = 0;
         loop {
             let b = self.peek();
@@ -164,6 +168,7 @@ impl<const N: usize> Reader<N> {
         }
     }
     pub fn next_string(&mut self) -> String {
+        self.skip_white();
         let mut buf = Vec::new();
         loop {
             let b = self.peek();
@@ -191,6 +196,7 @@ impl<const N: usize> Reader<N> {
     }
 
     pub fn next_f64(&mut self) -> f64 {
+        self.skip_white();
         let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
         let buf = unsafe { MaybeUninit::slice_assume_init_mut(&mut buf) };
         let n = self.next_word(buf);
