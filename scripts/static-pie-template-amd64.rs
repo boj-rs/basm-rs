@@ -56,6 +56,19 @@ unsafe fn b85tobin(dest: *mut u8, mut src: *const u8) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
+#[repr(packed)]
+#[allow(dead_code)]
+#[allow(non_snake_case)]
+struct PlatformData {
+    env_id:                 u64,
+    env_flags:              u64,
+    pe_image_base:          u64,
+    pe_off_reloc:           u64,
+    pe_size_reloc:          u64,
+    win_GetModuleHandleW:   u64,    // pointer to kernel32::GetModuleHandleW
+    win_GetProcAddress:     u64,    // pointer to kernel32::GetProcAddress
+}
+
 type NativeFuncA = unsafe extern "win64" fn(usize) -> *mut u8;
 type NativeFuncB = unsafe extern "win64" fn(*mut u8);
 type NativeFuncC = unsafe extern "win64" fn(*mut u8, usize) -> *mut u8;
@@ -75,6 +88,7 @@ struct ServiceFunctions {
     ptr_read_stdio:     NativeFuncE,
     ptr_write_stdio:    NativeFuncF,
     ptr_alloc_rwx:      NativeFuncA,
+    ptr_platform:       usize,
 }
 
 unsafe extern "win64" fn svc_alloc(size: usize) -> *mut u8 {
@@ -184,6 +198,15 @@ fn main() {
         if args.len() >= 2 && args[1] == "--debug" {
             G_DEBUG = 1;
         }
+        let mut pd = PlatformData {
+            env_id:                 0,      // For Rust, we default to ENV_ID_UNKNOWN
+            env_flags:              if cfg!(windows) { 0 } else { 1 },
+            pe_image_base:          $$$$pe_image_base$$$$u64,
+            pe_off_reloc:           $$$$pe_off_reloc$$$$u64,
+            pe_size_reloc:          $$$$pe_size_reloc$$$$u64,
+            win_GetModuleHandleW:   0,      // [TBD] pointer to kernel32::GetModuleHandleW
+            win_GetProcAddress:     0,      // [TBD] pointer to kernel32::GetProcAddress
+        };
         let mut sf = ServiceFunctions {
             ptr_imagebase:      0,
             ptr_alloc:          svc_alloc,
@@ -194,6 +217,7 @@ fn main() {
             ptr_read_stdio:     svc_read_stdio,
             ptr_write_stdio:    svc_write_stdio,
             ptr_alloc_rwx:      svc_alloc_rwx,
+            ptr_platform:       std::ptr::addr_of_mut!(pd) as usize,
         };
 
         let stub = svc_alloc_rwx(0x1000);

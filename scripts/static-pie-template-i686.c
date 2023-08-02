@@ -65,6 +65,16 @@ void b85tobin(void *dest, char const *src) {
 #pragma pack(push, 1)
 
 typedef struct {
+    uint64_t    env_id;
+    uint64_t    env_flags;
+    uint64_t    pe_image_base;
+    uint64_t    pe_off_reloc;
+    uint64_t    pe_size_reloc;
+    uint64_t    win_GetModuleHandleW;   // pointer to kernel32::GetModuleHandleW
+    uint64_t    win_GetProcAddress;     // pointer to kernel32::GetProcAddress
+} PLATFORM_DATA;
+
+typedef struct {
     void *ptr_imagebase;            // pointer to data
     void *ptr_alloc;                // pointer to function
     void *ptr_alloc_zeroed;         // pointer to function
@@ -74,9 +84,15 @@ typedef struct {
     void *ptr_read_stdio;           // pointer to function
     void *ptr_write_stdio;          // pointer to function
     void *ptr_alloc_rwx;            // pointer to function
+    void *ptr_platform;             // pointer to data
 } SERVICE_FUNCTIONS;
 
 #pragma pack(pop)
+
+#define ENV_ID_UNKNOWN              0
+#define ENV_ID_WINDOWS              1
+#define ENV_ID_LINUX                2
+#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
 
 void *svc_alloc(size_t size) {
     return malloc(size);
@@ -123,6 +139,7 @@ void *svc_alloc_rwx(size_t size) {
     }
 }
 
+PLATFORM_DATA g_pd;
 SERVICE_FUNCTIONS g_sf;
 typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
 
@@ -134,6 +151,25 @@ int main(int argc, char *argv[]) {
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }
+    g_pd.env_flags          = 0; // not strictly necessary but for clarity
+#if defined(_WIN32)
+    g_pd.env_id             = ENV_ID_WINDOWS;
+#elif defined(__linux__)
+    g_pd.env_id             = ENV_ID_LINUX;
+    // Linux's stack growth works differently than Windows.
+    // However, we do make sure the stack grows since we cannot rely on
+    //   Microsoft compiler's behavior on the stack usage.
+    g_pd.env_flags          |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
+#else
+    g_pd.env_id             = ENV_ID_UNKNOWN;
+#endif
+    g_pd.pe_image_base      = $$$$pe_image_base$$$$ULL;
+    g_pd.pe_off_reloc       = $$$$pe_off_reloc$$$$ULL;
+    g_pd.pe_size_reloc      = $$$$pe_size_reloc$$$$ULL;
+#if defined(_WIN32)
+    g_pd.win_GetModuleHandleW   = (uint64_t) GetModuleHandleW;
+    g_pd.win_GetProcAddress     = (uint64_t) GetProcAddress;
+#endif
     g_sf.ptr_imagebase      = NULL;
     g_sf.ptr_alloc          = (void *) svc_alloc;
     g_sf.ptr_alloc_zeroed   = (void *) svc_alloc_zeroed;
@@ -143,6 +179,7 @@ int main(int argc, char *argv[]) {
     g_sf.ptr_read_stdio     = (void *) svc_read_stdio;
     g_sf.ptr_write_stdio    = (void *) svc_write_stdio;
     g_sf.ptr_alloc_rwx      = (void *) svc_alloc_rwx;
+    g_sf.ptr_platform       = (void *) &g_pd;
 
     stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x1000);
     b85tobin((void *) stub, stub_base85);
