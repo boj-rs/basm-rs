@@ -123,7 +123,7 @@ unsafe extern "win64" fn svc_realloc(memblock: *mut u8, size: usize) -> *mut u8 
     let ptr_size: *mut usize = core::mem::transmute(ptr_orig);
     let size_orig = *ptr_size;
     let layout = Layout::array::<u8>(size_of::<usize>() + size_orig).unwrap();
-    let mut ptr = realloc(ptr_orig, layout, size);
+    let mut ptr = realloc(ptr_orig, layout, size_of::<usize>() + size);
     if ptr != null_mut() {
         let ptr_size: *mut usize = core::mem::transmute(ptr);
         *ptr_size = size;
