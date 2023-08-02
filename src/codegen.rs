@@ -1,8 +1,8 @@
 use core::arch::asm;
 
 use crate::solution;
-use basm::allocator;
-use basm::services;
+use basm::platform;
+use basm::platform::{allocator, loader};
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
@@ -27,7 +27,7 @@ unsafe extern "win64" fn _start() -> ! {
         "call   {0}",
         "mov    rdi, r12",
         "call   {1}",
-        sym basm::platform::amd64::relocate, sym _start_rust, options(noreturn)
+        sym loader::amd64_elf::relocate, sym _start_rust, options(noreturn)
     );
 }
 
@@ -71,7 +71,7 @@ unsafe extern "win64" fn _start() -> ! {
         "1:",
         "mov    rcx, rbx",
         "call   {1}",
-        sym basm::platform::amd64_windows::relocate, sym _start_rust, sym __chkstk, options(noreturn)
+        sym loader::amd64_pe::relocate, sym _start_rust, sym __chkstk, options(noreturn)
     );
 }
 
@@ -108,7 +108,7 @@ unsafe extern "cdecl" fn _start() -> ! {
         "add    esp, 4",
         "push   edi",
         "call   {1}",
-        sym basm::platform::i686::relocate,
+        sym loader::i686_elf::relocate,
         sym _start_rust,
         sym _get_dynamic_section_offset,
         options(noreturn)
@@ -116,9 +116,9 @@ unsafe extern "cdecl" fn _start() -> ! {
 }
 
 fn _start_rust(service_functions: usize) -> ! {
-    services::init(service_functions);
+    platform::init(service_functions);
     solution::main();
-    services::exit(0)
+    platform::services::exit(0)
 }
 
 #[no_mangle]

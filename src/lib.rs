@@ -9,13 +9,11 @@ extern crate alloc;
 #[cfg(not(test))]
 extern crate compiler_builtins;
 
-pub mod allocator;
 pub mod collections;
 pub mod graph;
 pub mod io;
 pub mod math;
 pub mod platform;
-pub mod services;
 pub mod sorts;
 pub mod strings;
 pub mod syscall;

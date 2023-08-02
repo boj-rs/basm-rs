@@ -2,7 +2,7 @@ use core::mem::MaybeUninit;
 use alloc::vec::Vec;
 use alloc::string::String;
 
-use crate::services;
+use crate::platform::services;
 
 pub struct Reader<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
 pub struct Writer<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize);
