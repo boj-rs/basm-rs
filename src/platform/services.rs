@@ -48,22 +48,22 @@ unsafe fn addr(fn_id: usize) -> usize {
     core::ptr::read((SERVICE_FUNCTIONS + fn_id * core::mem::size_of::<usize>()) as *mut usize)
 }
 //#[inline(always)]
-pub unsafe fn alloc(size: usize) -> *mut u8 {
+pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(1));
     fn_ptr(size)
 }
 //#[inline(always)]
-pub unsafe fn alloc_zeroed(size: usize) -> *mut u8 {
+pub unsafe fn alloc_zeroed(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(2));
     fn_ptr(size)
 }
 //#[inline(always)]
-pub unsafe fn dealloc(ptr: *mut u8) {
+pub unsafe fn dealloc(ptr: *mut u8, size: usize, align: usize) {
     let fn_ptr: native_func::B = core::mem::transmute(addr(3));
     fn_ptr(ptr)
 }
 //#[inline(always)]
-pub unsafe fn realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
+pub unsafe fn realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
     let fn_ptr: native_func::C = core::mem::transmute(addr(4));
     fn_ptr(ptr, new_size)
 }
