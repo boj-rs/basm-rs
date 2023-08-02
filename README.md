@@ -127,7 +127,7 @@ Linux (WSL 포함) 환경에서는 VS Code의 `build-release-amd64-submit` Task�
 
 - 메모리 할당을 C runtime 없이 구현하기 위해 [dlmalloc](https://github.com/alexcrichton/dlmalloc-rs)이 적용되어 있습니다. 대부분의 경우 잘 작동하지만, Rust `Vec`에 다량의 원소를 삽입하는 경우 비효율적으로 동작하는 문제가 있습니다. 이는 추후 수정 예정입니다. 만약 실행시간이나 메모리 사용량이 2-3배 이상 과도하게 증가하는 등의 문제를 겪으신다면 꼭(!) 이슈를 남겨주세요.
 
-- 64비트 리눅스 환경에서 `./release-rs.sh`를 실행하여해 Rust로 빌드하시는 경우 dlmalloc이 적용되지 않습니다.
+- 64비트 리눅스 환경에서 `./release-rs.sh`를 실행하여 Rust로 빌드하시는 경우 dlmalloc이 적용되지 않습니다.
 
 - 빌드 및 실행 또는 디버깅에 문제가 있는 경우 이슈를 남겨주세요.
 
