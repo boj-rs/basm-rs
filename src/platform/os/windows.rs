@@ -21,6 +21,10 @@ pub struct WinApi {
 }
 #[allow(non_snake_case)]
 impl WinApi {
+    pub const KERNEL32DLL: [u16; 13] = [
+        b'k' as u16, b'e' as u16, b'r' as u16, b'n' as u16, b'e' as u16, b'l' as u16,
+        b'3' as u16, b'2' as u16, b'.' as u16, b'd' as u16, b'l' as u16, b'l' as u16,
+        0u16];
     #[inline(always)]
     pub unsafe fn GetModuleHandleW(&self, lpModuleName: *const u16) -> usize {
         (self.ptr_GetModuleHandleW.unwrap())(lpModuleName)
@@ -68,7 +72,7 @@ pub unsafe fn init() {
     let pd = services::platform_data();
     WINAPI.ptr_GetModuleHandleW = Some(core::mem::transmute((*pd).win_GetModuleHandleW as usize));
     WINAPI.ptr_GetProcAddress = Some(core::mem::transmute((*pd).win_GetProcAddress as usize));
-    WINAPI.kernel32 = WINAPI.GetModuleHandleW(b"k\0e\0r\0n\0e\0l\03\02\0.\0d\0l\0l\0\0\0".as_ptr() as *const u16);
+    WINAPI.kernel32 = WINAPI.GetModuleHandleW(WinApi::KERNEL32DLL.as_ptr());
     WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"VirtualAlloc\0".as_ptr() as *const u8)));
     WINAPI.ptr_VirtualFree = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"VirtualFree\0".as_ptr() as *const u8)));
 
