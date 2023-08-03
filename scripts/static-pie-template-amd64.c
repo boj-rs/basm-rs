@@ -134,7 +134,7 @@ BASMCALL void svc_free(void *ptr, size_t size, size_t align) {
 #if defined(_WIN32)
     VirtualFree(ptr, 0, MEM_RELEASE);
 #elif defined(__linux__)
-    // cannot munmap as we don't toss around the length of the allocated memory yet
+    syscall(11, ptr, size);
 #else
     free(ptr);
 #endif
@@ -145,7 +145,7 @@ BASMCALL void *svc_realloc(void* memblock, size_t old_size, size_t old_align, si
     return NULL;
 #else    
     return realloc(memblock, new_size);
-#endif    
+#endif
 }
 BASMCALL void svc_exit(size_t status) {
 #if defined(_WIN32)

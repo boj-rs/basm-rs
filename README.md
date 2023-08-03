@@ -38,7 +38,7 @@ writer.write_usize(a + b);
 - 표시되는 메모리 사용량이 줄어듭니다.
 
 ~~C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB부터 시작합니다.~~
-현재 구현은 모든 C runtime dependency가 제거되어 192KB부터 시작합니다.
+현재 구현은 모든 C runtime dependency가 제거되어 188KB부터 시작합니다.
 
 - **외부 crate를 사용할 수 있습니다.**
 
