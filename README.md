@@ -38,7 +38,7 @@ writer.write_usize(a + b);
 - 표시되는 메모리 사용량이 줄어듭니다.
 
 ~~C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB부터 시작합니다.~~
-현재 구현은 모든 C runtime dependency가 제거되어 196KB부터 시작합니다.
+현재 구현은 모든 C runtime dependency가 제거되어 192KB부터 시작합니다.
 
 - **외부 crate를 사용할 수 있습니다.**
 
@@ -125,13 +125,15 @@ Linux (WSL 포함) 환경에서는 VS Code의 `build-release-amd64-submit` Task�
 
 - ~~생성되는 코드의 크기는 추후 줄일 예정입니다.~~ 현재 LZMA compression이 적용되어 있습니다.
 
-- 메모리 할당을 C runtime 없이 구현하기 위해 [dlmalloc](https://github.com/alexcrichton/dlmalloc-rs)이 적용되어 있습니다. 대부분의 경우 잘 작동하지만, Rust `Vec`에 다량의 원소를 삽입하는 경우 비효율적으로 동작하는 문제가 있습니다. 이는 추후 수정 예정입니다. 만약 실행시간이나 메모리 사용량이 2-3배 이상 과도하게 증가하는 등의 문제를 겪으신다면 꼭(!) 이슈를 남겨주세요.
+- 메모리 할당을 C runtime 없이 구현하기 위해 [dlmalloc](https://github.com/alexcrichton/dlmalloc-rs)이 적용되어 있습니다. 대부분의 경우 잘 작동하지만, 만약 실행시간이나 메모리 사용량이 2-3배 이상 과도하게 증가하는 등의 문제를 겪으신다면 꼭(!) 이슈를 남겨주세요.
+
+- Windows도 아니고 Linux도 아닌 환경에서는 테스트되지 않았습니다. 이러한 환경에서는 현재 구현상 C runtime의 malloc을 사용하므로 메모리 할당이 정렬되지 않기 때문에 문제가 발생할 수 있습니다. 문제를 겪으시는 경우 이슈를 남겨주세요.
 
 - 64비트 리눅스 환경에서 `./release-rs.sh`를 실행하여 Rust로 빌드하시는 경우 dlmalloc이 적용되지 않습니다.
 
-- 빌드 및 실행 또는 디버깅에 문제가 있는 경우 이슈를 남겨주세요.
-
 - 현재 ARM은 32비트/64비트 둘 다 지원되지 않습니다. 지원이 필요하시면 이슈를 남겨주세요.
+
+- 기타 빌드 및 실행 또는 디버깅 등에 문제가 있는 경우 이슈를 남겨주세요.
 
 - 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
 
