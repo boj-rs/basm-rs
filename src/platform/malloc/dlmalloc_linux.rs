@@ -76,7 +76,6 @@ mod linux_syscall {
             "push ebx",
             "push esi",
             "push edi",
-            "int 3",
             "mov eax, DWORD PTR [esp + 20]",
             "mov ebx, DWORD PTR [esp + 24]",
             "mov ecx, DWORD PTR [esp + 28]",
