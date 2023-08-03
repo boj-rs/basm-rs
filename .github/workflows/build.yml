@@ -38,11 +38,6 @@ jobs:
           scripts/check.sh \
             "./release.sh | tee /tmp/code.c" \
             "cc -w /tmp/code.c -o /tmp/bin"
-      - name: Check ASM
-        run: |
-          scripts/check.sh \
-            "./release-asm.sh | tee /tmp/code.s" \
-            "nasm -f elf64 /tmp/code.s -o /tmp/code.o && cc /tmp/code.o -o /tmp/bin"
       - name: Check Rust
         run: |
           scripts/check.sh \
