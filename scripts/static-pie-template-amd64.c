@@ -116,21 +116,21 @@ typedef struct {
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
 
 BASMCALL void *svc_alloc_rwx(size_t size);
-BASMCALL void *svc_alloc(size_t size) {
+BASMCALL void *svc_alloc(size_t size, size_t align) {
 #if defined(_WIN32) || defined(__linux__)
     return svc_alloc_rwx(size);
 #else
     return malloc(size);
 #endif
 }
-BASMCALL void *svc_alloc_zeroed(size_t size) {
+BASMCALL void *svc_alloc_zeroed(size_t size, size_t align) {
 #if defined(_WIN32) || defined(__linux__)
     return svc_alloc_rwx(size);
 #else
     return calloc(1, size);
 #endif
 }
-BASMCALL void svc_free(void *ptr) {
+BASMCALL void svc_free(void *ptr, size_t size, size_t align) {
 #if defined(_WIN32)
     VirtualFree(ptr, 0, MEM_RELEASE);
 #elif defined(__linux__)
@@ -139,12 +139,12 @@ BASMCALL void svc_free(void *ptr) {
     free(ptr);
 #endif
 }
-BASMCALL void *svc_realloc(void* memblock, size_t size) {
+BASMCALL void *svc_realloc(void* memblock, size_t old_size, size_t old_align, size_t new_size) {
 #if defined(_WIN32) || defined(__linux__)
     // this won't be called
     return NULL;
 #else    
-    return realloc(memblock, size);
+    return realloc(memblock, new_size);
 #endif    
 }
 BASMCALL void svc_exit(size_t status) {

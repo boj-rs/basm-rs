@@ -94,17 +94,17 @@ typedef struct {
 #define ENV_ID_LINUX                2
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
 
-void *svc_alloc(size_t size) {
+void *svc_alloc(size_t size, size_t align) {
     return malloc(size);
 }
-void *svc_alloc_zeroed(size_t size) {
+void *svc_alloc_zeroed(size_t size, size_t align) {
     return calloc(1, size);
 }
-void svc_free(void *ptr) {
+void svc_free(void *ptr, size_t size, size_t align) {
     free(ptr);
 }
-void *svc_realloc(void* memblock, size_t size) {
-    return realloc(memblock, size);
+void *svc_realloc(void* memblock, size_t old_size, size_t old_align, size_t new_size) {
+    return realloc(memblock, new_size);
 }
 void svc_exit(size_t status) {
     exit((int) status);

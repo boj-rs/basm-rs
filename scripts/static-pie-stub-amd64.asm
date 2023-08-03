@@ -83,12 +83,13 @@ _start:
 
     mov     rbx, qword [rsp + 48]   ; rbx is preserved upon function calls
     mov     rsi, qword [rsp + 56]   ; rsi is preserved upon function calls
-    mov     rcx, qword [rsi + 5]
+    mov     rcx, qword [rsi + 5]    ; svc_alloc_rwx: size of memory
     mov     rax, qword [rbx + 64]
     call    rax             ; allocate the Dest memory
     mov     qword [rbx + 0], rax    ; save the image base address in the SERVICE_FUNCTIONS table
 
-    lea     rcx, [r12 + r12 + 0]
+    lea     rcx, [r12 + r12 + 0]    ; svc_alloc: size of memory
+    mov     rdx, 1                  ; svc_alloc: alignment (required by Rust)
     mov     rax, qword [rbx + 8]
     call    rax             ; allocate the Temp memory
     mov     r10, rax        ; r10 = Temp
@@ -103,7 +104,9 @@ _start:
     call    _lzma_dec
 
     mov     rbx, qword [rsp + 48]   ; _lzma_dec does not preserve rbx
-    mov     rcx, r10
+    mov     rcx, r10                ; svc_free: ptr to be freed
+    mov     rdx, r12                ; svc_free: size of memory to be freed (required by Rust)
+    mov     r8, 1                   ; svc_free: alignment of memory to be freed (required by Rust)
     mov     rax, qword [rbx + 24]
     call    rax             ; free the Temp memory
 

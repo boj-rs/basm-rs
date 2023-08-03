@@ -21,8 +21,7 @@ use std::alloc::{alloc, alloc_zeroed, dealloc, realloc, Layout};
 use std::arch::asm;
 use std::env;
 use std::io::{Read, Write, stdin, stdout, stderr};
-use std::mem::size_of;
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -69,12 +68,13 @@ struct PlatformData {
     win_GetProcAddress:     u64,    // pointer to kernel32::GetProcAddress
 }
 
-type NativeFuncA = unsafe extern "win64" fn(usize) -> *mut u8;
-type NativeFuncB = unsafe extern "win64" fn(*mut u8);
-type NativeFuncC = unsafe extern "win64" fn(*mut u8, usize) -> *mut u8;
+type NativeFuncA = unsafe extern "win64" fn(usize, usize) -> *mut u8;
+type NativeFuncB = unsafe extern "win64" fn(*mut u8, usize, usize);
+type NativeFuncC = unsafe extern "win64" fn(*mut u8, usize, usize, usize) -> *mut u8;
 type NativeFuncD = unsafe extern "win64" fn(usize) -> !;
 type NativeFuncE = unsafe extern "win64" fn(usize, *mut u8, usize) -> usize;
 type NativeFuncF = unsafe extern "win64" fn(usize, *const u8, usize) -> usize;
+type NativeFuncG = unsafe extern "win64" fn(usize) -> *mut u8;
 
 #[repr(packed)]
 #[allow(dead_code)]
@@ -87,49 +87,25 @@ struct ServiceFunctions {
     ptr_exit:           NativeFuncD,
     ptr_read_stdio:     NativeFuncE,
     ptr_write_stdio:    NativeFuncF,
-    ptr_alloc_rwx:      NativeFuncA,
+    ptr_alloc_rwx:      NativeFuncG,
     ptr_platform:       usize,
 }
 
-unsafe extern "win64" fn svc_alloc(size: usize) -> *mut u8 {
-    let layout = Layout::array::<u8>(size_of::<usize>() + size).unwrap();
-    let mut ptr = alloc(layout);
-    if ptr != null_mut() {
-        let ptr_size: *mut usize = core::mem::transmute(ptr);
-        *ptr_size = size;
-        ptr = ptr.wrapping_add(size_of::<usize>());
-    }
-    ptr
+unsafe extern "win64" fn svc_alloc(size: usize, align: usize) -> *mut u8 {
+    let layout = Layout::from_size_align(size, align).unwrap();
+    alloc(layout)
 }
-unsafe extern "win64" fn svc_alloc_zeroed(size: usize) -> *mut u8 {
-    let layout = Layout::array::<u8>(size_of::<usize>() + size).unwrap();
-    let mut ptr = alloc_zeroed(layout);
-    if ptr != null_mut() {
-        let ptr_size: *mut usize = core::mem::transmute(ptr);
-        *ptr_size = size;
-        ptr = ptr.wrapping_add(size_of::<usize>());
-    }
-    ptr
+unsafe extern "win64" fn svc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
+    let layout = Layout::from_size_align(size, align).unwrap();
+    alloc_zeroed(layout)
 }
-unsafe extern "win64" fn svc_free(ptr: *mut u8) {
-    let ptr_orig = ptr.wrapping_sub(size_of::<usize>());
-    let ptr_size: *mut usize = core::mem::transmute(ptr_orig);
-    let size_orig = *ptr_size;
-    let layout = Layout::array::<u8>(size_of::<usize>() + size_orig).unwrap();
-    dealloc(ptr_orig, layout);
+unsafe extern "win64" fn svc_free(ptr: *mut u8, size: usize, align: usize) {
+    let layout = Layout::from_size_align(size, align).unwrap();
+    dealloc(ptr, layout)
 }
-unsafe extern "win64" fn svc_realloc(memblock: *mut u8, size: usize) -> *mut u8 {
-    let ptr_orig = memblock.wrapping_sub(size_of::<usize>());
-    let ptr_size: *mut usize = core::mem::transmute(ptr_orig);
-    let size_orig = *ptr_size;
-    let layout = Layout::array::<u8>(size_of::<usize>() + size_orig).unwrap();
-    let mut ptr = realloc(ptr_orig, layout, size_of::<usize>() + size);
-    if ptr != null_mut() {
-        let ptr_size: *mut usize = core::mem::transmute(ptr);
-        *ptr_size = size;
-        ptr = ptr.wrapping_add(size_of::<usize>());
-    }
-    ptr
+unsafe extern "win64" fn svc_realloc(memblock: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
+    let layout = Layout::from_size_align(old_size, old_align).unwrap();
+    realloc(memblock, layout, new_size)
 }
 unsafe extern "win64" fn svc_exit(status: usize) -> ! {
     std::process::exit(status as i32)

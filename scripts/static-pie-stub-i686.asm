@@ -95,7 +95,7 @@ _start:
     mov     esi, dword [ebp + 8]
     mov     edi, dword [esi + 5]
     sub     esp, 28
-    push    edi
+    push    edi                     ; svc_alloc_rwx: size of memory
     mov     eax, dword [ebx + 32]
     call    eax             ; allocate the Dest memory
     add     esp, 32
@@ -105,8 +105,9 @@ _start:
 
     mov     edi, dword [esp + 24]
     shl     edi, 1
-    sub     esp, 28
-    push    edi
+    sub     esp, 24
+    push    1                       ; svc_alloc: alignment (required by Rust)
+    push    edi                     ; svc_alloc: size of memory
     mov     eax, dword [ebx + 4]
     call    eax             ; allocate the Temp memory
     add     esp, 32
@@ -123,8 +124,12 @@ _start:
     call    _lzma_dec
 
     mov     edi, dword [esp + 0]
-    sub     esp, 28
-    push    edi
+    mov     eax, dword [esp + 24]
+    shl     eax, 1
+    sub     esp, 20
+    push    1                       ; svc_free: alignment of memory to be freed (required by Rust)
+    push    eax                     ; svc_free: size of memory to be freed (required by Rust)
+    push    edi                     ; svc_free: ptr to be freed
     mov     ebx, dword [ebp + 4]
     mov     eax, dword [ebx + 12]
     call    eax             ; free the Temp memory

@@ -2,18 +2,18 @@ static mut SERVICE_FUNCTIONS: usize = 0;
 
 #[cfg(target_arch = "x86_64")]
 pub mod native_func {
-    pub type A = unsafe extern "win64" fn(usize) -> *mut u8;
-    pub type B = unsafe extern "win64" fn(*mut u8);
-    pub type C = unsafe extern "win64" fn(*mut u8, usize) -> *mut u8;
+    pub type A = unsafe extern "win64" fn(usize, usize) -> *mut u8;
+    pub type B = unsafe extern "win64" fn(*mut u8, usize, usize);
+    pub type C = unsafe extern "win64" fn(*mut u8, usize, usize, usize) -> *mut u8;
     pub type D = unsafe extern "win64" fn(usize) -> !;
     pub type E = unsafe extern "win64" fn(usize, *mut u8, usize) -> usize;
     pub type F = unsafe extern "win64" fn(usize, *const u8, usize) -> usize;
 }
 #[cfg(not(target_arch = "x86_64"))]
 pub mod native_func {
-    pub type A = unsafe extern "C" fn(usize) -> *mut u8;
-    pub type B = unsafe extern "C" fn(*mut u8);
-    pub type C = unsafe extern "C" fn(*mut u8, usize) -> *mut u8;
+    pub type A = unsafe extern "C" fn(usize, usize) -> *mut u8;
+    pub type B = unsafe extern "C" fn(*mut u8, usize, usize);
+    pub type C = unsafe extern "C" fn(*mut u8, usize, usize, usize) -> *mut u8;
     pub type D = unsafe extern "C" fn(usize) -> !;
     pub type E = unsafe extern "C" fn(usize, *mut u8, usize) -> usize;
     pub type F = unsafe extern "C" fn(usize, *const u8, usize) -> usize;
@@ -50,22 +50,22 @@ unsafe fn addr(fn_id: usize) -> usize {
 //#[inline(always)]
 pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(1));
-    fn_ptr(size)
+    fn_ptr(size, align)
 }
 //#[inline(always)]
 pub unsafe fn alloc_zeroed(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(2));
-    fn_ptr(size)
+    fn_ptr(size, align)
 }
 //#[inline(always)]
 pub unsafe fn dealloc(ptr: *mut u8, size: usize, align: usize) {
     let fn_ptr: native_func::B = core::mem::transmute(addr(3));
-    fn_ptr(ptr)
+    fn_ptr(ptr, size, align)
 }
 //#[inline(always)]
 pub unsafe fn realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
     let fn_ptr: native_func::C = core::mem::transmute(addr(4));
-    fn_ptr(ptr, new_size)
+    fn_ptr(ptr, old_size, old_align, new_size)
 }
 #[inline(always)]
 pub fn exit(status: i32) -> ! {
