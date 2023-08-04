@@ -139,8 +139,6 @@ void *svc_alloc_rwx(size_t size) {
     }
 }
 
-PLATFORM_DATA g_pd;
-SERVICE_FUNCTIONS g_sf;
 typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
@@ -148,43 +146,45 @@ char binary_base85[][4096] = $$$$binary_base85$$$$;
 const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 int main(int argc, char *argv[]) {
+    PLATFORM_DATA pd;
+    SERVICE_FUNCTIONS sf;
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }
-    g_pd.env_flags          = 0; // not strictly necessary but for clarity
+    pd.env_flags            = 0; // not strictly necessary but for clarity
 #if defined(_WIN32)
-    g_pd.env_id             = ENV_ID_WINDOWS;
+    pd.env_id               = ENV_ID_WINDOWS;
 #elif defined(__linux__)
-    g_pd.env_id             = ENV_ID_LINUX;
+    pd.env_id               = ENV_ID_LINUX;
     // Linux's stack growth works differently than Windows.
     // However, we do make sure the stack grows since we cannot rely on
     //   Microsoft compiler's behavior on the stack usage.
-    g_pd.env_flags          |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
+    pd.env_flags            |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
 #else
-    g_pd.env_id             = ENV_ID_UNKNOWN;
+    pd.env_id               = ENV_ID_UNKNOWN;
 #endif
-    g_pd.pe_image_base      = $$$$pe_image_base$$$$ULL;
-    g_pd.pe_off_reloc       = $$$$pe_off_reloc$$$$ULL;
-    g_pd.pe_size_reloc      = $$$$pe_size_reloc$$$$ULL;
+    pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
+    pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
+    pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
 #if defined(_WIN32)
-    g_pd.win_GetModuleHandleW   = (uint64_t) GetModuleHandleW;
-    g_pd.win_GetProcAddress     = (uint64_t) GetProcAddress;
+    pd.win_GetModuleHandleW = (uint64_t) GetModuleHandleW;
+    pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
 #endif
-    g_sf.ptr_imagebase      = NULL;
-    g_sf.ptr_alloc          = (void *) svc_alloc;
-    g_sf.ptr_alloc_zeroed   = (void *) svc_alloc_zeroed;
-    g_sf.ptr_dealloc        = (void *) svc_free;
-    g_sf.ptr_realloc        = (void *) svc_realloc;
-    g_sf.ptr_exit           = (void *) svc_exit;
-    g_sf.ptr_read_stdio     = (void *) svc_read_stdio;
-    g_sf.ptr_write_stdio    = (void *) svc_write_stdio;
-    g_sf.ptr_alloc_rwx      = (void *) svc_alloc_rwx;
-    g_sf.ptr_platform       = (void *) &g_pd;
+    sf.ptr_imagebase        = NULL;
+    sf.ptr_alloc            = (void *) svc_alloc;
+    sf.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
+    sf.ptr_dealloc          = (void *) svc_free;
+    sf.ptr_realloc          = (void *) svc_realloc;
+    sf.ptr_exit             = (void *) svc_exit;
+    sf.ptr_read_stdio       = (void *) svc_read_stdio;
+    sf.ptr_write_stdio      = (void *) svc_write_stdio;
+    sf.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
+    sf.ptr_platform         = (void *) &pd;
 
     stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x1000);
     b85tobin((void *) stub, stub_base85);
     b85tobin(binary_base85, (char const *)binary_base85);
-    stub(&g_sf, binary_base85, entrypoint_offset, (size_t) g_debug);
+    stub(&sf, binary_base85, entrypoint_offset, (size_t) g_debug);
     return 0; // never reached
 }
 //==============================================================================
