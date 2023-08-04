@@ -105,7 +105,8 @@ _start:
 
     mov     rbx, qword [rsp + 48]   ; _lzma_dec does not preserve rbx
     mov     rcx, r10                ; svc_free: ptr to be freed
-    mov     rdx, r12                ; svc_free: size of memory to be freed (required by Rust)
+    mov     rdx, r12
+    shl     rdx, 1                  ; svc_free: size of memory to be freed (required by Rust)
     mov     r8, 1                   ; svc_free: alignment of memory to be freed (required by Rust)
     mov     rax, qword [rbx + 24]
     call    rax             ; free the Temp memory
