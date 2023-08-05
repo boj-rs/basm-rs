@@ -14,7 +14,6 @@ compile_error!("The target architecture is not supported.");
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
 #[no_mangle]
 #[naked]
-#[link_section = ".init"]
 unsafe extern "win64" fn _start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
@@ -34,7 +33,6 @@ unsafe extern "win64" fn _start() -> ! {
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 #[no_mangle]
 #[naked]
-#[link_section = ".init"]
 unsafe extern "win64" fn _start() -> ! {
     // Microsoft x64 ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
@@ -90,7 +88,6 @@ unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
 #[cfg(target_arch = "x86")]
 #[no_mangle]
 #[naked]
-#[link_section = ".init"]
 unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
