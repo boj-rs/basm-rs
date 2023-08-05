@@ -35,7 +35,7 @@ assert 'pe_size_reloc' in loader_fdict
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
-compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_ALONE, preset=lzma.PRESET_EXTREME)
+compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_ALONE, filters=[{'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0}])
 compressed_memory_bin = bytearray(compressed_memory_bin)
 compressed_memory_bin[5:13] = len(memory_bin).to_bytes(8, byteorder='little')   # fill the "Uncompressed Size" field
 compressed_memory_bin = bytes(compressed_memory_bin)
