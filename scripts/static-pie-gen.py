@@ -103,6 +103,7 @@ out = multiple_replace(template, {
     "$$$$stub_base85$$$$": stub_b85,
     "$$$$binary_base85$$$$": r,
     "$$$$binary_base85_len$$$$": str(len(code_b85)),
+    "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
     "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
     "$$$$pe_image_base$$$$": str(loader_fdict['pe_image_base']),
     "$$$$pe_off_reloc$$$$": str(loader_fdict['pe_off_reloc']),

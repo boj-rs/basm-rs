@@ -219,7 +219,7 @@ stub_ptr get_stub() {
     return stub;
 }
 #endif
-char binary_base85[][4096] = $$$$binary_base85$$$$;
+char binary_base85[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 #if defined(__linux__)
