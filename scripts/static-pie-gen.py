@@ -78,12 +78,13 @@ with open(stub_path, "rb") as f:
     stub = f.read()
 
 stub = bytearray(stub)
+stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 while len(stub) % 4 != 0:
     stub.append(0)
-stub = base64.b85encode(stub, pad=False).decode('ascii') + ']'
+stub_b85 = base64.b85encode(stub, pad=False).decode('ascii') + ']'
 if lang_name == "C":
-    stub = stub.replace("?", "\?")
-stub = '"' + stub + '"'
+    stub_b85 = stub_b85.replace("?", "\?")
+stub_b85 = '"' + stub_b85 + '"'
 
 # template
 with open(template_path, encoding='utf8') as f:
@@ -98,7 +99,8 @@ def multiple_replace(string, rep_dict):
 
 out = multiple_replace(template, {
     "$$$$solution_src$$$$": sol,
-    "$$$$stub_base85$$$$": stub,
+    "$$$$stub_raw$$$$": stub_raw,
+    "$$$$stub_base85$$$$": stub_b85,
     "$$$$binary_base85$$$$": r,
     "$$$$binary_base85_len$$$$": str(len(code_b85)),
     "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
