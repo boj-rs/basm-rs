@@ -206,17 +206,18 @@ BASMCALL void *svc_alloc_rwx(size_t size) {
 
 typedef void * (BASMCALL *stub_ptr)(void *, void *, size_t, size_t);
 
+#define STUB_RAW $$$$stub_raw$$$$
 #if defined(__GNUC__)
-__attribute__ ((section (".text#"))) const char stub_raw[] = $$$$stub_raw$$$$;
+__attribute__ ((section (".text#"))) const char stub_raw[] = STUB_RAW;
 stub_ptr get_stub() {
     return (stub_ptr) stub_raw;
 }
 #else
-const char *stub_base85 = $$$$stub_base85$$$$;
+const char stub_raw[] = STUB_RAW;
 stub_ptr get_stub() {
-    stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x1000);
-    b85tobin((void *) stub, stub_base85);
-    return stub;
+    char *stub = (char *) svc_alloc_rwx(0x1000);
+    for (size_t i=0; i<sizeof(stub_raw); i++) stub[i] = stub_raw[i];
+    return (stub_ptr) stub;
 }
 #endif
 char binary_base85[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
