@@ -181,14 +181,14 @@ mod services_override {
             }
             if ret != 0 { bytes_read = 0; }
         }
-        super::WINAPI.io_off[fd] += bytes_read as u64;
+        WINAPI.io_off[fd] += bytes_read as u64;
         bytes_read as usize
     }}
     basm_abi!{pub unsafe fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
         let handle;
         match fd {
-            1 => { handle = super::WINAPI.GetStdHandle(WinApi::STD_OUTPUT_HANDLE); },
-            2 => { handle = super::WINAPI.GetStdHandle(WinApi::STD_ERROR_HANDLE); },
+            1 => { handle = WINAPI.GetStdHandle(WinApi::STD_OUTPUT_HANDLE); },
+            2 => { handle = WINAPI.GetStdHandle(WinApi::STD_ERROR_HANDLE); },
             _ => { return 0; }
         }
         let mut bytes_written: u32 = 0;
@@ -197,7 +197,7 @@ mod services_override {
         let mut ret = WINAPI.WriteFile(handle, buf, count as u32,
             &mut bytes_written as *mut u32, &mut ov as *mut Overlapped);
         if ret == 0 {
-            let err = super::WINAPI.GetLastError();
+            let err = WINAPI.GetLastError();
             if err == WinApi::ERROR_IO_PENDING {
                 ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                     &mut bytes_written as *mut u32, 1);
