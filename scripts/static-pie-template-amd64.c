@@ -139,43 +139,24 @@ BASMCALL void svc_free(void *ptr, size_t size, size_t align) {
     free(ptr);
 #endif
 }
+#if !defined(_WIN32) && !defined(__linux__)
 BASMCALL void *svc_realloc(void* memblock, size_t old_size, size_t old_align, size_t new_size) {
-#if defined(_WIN32) || defined(__linux__)
-    // this won't be called
-    return NULL;
-#else    
+    // This won't be called in loader stub.
+    // Also, the main executable will directly call OS APIs/syscalls
     return realloc(memblock, new_size);
-#endif
 }
 BASMCALL void svc_exit(size_t status) {
-#if defined(_WIN32)
-    ExitProcess((UINT) status);
-#elif defined(__linux__)
-    _exit((int) status);
-#else
     exit((int) status);
-#endif
 }
 BASMCALL size_t svc_read_stdio(size_t fd, void *buf, size_t count) {
     if (fd != 0) return 0;
-#if defined(_WIN32)
-    return _read(_fileno(stdin), buf, (unsigned int) count);
-#elif defined(__linux__)
-    return (size_t)syscall(0, fd, buf, count);
-#else
     return fread(buf, 1, count, stdin);
-#endif
 }
 BASMCALL size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
     if (fd != 1 && fd != 2) return 0;
-#if defined(_WIN32)
-    return _write(fd == 1 ? _fileno(stdout) : _fileno(stderr), buf, (unsigned int) count);
-#elif defined(__linux__)
-    return (size_t)syscall(1, fd, buf, count);
-#else
     return fwrite(buf, 1, count, (fd == 1) ? stdout : stderr);
-#endif
 }
+#endif
 
 static uint32_t g_debug = 0;
 #ifdef _WIN64
@@ -245,14 +226,14 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
         printf("Error: sizeof(size_t) = %zu for amd64\n", sizeof(size_t));
 #endif
-        svc_exit(1);
+        return 1;
     }
     if (argc >= 2 &&
         argv[1][0] == '-' && argv[1][1] == '-' && argv[1][2] == 'd' && argv[1][3] == 'e' &&
         argv[1][4] == 'b' && argv[1][5] == 'u' && argv[1][6] == 'g' && argv[1][7] == '\0') {
         g_debug = 1;
     }
-    pd.env_flags            = 0; // not strictly necessary but for clarity
+    pd.env_flags            = 0; // necessary since pd is on stack
 #if defined(_WIN32)
     pd.env_id               = ENV_ID_WINDOWS;
 #elif defined(__linux__)
@@ -275,10 +256,12 @@ int main(int argc, char *argv[]) {
     sf.ptr_alloc            = (void *) svc_alloc;
     sf.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
     sf.ptr_dealloc          = (void *) svc_free;
+#if !defined(_WIN32) && !defined(__linux__)
     sf.ptr_realloc          = (void *) svc_realloc;
     sf.ptr_exit             = (void *) svc_exit;
     sf.ptr_read_stdio       = (void *) svc_read_stdio;
     sf.ptr_write_stdio      = (void *) svc_write_stdio;
+#endif
     sf.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
     sf.ptr_platform         = (void *) &pd;
 
