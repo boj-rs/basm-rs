@@ -100,7 +100,7 @@ _start:
     mov     eax, 2048               ; __chkstk: Touch QWORD every 2K bytes (not 4K for safety)
 _c: cmp     rcx, rax
     jle     _e
-_d: sub     rsp, rax
+    sub     rsp, rax
     sub     rcx, rax
     test    qword [rsp], rsp
     jmp     _c
