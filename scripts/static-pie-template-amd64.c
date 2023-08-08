@@ -117,31 +117,16 @@ typedef struct {
 #define ENV_ID_LINUX                2
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
 
-BASMCALL void *svc_alloc_rwx(size_t size);
+#if !defined(_WIN32) && !defined(__linux__)
 BASMCALL void *svc_alloc(size_t size, size_t align) {
-#if defined(_WIN32) || defined(__linux__)
-    return svc_alloc_rwx(size);
-#else
     return malloc(size);
-#endif
 }
 BASMCALL void *svc_alloc_zeroed(size_t size, size_t align) {
-#if defined(_WIN32) || defined(__linux__)
-    return svc_alloc_rwx(size);
-#else
     return calloc(1, size);
-#endif
 }
 BASMCALL void svc_free(void *ptr, size_t size, size_t align) {
-#if defined(_WIN32)
-    VirtualFree(ptr, 0, MEM_RELEASE);
-#elif defined(__linux__)
-    syscall(11, ptr, size);
-#else
     free(ptr);
-#endif
 }
-#if !defined(_WIN32) && !defined(__linux__)
 BASMCALL void *svc_realloc(void* memblock, size_t old_size, size_t old_align, size_t new_size) {
     // This won't be called in loader stub.
     // Also, the main executable will directly call OS APIs/syscalls
@@ -255,10 +240,10 @@ int main(int argc, char *argv[]) {
     pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
 #endif
     sf.ptr_imagebase        = NULL;
+#if !defined(_WIN32) && !defined(__linux__)
     sf.ptr_alloc            = (void *) svc_alloc;
     sf.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
     sf.ptr_dealloc          = (void *) svc_free;
-#if !defined(_WIN32) && !defined(__linux__)
     sf.ptr_realloc          = (void *) svc_realloc;
     sf.ptr_exit             = (void *) svc_exit;
     sf.ptr_read_stdio       = (void *) svc_read_stdio;

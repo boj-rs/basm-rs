@@ -87,13 +87,7 @@ _start:
     mov     rax, qword [rbx + 64]
     call    rax             ; allocate the Dest memory
     mov     qword [rbx + 0], rax    ; save the image base address in the SERVICE_FUNCTIONS table
-
-    lea     rcx, [r12 + r12 + 0]    ; svc_alloc: size of memory
-    mov     rdx, 1                  ; svc_alloc: alignment (required by Rust)
-    mov     rax, qword [rbx + 8]
-    call    rax             ; allocate the Temp memory
-    mov     r10, rax        ; r10 = Temp
-    mov     r9, qword [rbx + 0]     ; r9 = Dst
+    mov     r9, rax                 ; r9 = Dst
 
     mov     r8, qword [rsp + 56]    ; r8 = Src
     mov     esi, dword [r8 + 14]
@@ -101,16 +95,22 @@ _start:
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
     add     r8, 18                  ; r8 = Src + 18
 
+    lea     rcx, [r12 + r12 + 0]
+    mov     r11, rsp                ; Save rsp
+    mov     eax, 2048               ; __chkstk: Touch QWORD every 2K bytes (not 4K for safety)
+_c: cmp     rcx, rax
+    jle     _e
+_d: sub     rsp, rax
+    sub     rcx, rax
+    test    qword [rsp], rsp
+    jmp     _c
+_e: sub     rsp, rcx
+    and     rsp, 0xFFFFFFFFFFFFFFF8 ; Align stack to 8-byte boundary
+    mov     r10, rsp                ; r10 = Temp
     call    _lzma_dec
+    mov     rsp, r11                ; Restore rsp
 
     mov     rbx, qword [rsp + 48]   ; _lzma_dec does not preserve rbx
-    mov     rcx, r10                ; svc_free: ptr to be freed
-    mov     rdx, r12
-    shl     rdx, 1                  ; svc_free: size of memory to be freed (required by Rust)
-    mov     r8, 1                   ; svc_free: alignment of memory to be freed (required by Rust)
-    mov     rax, qword [rbx + 24]
-    call    rax             ; free the Temp memory
-
     mov     rax, qword [rbx + 0]
     mov     rcx, qword [rsp + 64]
     add     rax, rcx
