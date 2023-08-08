@@ -20,7 +20,6 @@ $$$$solution_src$$$$
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <stdio.h>
 #include <io.h>
 #elif defined(__linux__)
 #include <unistd.h>
@@ -31,6 +30,9 @@ $$$$solution_src$$$$
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
+#ifdef DEBUG
+#include <stdio.h>
 #endif
 
 #ifndef UINT32_MAX
@@ -222,7 +224,7 @@ int main(int argc, char *argv[]) {
 #endif
     PLATFORM_DATA pd;
     SERVICE_FUNCTIONS sf;
-    if (sizeof(size_t) < 8) {
+    if (sizeof(size_t) != 8) {
 #ifdef DEBUG
         printf("Error: sizeof(size_t) = %zu for amd64\n", sizeof(size_t));
 #endif
