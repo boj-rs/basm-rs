@@ -66,8 +66,9 @@ writer.write_usize(a + b);
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
 
-`src/solution.rs` main() 에 원하는 코드를 삽입하시고,
-일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
+`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 아래 전용 빌드 스크립트 중 하나를 사용하여 빌드하셔야 합니다.
+
+> cargo build 명령을 직접 사용하는 것은 권장되지 않습니다. 빌드 스크립트를 실행하시면 내부적으로 환경설정을 거쳐 cargo build를 호출합니다.
 
 `release.sh` 또는 `release-64bit.sh`를 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다.
 
