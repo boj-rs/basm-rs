@@ -37,7 +37,7 @@ writer.write_usize(a + b);
 
 - 표시되는 메모리 사용량이 줄어듭니다.
 
-* C의 경우 모든 C runtime dependency가 제거되어 156KB부터 시작합니다. 단, 현재는 Windows에서 MSVC toolchain으로 빌드하는 경우에만 156KB가 가능하며 Linux에서 gnu toolchain으로 빌드하면 168KB부터 시작합니다.
+* C의 경우 모든 C runtime dependency가 제거되어 156KB부터 시작합니다.
 * Rust는 아직 메모리 사용량 감소를 지원하지 않아 13176KB부터 시작합니다.
 
 - **외부 crate를 사용할 수 있습니다.**

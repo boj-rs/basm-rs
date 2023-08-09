@@ -104,7 +104,7 @@ def load_elf64(elf):
             lastSectionAddress = sh_dict['sh_addr']
             lastSectionSize = sh_dict['sh_size']
 
-    memory_size = (lastSectionAddress + lastSectionSize + 0x1000 - 1) & 0xfffffffffffff000
+    memory_size = (lastSectionAddress + lastSectionSize + 0x80 - 1) & 0xffffffffffffff80
     memory_bin = bytearray(memory_size)
     for sh_dict in sh:
         if (sh_dict['sh_flags'] & SHF_ALLOC) == 0 or sh_dict['sh_size'] == 0:
