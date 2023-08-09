@@ -175,6 +175,7 @@ BASMCALL void *svc_alloc_rwx(size_t size) {
 typedef void * (BASMCALL *stub_ptr)(void *, void *, size_t, size_t);
 
 #define STUB_RAW $$$$stub_raw$$$$
+#define STUB_LEN $$$$stub_len$$$$
 #if defined(__GNUC__)
 __attribute__ ((section (".text#"))) const char stub_raw[] = STUB_RAW;
 stub_ptr get_stub() {
@@ -184,7 +185,7 @@ stub_ptr get_stub() {
 const char stub_raw[] = STUB_RAW;
 stub_ptr get_stub() {
     char *stub = (char *) svc_alloc_rwx(0x1000);
-    for (size_t i=0; i<sizeof(stub_raw); i++) stub[i] = stub_raw[i];
+    for (size_t i = 0; i < sizeof(stub_raw); i++) stub[i] = stub_raw[i];
     return (stub_ptr) stub;
 }
 #endif
@@ -254,7 +255,25 @@ int main(int argc, char *argv[]) {
 
     b85tobin(binary_base85, (char const *)binary_base85);
 
+    uint8_t stubbuf[68 + STUB_LEN] = { 0x51, 0xB8, 0x0B, 0x00, 0x00, 0x00, 0x48, 0xBF, 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01, 0xBE, 0x00, 0x10, 0x00, 0x00, 0x0F, 0x05, 0x59, 0xEB, 0x2A, 0x0F, 0x0B, 0x57, 0x56, 0xB8, 0x09, 0x00, 0x00, 0x00, 0x31, 0xFF, 0x48, 0x89, 0xCE, 0xBA, 0x07, 0x00, 0x00, 0x00, 0x49, 0xC7, 0xC2, 0x22, 0x00, 0x00, 0x00, 0x4D, 0x31, 0xC0, 0x49, 0xFF, 0xC8, 0x4D, 0x31, 0xC9, 0x0F, 0x05, 0x5E, 0x5F, 0xC3, 0x0F, 0x0B, };
     stub_ptr stub = get_stub();
+#if defined(__linux__)
+    if (!g_debug) {
+        /* prepend thunk and relocate stub onto stack */
+        for (size_t i = 0; i < STUB_LEN; i++) stubbuf[68 + i] = (uint8_t)stub_raw[i];
+        size_t base = ((size_t)stub_raw) & 0xFFFFFFFFFFFFF000ULL; // page-aligned pointer to munmap in thunk
+        size_t len = (((size_t)stub_raw) + sizeof(stub_raw)) - base;
+        len = ((len + 0xFFF) >> 12) << 12;
+        *(uint64_t *)(stubbuf + 0x08) = (uint64_t) base;
+        *(uint32_t *)(stubbuf + 0x11) = (uint32_t) len;
+        base = ((size_t)stubbuf) & 0xFFFFFFFFFFFFF000ULL;
+        len = (((size_t)stubbuf) + 68 + STUB_LEN) - base;
+        len = ((len + 0xFFF) >> 12) << 12;
+        syscall(10, base, len, 0x7); // mprotect: make the stub on stack executable
+        sf.ptr_alloc_rwx = (void *) (stubbuf + 0x1c); // thunk implements its own svc_alloc_rwx
+        stub = (stub_ptr) stubbuf;
+    }
+#endif
     stub(&sf, binary_base85, entrypoint_offset, (size_t) g_debug);
     return 0; // never reached
 }

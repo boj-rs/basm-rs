@@ -101,6 +101,7 @@ out = multiple_replace(template, {
     "$$$$solution_src$$$$": sol,
     "$$$$stub_raw$$$$": stub_raw,
     "$$$$stub_base85$$$$": stub_b85,
+    "$$$$stub_len$$$$": str(len(stub)),
     "$$$$binary_base85$$$$": r,
     "$$$$binary_base85_len$$$$": str(len(code_b85)),
     "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
