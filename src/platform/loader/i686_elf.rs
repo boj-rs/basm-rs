@@ -1,3 +1,6 @@
+// Code adapted from:
+//     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
+
 // Dynamic section entry types
 const DT_REL:       u32 = 17;
 const DT_RELSZ:     u32 = 18;

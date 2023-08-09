@@ -1,4 +1,7 @@
-﻿import json
+﻿# Code adapted from:
+#     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
+
+import json
 import sys
 
 # e_ident[]의 index 의미

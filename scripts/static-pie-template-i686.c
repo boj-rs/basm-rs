@@ -12,10 +12,6 @@ $$$$solution_src$$$$
 //==============================================================================
 // LOADER BEGIN
 //==============================================================================
-// Code adapted from:
-//     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-//==============================================================================
 
 #include <stdint.h>
 #include <stdio.h>
@@ -34,7 +30,8 @@ $$$$solution_src$$$$
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Base85 decoder
+// Base85 decoder. Code adapted from:
+//     https://github.com/rafagafe/base85/blob/master/base85.c
 //
 ////////////////////////////////////////////////////////////////////////////////
 

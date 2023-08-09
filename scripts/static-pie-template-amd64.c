@@ -12,10 +12,6 @@ $$$$solution_src$$$$
 //==============================================================================
 // LOADER BEGIN
 //==============================================================================
-// Code adapted from:
-//     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-//==============================================================================
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -57,7 +53,8 @@ typedef unsigned long long uint64_t;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Base85 decoder
+// Base85 decoder. Code adapted from:
+//     https://github.com/rafagafe/base85/blob/master/base85.c
 //
 ////////////////////////////////////////////////////////////////////////////////
 
