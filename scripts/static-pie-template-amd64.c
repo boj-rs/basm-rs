@@ -145,9 +145,9 @@ BASMCALL size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
 
 static uint32_t g_debug = 0;
 #ifdef _WIN64
-static size_t g_debug_base = 0x920000000ULL;
+static const size_t g_debug_base = 0x920000000ULL;
 #else
-static size_t g_debug_base = 0x20000000ULL;
+static const size_t g_debug_base = 0x20000000ULL;
 #endif
 BASMCALL void *svc_alloc_rwx(size_t size) {
     size_t preferred_addr = 0;
