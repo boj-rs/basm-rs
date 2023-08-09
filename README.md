@@ -4,7 +4,7 @@ basm.rs는 Rust 코드를 BOJ에 제출 가능한 C 프로그램으로 성능 �
 
 ~~C 외에 64bit Assembly, Rust (메모리 사용량 감소)도 지원합니다.~~
 
-> ~~156KB의 자유를 누리십시오!~~
+> 156KB의 자유를 누리십시오!
 
 현재 C와 Rust 코드 출력이 지원됩니다. 코드 구조 수정으로 인해 Assembly 코드로 변환하는 기능은 아직 지원되지 않습니다. 추후 구현 예정입니다.
 
@@ -37,8 +37,8 @@ writer.write_usize(a + b);
 
 - 표시되는 메모리 사용량이 줄어듭니다.
 
-~~C의 경우 156KB부터, Rust의 경우 2188KB부터, Assembly의 경우 4212KB부터 시작합니다.~~
-현재 구현은 모든 C runtime dependency가 제거되어 168KB부터 시작합니다.
+* C의 경우 모든 C runtime dependency가 제거되어 156KB부터 시작합니다. 단, 현재는 Windows에서 MSVC toolchain으로 빌드하는 경우에만 156KB가 가능하며 Linux에서 gnu toolchain으로 빌드하면 168KB부터 시작합니다.
+* Rust는 아직 메모리 사용량 감소를 지원하지 않아 13176KB부터 시작합니다.
 
 - **외부 crate를 사용할 수 있습니다.**
 
@@ -73,6 +73,8 @@ writer.write_usize(a + b);
 Windows 환경에서 빌드하는 방법입니다.
 
 * `release-64bit-windows.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다. 단, Windows 환경에서의 작동은 Python 3 라이브러리인 `pefile`을 필요로 하므로 `pip install pefile`로 설치하십시오.
+
+* Windows 환경에서 Rust 코드로 빌드하는 기능은 아직 지원되지 않으나 추가 예정입니다.
 
 * VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
