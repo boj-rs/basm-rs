@@ -23,6 +23,9 @@ unsafe extern "win64" fn _start() -> ! {
         "mov    r12, rcx",
         "mov    rdi, QWORD PTR [rcx + 0]",
         "lea    rsi, [rip + _DYNAMIC]",
+        "mov    rax, QWORD PTR [rcx + 72]", // PLATFORM_DATA
+        "mov    rbx, QWORD PTR [rax + 16]", // Leading unused bytes
+        "sub    rdi, rbx",
         "call   {0}",
         "mov    rdi, r12",
         "call   {1}",
@@ -43,10 +46,13 @@ unsafe extern "win64" fn _start() -> ! {
         "sub    rsp, 32",
         "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
         "mov    rax, QWORD PTR [rbx + 72]", // PLATFORM_DATA
-        "mov    rdi, QWORD PTR [rax + 16]", // ImageBase
+        "mov    rdi, QWORD PTR [rax + 24]", // ImageBase
         "mov    rsi, QWORD PTR [rbx + 0]",  // Base address of current program in memory
-        "mov    rdx, QWORD PTR [rax + 24]", // Offset of relocation table
-        "mov    rcx, QWORD PTR [rax + 32]", // Size of relocation table
+        "mov    rdx, QWORD PTR [rax + 32]", // Offset of relocation table
+        "mov    rcx, QWORD PTR [rax + 40]", // Size of relocation table
+        "mov    r8, QWORD PTR [rax + 16]", // Leading unused bytes
+        "sub    rsi, r8",
+        "add    rdx, r8",
         "call   {0}",
         "mov    rax, QWORD PTR [rbx + 72]",
         "mov    rdx, QWORD PTR [rax + 8]",
@@ -93,11 +99,14 @@ unsafe extern "cdecl" fn _start() -> ! {
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
         "nop",
-        "mov    edi, DWORD PTR [esp + 4]",
+        "mov    edi, DWORD PTR [esp + 4]",  // edi: SERVICE_FUNCTIONS table
         "and    esp, 0xFFFFFFF0",
         "call   {2}",
-        "mov    ebx, DWORD PTR [edi]",
-        "add    eax, ebx",
+        "mov    ecx, DWORD PTR [edi + 36]", // ecx: PLATFORM_DATA table
+        "mov    edx, DWORD PTR [ecx + 16]", // edx: Leading unused bytes
+        "mov    ebx, DWORD PTR [edi]",      // ebx: (Loaded base address) + (Leading unused bytes)
+        "sub    ebx, edx",                  // ebx: Loaded base address
+        "add    eax, ebx",                  // eax: _DYNAMIC table
         "sub    esp, 8",
         "push   eax",
         "push   ebx",

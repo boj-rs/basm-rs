@@ -100,15 +100,13 @@ def load_elf64(elf):
         }
         sh.append(sh_dict)
 
-    lastSectionAddress = 0
-    lastSectionSize = 0
+    pos_begin, pos_end = len(elf), 0
     for sh_dict in sh:
-        if (sh_dict['sh_flags'] & SHF_ALLOC) != 0 and sh_dict['sh_addr'] >= lastSectionAddress:
-            lastSectionAddress = sh_dict['sh_addr']
-            lastSectionSize = sh_dict['sh_size']
+        if (sh_dict['sh_flags'] & SHF_ALLOC) != 0:
+            pos_begin = min(pos_begin, sh_dict['sh_addr'])
+            pos_end = max(pos_end, sh_dict['sh_addr'] + sh_dict['sh_size'])
 
-    memory_size = (lastSectionAddress + lastSectionSize + 0x80 - 1) & 0xffffffffffffff80
-    memory_bin = bytearray(memory_size)
+    memory_bin = bytearray(pos_end)
     for sh_dict in sh:
         if (sh_dict['sh_flags'] & SHF_ALLOC) == 0 or sh_dict['sh_size'] == 0:
             continue
@@ -119,7 +117,7 @@ def load_elf64(elf):
         memory_bin[dst_off:dst_off+cnt] = elf[src_off:src_off+cnt]
 
     entrypoint_offset = b2i(elf[24:32])
-    return memory_bin, entrypoint_offset
+    return memory_bin, pos_begin, entrypoint_offset
 
 def load_elf32(elf):
     sh = []
@@ -139,15 +137,13 @@ def load_elf32(elf):
         }
         sh.append(sh_dict)
 
-    lastSectionAddress = 0
-    lastSectionSize = 0
+    pos_begin, pos_end = len(elf), 0
     for sh_dict in sh:
-        if (sh_dict['sh_flags'] & SHF_ALLOC) != 0 and sh_dict['sh_addr'] >= lastSectionAddress:
-            lastSectionAddress = sh_dict['sh_addr']
-            lastSectionSize = sh_dict['sh_size']
+        if (sh_dict['sh_flags'] & SHF_ALLOC) != 0:
+            pos_begin = min(pos_begin, sh_dict['sh_addr'])
+            pos_end = max(pos_end, sh_dict['sh_addr'] + sh_dict['sh_size'])
 
-    memory_size = (lastSectionAddress + lastSectionSize + 0x1000 - 1) & 0xfffffffffffff000
-    memory_bin = bytearray(memory_size)
+    memory_bin = bytearray(pos_end)
     for sh_dict in sh:
         if (sh_dict['sh_flags'] & SHF_ALLOC) == 0 or sh_dict['sh_size'] == 0:
             continue
@@ -158,7 +154,7 @@ def load_elf32(elf):
         memory_bin[dst_off:dst_off+cnt] = elf[src_off:src_off+cnt]
 
     entrypoint_offset = b2i(elf[24:28])
-    return memory_bin, entrypoint_offset
+    return memory_bin, pos_begin, entrypoint_offset
 
 
 if __name__ == '__main__':
@@ -176,17 +172,25 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if elf[EI_CLASS] == ELFCLASS64:
-        memory_bin, entrypoint_offset = load_elf64(elf)
+        memory_bin, pos_begin, entrypoint_offset = load_elf64(elf)
     elif elf[EI_CLASS] == ELFCLASS32:
-        memory_bin, entrypoint_offset = load_elf32(elf)
+        memory_bin, pos_begin, entrypoint_offset = load_elf32(elf)
     else:
         print(f"Unsupported EI_CLASS value: {elf[EI_CLASS]}", file=sys.stderr)
         sys.exit(1)
+
+    if pos_begin == len(elf):
+        pos_begin = 0
+    pos_begin -= pos_begin % 128
+    assert entrypoint_offset >= pos_begin
+    memory_bin = memory_bin[pos_begin:]
+    entrypoint_offset -= pos_begin
 
     with open(binary_path, "wb") as f:
         f.write(bytes(memory_bin))
 
     fdict = {}
+    fdict['leading_unused_bytes'] = pos_begin
     fdict['entrypoint_offset'] = entrypoint_offset
     fdict['pe_image_base'] = 0
     fdict['pe_off_reloc'] = 0

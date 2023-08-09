@@ -12,6 +12,7 @@ if __name__ == '__main__':
     pe = pefile.PE(pe_path)
     memory_bin = bytearray(pe.get_memory_mapped_image())
     needed = bytearray(len(memory_bin))
+    pos_begin = len(memory_bin)
     pos_end = 0
     reloc_bin, reloc_off, reloc_sz = bytearray(), 0, 0
     for section in pe.sections:
@@ -25,11 +26,14 @@ if __name__ == '__main__':
         else:
             for i in range(va, va+sz):
                 needed[i] = 1
+            pos_begin = min(pos_begin, va)
             pos_end = max(pos_end, va+sz)
+    if pos_begin == len(memory_bin):
+        pos_begin = 0
     for i in range(len(memory_bin)):
         if needed[i] == 0:
             memory_bin[i] = 0
-    memory_bin = memory_bin[:pos_end]
+    memory_bin = memory_bin[pos_begin:pos_end]
     if reloc_sz > 0:
         reloc_off = len(memory_bin)
         memory_bin += reloc_bin
@@ -37,7 +41,8 @@ if __name__ == '__main__':
         f.write(bytes(memory_bin))
 
     fdict = {}
-    fdict['entrypoint_offset'] = pe.OPTIONAL_HEADER.AddressOfEntryPoint
+    fdict['leading_unused_bytes'] = pos_begin
+    fdict['entrypoint_offset'] = pe.OPTIONAL_HEADER.AddressOfEntryPoint - pos_begin
     fdict['pe_image_base'] = pe.OPTIONAL_HEADER.ImageBase
     fdict['pe_off_reloc'] = reloc_off
     fdict['pe_size_reloc'] = reloc_sz

@@ -26,6 +26,7 @@ else:
     compressed_binary_path = binary_path + ".lzma"
     elf2bin = subprocess.check_output([sys.executable, "scripts/static-pie-elf2bin.py", elf_path, binary_path]).decode("utf-8")
 loader_fdict = json.loads(elf2bin)
+assert 'leading_unused_bytes' in loader_fdict
 assert 'entrypoint_offset' in loader_fdict
 assert 'pe_image_base' in loader_fdict
 assert 'pe_off_reloc' in loader_fdict
@@ -105,6 +106,7 @@ out = multiple_replace(template, {
     "$$$$binary_base85$$$$": r,
     "$$$$binary_base85_len$$$$": str(len(code_b85)),
     "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
+    "$$$$leading_unused_bytes$$$$": str(loader_fdict['leading_unused_bytes']),
     "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
     "$$$$pe_image_base$$$$": str(loader_fdict['pe_image_base']),
     "$$$$pe_off_reloc$$$$": str(loader_fdict['pe_off_reloc']),

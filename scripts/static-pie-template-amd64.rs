@@ -20,7 +20,6 @@ use std::alloc::{alloc, alloc_zeroed, dealloc, realloc, Layout};
 use std::arch::asm;
 use std::env;
 use std::io::{Read, Write, stdin, stdout, stderr};
-use std::ptr::null;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -61,6 +60,7 @@ unsafe fn b85tobin(dest: *mut u8, mut src: *const u8) {
 struct PlatformData {
     env_id:                 u64,
     env_flags:              u64,
+    leading_unused_bytes:   u64,
     pe_image_base:          u64,
     pe_off_reloc:           u64,
     pe_size_reloc:          u64,
@@ -142,7 +142,7 @@ pub fn mmap(
     flags: i32,
     fd: u32,
     offset: isize,
-) -> *mut u8 {
+) -> usize {
     let out;
     unsafe {
         asm!("syscall", in("rax") 9, in("rdi") addr, in("rsi") len, in("rdx") protect, in("r10") flags, in("r8") fd, in("r9") offset, lateout("rax") out, out("rcx") _, out("r11") _);
@@ -150,16 +150,21 @@ pub fn mmap(
     out
 }
 static mut G_DEBUG: u32 = 0;
-static mut RUN_COUNT: usize = 0;
-unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> *mut u8 {
-    // currently Linux-only
-    if RUN_COUNT == 1 && G_DEBUG != 0 {
-        RUN_COUNT += 1;
-        mmap(0x2000_0000usize as *const u8, size, 0x7, 0x32, 0xffffffff, 0)
-    } else {
-        if RUN_COUNT < 2 { RUN_COUNT += 1; }
-        mmap(null(), size, 0x7, 0x22, 0xffffffff, 0)
+unsafe extern "win64" fn svc_alloc_rwx(mut size: usize) -> *mut u8 {
+    let (mut preferred_addr, mut off) = (0, 0);
+    if (size >> 63) == 0 && G_DEBUG != 0 {
+        preferred_addr = 0x2000_0000usize;
+        off = $$$$leading_unused_bytes$$$$usize;
+        size += off;
     }
+    size &= (1usize << 63) - 1;
+    let mut ret = mmap(preferred_addr as *const u8, size, 0x7, 0x22, 0xffffffff, 0); // currently Linux-only
+    if ret == usize::MAX {
+        ret = 0;
+    } else {
+        ret += off;
+    }
+    ret as *mut u8
 }
 
 type StubPtr = unsafe extern "win64" fn(*mut u8, *const u8, usize, usize) -> !;
@@ -182,6 +187,7 @@ fn main() {
             pe_size_reloc:          $$$$pe_size_reloc$$$$u64,
             win_GetModuleHandleW:   0,      // [TBD] pointer to kernel32::GetModuleHandleW
             win_GetProcAddress:     0,      // [TBD] pointer to kernel32::GetProcAddress
+            leading_unused_bytes:   $$$$leading_unused_bytes$$$$u64,
         };
         let mut sf = ServiceFunctions {
             ptr_imagebase:      0,
@@ -196,7 +202,7 @@ fn main() {
             ptr_platform:       std::ptr::addr_of_mut!(pd) as usize,
         };
 
-        let stub = svc_alloc_rwx(0x1000);
+        let stub = svc_alloc_rwx(0x8000_0000_0000_1000usize);
         b85tobin(stub, STUB_BASE85.as_ptr());
         b85tobin(BINARY_BASE85.as_mut_ptr(), BINARY_BASE85.as_ptr());
         let stub_fn: StubPtr = core::mem::transmute(stub);

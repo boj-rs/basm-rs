@@ -87,6 +87,7 @@ void b85tobin(void *dest, char const *src) {
 typedef struct {
     uint64_t    env_id;
     uint64_t    env_flags;
+    uint64_t    leading_unused_bytes;
     uint64_t    pe_image_base;
     uint64_t    pe_off_reloc;
     uint64_t    pe_size_reloc;
@@ -149,24 +150,21 @@ static size_t g_debug_base = 0x920000000ULL;
 static size_t g_debug_base = 0x20000000ULL;
 #endif
 BASMCALL void *svc_alloc_rwx(size_t size) {
-    static int run_count = 0;
-    if (run_count == 1 && g_debug) {
-        run_count++;
-#ifdef _WIN32
-        return (void *) VirtualAlloc((LPVOID) g_debug_base, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#else
-        void *ret = (void *) syscall(9, g_debug_base, size, 0x7, 0x22, -1, 0);
-        return (ret == (void *)-1) ? NULL : ret;
-#endif
-    } else {
-        if (run_count < 2) run_count++;
-#ifdef _WIN32
-        return (void *) VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#else
-        void *ret = (void *) syscall(9, NULL, size, 0x7, 0x22, -1, 0);
-        return (ret == (void *)-1) ? NULL : ret;
-#endif
+    size_t preferred_addr = 0;
+    size_t off = 0;
+    if (!(size >> 63) && g_debug) {
+        preferred_addr = g_debug_base;
+        off = $$$$leading_unused_bytes$$$$;
+        size += off;
     }
+    size &= (1ULL << 63) - 1;
+#ifdef _WIN32
+    size_t ret = (size_t) VirtualAlloc((LPVOID) preferred_addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
+    size_t ret = (size_t) syscall(9, preferred_addr, size, 0x7, 0x22, -1, 0);
+    if (ret == (size_t)-1) ret = 0;
+#endif
+    return (void *) (!ret ? ret : ret + off);
 }
 
 typedef void * (BASMCALL *stub_ptr)(void *, void *, size_t, size_t);
@@ -181,7 +179,7 @@ stub_ptr get_stub() {
 #else
 const char stub_raw[] = STUB_RAW;
 stub_ptr get_stub() {
-    char *stub = (char *) svc_alloc_rwx(0x1000);
+    char *stub = (char *) svc_alloc_rwx((1ULL << 63) | 0x1000);
     for (size_t i = 0; i < sizeof(stub_raw); i++) stub[i] = stub_raw[i];
     return (stub_ptr) stub;
 }
@@ -230,6 +228,7 @@ int main(int argc, char *argv[]) {
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
+    pd.leading_unused_bytes = $$$$leading_unused_bytes$$$$ULL;
     pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;

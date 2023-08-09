@@ -11,7 +11,7 @@
         {
             "label": "build-debug-amd64-loader",
             "type": "shell",
-            "command": "gcc ./target/x86_64-unknown-linux-gnu/debug/loader.c -static -o ./target/x86_64-unknown-linux-gnu/debug/loader",
+            "command": "gcc ./target/x86_64-unknown-linux-gnu/debug/loader.c -o ./target/x86_64-unknown-linux-gnu/debug/loader",
             "dependsOn": [
                 "build-debug-amd64-cargo"
             ],
@@ -106,7 +106,7 @@
         {
             "label": "build-debug-i686-loader",
             "type": "shell",
-            "command": "gcc ./target/i686-unknown-linux-gnu/debug/loader.c -static -o ./target/i686-unknown-linux-gnu/debug/loader -m32",
+            "command": "gcc ./target/i686-unknown-linux-gnu/debug/loader.c -o ./target/i686-unknown-linux-gnu/debug/loader -m32",
             "dependsOn": [
                 "build-debug-i686-cargo"
             ],

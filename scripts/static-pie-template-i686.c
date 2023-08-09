@@ -64,6 +64,7 @@ void b85tobin(void *dest, char const *src) {
 typedef struct {
     uint64_t    env_id;
     uint64_t    env_flags;
+    uint64_t    leading_unused_bytes;
     uint64_t    pe_image_base;
     uint64_t    pe_off_reloc;
     uint64_t    pe_size_reloc;
@@ -116,24 +117,21 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
 }
 static uint32_t g_debug = 0;
 void *svc_alloc_rwx(size_t size) {
-    static int run_count = 0;
-    if (run_count == 1 && g_debug) {
-        run_count++;
-#ifdef _WIN32
-        return (void *) VirtualAlloc((LPVOID) 0x20000000, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#else
-        void *ret = (void *) mmap((void *) 0x20000000, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-        return (ret == MAP_FAILED) ? NULL : ret;
-#endif
-    } else {
-        if (run_count < 2) run_count++;
-#ifdef _WIN32
-        return (void *) VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#else
-        void *ret = (void *) mmap(NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        return (ret == MAP_FAILED) ? NULL : ret;
-#endif
+    size_t preferred_addr = 0;
+    size_t off = 0;
+    if (!(size >> 31) && g_debug) {
+        preferred_addr = 0x20000000;
+        off = $$$$leading_unused_bytes$$$$;
+        size += off;
     }
+    size &= (1ULL << 31) - 1;
+#ifdef _WIN32
+    size_t ret = (size_t) VirtualAlloc((LPVOID) preferred_addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
+    size_t ret = (size_t) mmap((void *) preferred_addr, size, 0x7, 0x22, -1, 0);
+    if (ret == (size_t)-1) ret = 0;
+#endif
+    return (void *) (!ret ? ret : ret + off);
 }
 
 typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
@@ -148,7 +146,7 @@ int main(int argc, char *argv[]) {
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }
-    pd.env_flags            = 0; // not strictly necessary but for clarity
+    pd.env_flags            = 0; // necessary since pd is on stack
 #if defined(_WIN32)
     pd.env_id               = ENV_ID_WINDOWS;
 #elif defined(__linux__)
@@ -160,6 +158,7 @@ int main(int argc, char *argv[]) {
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
+    pd.leading_unused_bytes = $$$$leading_unused_bytes$$$$ULL;
     pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
@@ -178,7 +177,7 @@ int main(int argc, char *argv[]) {
     sf.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
     sf.ptr_platform         = (void *) &pd;
 
-    stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x1000);
+    stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x80001000);
     b85tobin((void *) stub, stub_base85);
     b85tobin(binary_base85, (char const *)binary_base85);
     stub(&sf, binary_base85, entrypoint_offset, (size_t) g_debug);
