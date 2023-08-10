@@ -13,28 +13,47 @@ C 외에 Rust (메모리 사용량 감소)도 지원합니다.
 공백으로 구분된 a와 b를 받아 더한 결과를 출력하는 프로그램은 다음과 같이 작성할 수 있습니다.
 
 ```rust
-let mut s = String::new();
-std::io::stdin().read_to_string(&mut s).unwrap();
-let mut input = s.split_whitespace().flat_map(str::parse);
-let a: usize = input.next().unwrap();
-let b: usize = input.next().unwrap();
-println!("{}", a + b);
+use std::io::Read;
+fn main() {
+    let mut s = String::new();
+    std::io::stdin().read_to_string(&mut s).unwrap();
+    let mut input = s.split_whitespace().flat_map(str::parse);
+    let a: usize = input.next().unwrap();
+    let b: usize = input.next().unwrap();
+    println!("{}", a + b);
+}
 ```
 
 이를 basm에서는 다음과 같이 작성할 수 있습니다.
 
-```rust
-use basm::io::{Reader, Writer};
+> basm에서는 `main()` 함수가 반드시 `pub`으로 선언되어야 컴파일이 가능함에 주의해 주세요.
 
-let mut reader: Reader = Default::default();
-let mut writer: Writer = Default::default();
-let a = reader.next_usize();
-let b = reader.next_usize();
-writer.write_usize(a + b);
+```rust
+// src/solution.rs
+use basm::io::{Reader, Writer};
+pub fn main() {
+    let mut reader: Reader = Default::default();
+    let mut writer: Writer = Default::default();
+    let a = reader.next_usize();
+    let b = reader.next_usize();
+    writer.write_usize(a + b);
+}
 ```
 
 - 표시되는 메모리 사용량이 줄어듭니다.
   - C의 경우 156KB부터, Rust의 경우 2188KB부터 시작합니다.
+  - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
+```rust
+// src/solution.rs
+use basm::io::{Reader, Writer};
+pub fn main() {
+    let mut reader = Reader::<128>::new();
+    let mut writer = Writer::<128>::new();
+    let a = reader.next_usize();
+    let b = reader.next_usize();
+    writer.write_usize(a + b);
+}
+```
 
 - **외부 crate를 사용할 수 있습니다.**
 
@@ -106,7 +125,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 5. 디버깅이 완료된 후에는 위의 "사용법"에 기술된 대로 `release.sh` 등을 실행하시면 Release 모드로 최종 프로그램을 빌드하실 수 있습니다.
 
-6. 네이티브 Windows 64비트 환경에서는 Launch configuration에서 `Debug executable 'basm' (amd64-win)`를 선택하여 실행하시면 디버깅이 가능합니다. 단, Visual Studio Code를 `x64 Native Tools Command Prompt for Visual Studio 2022` 등에서 실행하셔야 합니다(로컬 환경에 따라 연도는 바뀔 수 있음). 해당 명령 프롬프트에서 `code`라고 입력하여 Visual Studio Code를 실행하신 다음 1-5를 동일하게 진행하시면 됩니다.
+6. 네이티브 Windows 64비트 환경에서는 Launch configuration에서 `Debug executable 'basm' (amd64-win)`를 선택하여 실행하시면 디버깅이 가능합니다. 단, Visual Studio Code를 `x64 Native Tools Command Prompt for Visual Studio 2022` 등에서 실행하셔야 합니다(로컬 환경에 따라 연도는 2022가 아닐 수 있음). 해당 명령 프롬프트에서 `code`라고 입력하여 Visual Studio Code를 실행하신 다음 1-5를 동일하게 진행하시면 됩니다.
 
 ## 주의사항
 
@@ -117,6 +136,10 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 - Linux에서 Binutils를 요구합니다.
 
 - Windows에서 Python 3 라이브러리 `pefile`을 요구합니다.
+
+- Windows에서 빌드하기 위해서 Microsoft C/C++ 컴파일러가 필요합니다. 가장 간단한 방법은 최신 버전의 Visual Studio를 설치하는 것입니다. 아래 링크를 참고하시면 도움이 됩니다.
+  - https://learn.microsoft.com/ko-kr/windows/dev-environment/rust/setup
+  - https://rust-lang.github.io/rustup/installation/windows-msvc.html
 
 - `std`를 사용할 수 없습니다.
 
@@ -139,6 +162,8 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 - Windows도 아니고 Linux도 아닌 환경에서는 테스트되지 않았습니다. 이러한 환경에서는 현재 구현상 C runtime의 malloc을 사용하므로 메모리 할당이 정렬되지 않기 때문에 문제가 발생할 수 있습니다. 문제를 겪으시는 경우 이슈를 남겨주세요.
 
 - Linux 환경에서 빌드하여 출력된 코드를 Windows 환경에서 컴파일하여 실행하는 경우 정상 작동을 보장할 수 없습니다. 이는 Linux 컴파일러가 Windows에서 사용하는 `__chkstk` 메커니즘을 지원하지 않기 때문입니다. Windows 환경에서 컴파일하여 실행해야 하는 경우 가급적 Windows 환경에서 빌드해 주세요. 이것이 어렵다면 하나의 함수 내에서 스택을 한 번에 4KB를 초과하여 이용하지 않도록 주의해주세요. 한편, Windows 환경에서 빌드하여 출력된 코드는 `__chkstk` 메커니즘을 포함하고 있으나 Windows가 아닌 환경에서 실행되는 경우 이를 비활성화하도록 구현되어 있기 때문에 Windows 및 Linux에서 모두 정상 작동이 가능합니다.
+
+- Rust 코드 형태로 빌드한 경우 Windows 환경에서 컴파일하여 실행하기 위해서는 코드 상단에 crate type을 `cdylib`로 지정하는 부분을 제거해 주세요. (코드포스 등)
 
 - 코드 구조 수정으로 인해 Assembly 코드로 변환하는 기능은 지원되지 않습니다.
 
@@ -178,7 +203,28 @@ pub fn main() {
 }
 ```
 
-로컬에서 빌드합니다. 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C 코드가 출력됩니다.
+이제 로컬에서 빌드합니다.
+
+### Windows
+
+다음 스크립트를 실행하면 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C 코드가 출력됩니다.
+
+```
+./release-64bit-windows.cmd > output.c
+```
+
+생성된 코드를 컴파일하여 실행합니다. (이를 실행하는 로컬 환경은 64비트라고 가정하고 있습니다)
+
+```
+cl output.c /F268435456
+output
+```
+
+Microsoft C/C++ 컴파일러 `cl`이 `PATH`에 있어야 하며 기타 환경 변수가 잘 설정되어 있어야 컴파일이 문제없이 진행됩니다. 따라서 가급적 `x64 Native Tools Command Prompt for VS 2022` (로컬 환경에 따라 연도는 2022가 아닐 수 있음)에서 실행하는 것이 좋습니다.
+
+### Linux
+
+다음 스크립트를 실행하면 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C 코드가 출력됩니다.
 
 ```
 ./release-64bit.sh > output.c
