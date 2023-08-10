@@ -2,11 +2,9 @@
 
 basm.rs는 Rust 코드를 BOJ에 제출 가능한 C 프로그램으로 성능 저하 없이 변환해 주는 프로젝트입니다.
 
-~~C 외에 64bit Assembly, Rust (메모리 사용량 감소)도 지원합니다.~~
+C 외에 Rust (메모리 사용량 감소)도 지원합니다.
 
 > 156KB의 자유를 누리십시오!
-
-현재 C와 Rust 코드 출력이 지원됩니다. 코드 구조 수정으로 인해 Assembly 코드로 변환하는 기능은 아직 지원되지 않습니다. 추후 구현 예정입니다.
 
 ## 효과
 
@@ -36,8 +34,7 @@ writer.write_usize(a + b);
 ```
 
 - 표시되는 메모리 사용량이 줄어듭니다.
-  - C의 경우 모든 C runtime dependency가 제거되어 156KB부터 시작합니다.
-  - Rust는 아직 메모리 사용량 감소를 지원하지 않아 13176KB부터 시작합니다.
+  - C의 경우 156KB부터, Rust의 경우 2188KB부터 시작합니다.
 
 - **외부 crate를 사용할 수 있습니다.**
 
@@ -71,11 +68,15 @@ writer.write_usize(a + b);
 
 Windows 환경에서 빌드하는 방법입니다.
 
-* `release-64bit-windows.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다. 단, Windows 환경에서의 작동은 Python 3 라이브러리인 `pefile`을 필요로 하므로 `pip install pefile`로 설치하십시오.
+* Windows 환경에서의 작동은 Python 3 라이브러리인 `pefile`을 필요로 하므로 `pip install pefile`로 설치하십시오.
 
-* Windows 환경에서 Rust 코드로 빌드하는 기능은 아직 지원되지 않으나 추가 예정입니다.
+* `release-64bit-windows.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다.
+
+* `release-64bit-windows-rs.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드는 Windows와 Linux에서 모두 컴파일 가능합니다. 단, Windows에서 컴파일할 경우 DLL 대신 EXE를 생성하기 위해 생성된 코드 맨 앞의 `cdylib`를 `bin`으로 변경하거나 rustc 호출 시 `--crate-type=bin` 옵션을 추가해주세요.
 
 * VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
+
+* VS Code의 `build-release-amd64-win-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
 
 Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
@@ -83,9 +84,11 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * `release-32bit.sh`를 실행하면 32비트 환경(코드포스 등)에 제출 가능한 C 코드가 출력됩니다.
 
-* `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다.
+* `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
 
 * VS Code의 `build-release-amd64-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
+
+* VS Code의 `build-release-amd64-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
 
 ~~`release-asm.sh`를 실행하면 제출 가능한 64bit Assembly 코드가 출력됩니다.~~ 추후 구현 예정입니다.
 
@@ -135,9 +138,9 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 - Windows도 아니고 Linux도 아닌 환경에서는 테스트되지 않았습니다. 이러한 환경에서는 현재 구현상 C runtime의 malloc을 사용하므로 메모리 할당이 정렬되지 않기 때문에 문제가 발생할 수 있습니다. 문제를 겪으시는 경우 이슈를 남겨주세요.
 
-- 64비트 리눅스 환경에서 `./release-rs.sh`를 실행하여 Rust로 빌드하시는 경우 dlmalloc이 적용되지 않습니다.
-
 - Linux 환경에서 빌드하여 출력된 코드를 Windows 환경에서 컴파일하여 실행하는 경우 정상 작동을 보장할 수 없습니다. 이는 Linux 컴파일러가 Windows에서 사용하는 `__chkstk` 메커니즘을 지원하지 않기 때문입니다. Windows 환경에서 컴파일하여 실행해야 하는 경우 가급적 Windows 환경에서 빌드해 주세요. 이것이 어렵다면 하나의 함수 내에서 스택을 한 번에 4KB를 초과하여 이용하지 않도록 주의해주세요. 한편, Windows 환경에서 빌드하여 출력된 코드는 `__chkstk` 메커니즘을 포함하고 있으나 Windows가 아닌 환경에서 실행되는 경우 이를 비활성화하도록 구현되어 있기 때문에 Windows 및 Linux에서 모두 정상 작동이 가능합니다.
+
+- 코드 구조 수정으로 인해 Assembly 코드로 변환하는 기능은 지원되지 않습니다.
 
 - 현재 ARM은 32비트/64비트 둘 다 지원되지 않습니다. 지원이 필요하시면 이슈를 남겨주세요.
 

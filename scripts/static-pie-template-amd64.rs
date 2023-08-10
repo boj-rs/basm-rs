@@ -1,6 +1,10 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust and get high performance out of the box ☆ https://doc.rust-lang.org/book/
 
+// IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
+#![crate_type="cdylib"]
+#![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as std2;
+
 //==============================================================================
 // SOLUTION BEGIN
 //==============================================================================
@@ -15,200 +19,171 @@ $$$$solution_src$$$$
 //==============================================================================
 // LOADER BEGIN
 //==============================================================================
+#[cfg(not(target_arch = "x86_64"))]
+compile_error!("The target architecture is not supported.");
+#[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]
+compile_error!("The target operating system is not supported.");
 
-use std::alloc::{alloc, alloc_zeroed, dealloc, realloc, Layout};
-use std::arch::asm;
-use std::env;
-use std::io::{Read, Write, stdin, stdout, stderr};
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Base85 decoder. Code adapted from:
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-//
-////////////////////////////////////////////////////////////////////////////////
-
-unsafe fn b85tobin(dest: *mut u8, mut src: *const u8) {
-    let b85 = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
-    let mut p: *mut u32 = unsafe { core::mem::transmute(dest) };
-    let mut digittobin: [u8; 256] = [0; 256];
-    for i in 0..85 { digittobin[b85[i] as usize] = i as u8; }
-    loop {
-        while *src == b'\0' { src = src.wrapping_add(1); }
-        if *src == b']' { break; }
-        let mut value: u32 = 0;
-        for _i in 0..5 {
-            value *= 85;
-            value += digittobin[*src as usize] as u32;
-            src = src.wrapping_add(1);
-        }
-        *p = (value >> 24) | ((value >> 8) & 0xff00) | ((value << 8) & 0xff0000) | (value << 24);
-        p = p.wrapping_add(1);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Service functions
-//
-////////////////////////////////////////////////////////////////////////////////
-
-
-#[repr(packed)]
-#[allow(dead_code)]
+#[cfg(target_os = "windows")]
 #[allow(non_snake_case)]
-struct PlatformData {
-    env_id:                 u64,
-    env_flags:              u64,
-    leading_unused_bytes:   u64,
-    pe_image_base:          u64,
-    pe_off_reloc:           u64,
-    pe_size_reloc:          u64,
-    win_GetModuleHandleW:   u64,    // pointer to kernel32::GetModuleHandleW
-    win_GetProcAddress:     u64,    // pointer to kernel32::GetProcAddress
-}
-
-type NativeFuncA = unsafe extern "win64" fn(usize, usize) -> *mut u8;
-type NativeFuncB = unsafe extern "win64" fn(*mut u8, usize, usize);
-type NativeFuncC = unsafe extern "win64" fn(*mut u8, usize, usize, usize) -> *mut u8;
-type NativeFuncD = unsafe extern "win64" fn(usize) -> !;
-type NativeFuncE = unsafe extern "win64" fn(usize, *mut u8, usize) -> usize;
-type NativeFuncF = unsafe extern "win64" fn(usize, *const u8, usize) -> usize;
-type NativeFuncG = unsafe extern "win64" fn(usize) -> *mut u8;
-
-#[repr(packed)]
-#[allow(dead_code)]
-struct ServiceFunctions {
-    ptr_imagebase:      usize,
-    ptr_alloc:          NativeFuncA,
-    ptr_alloc_zeroed:   NativeFuncA,
-    ptr_dealloc:        NativeFuncB,
-    ptr_realloc:        NativeFuncC,
-    ptr_exit:           NativeFuncD,
-    ptr_read_stdio:     NativeFuncE,
-    ptr_write_stdio:    NativeFuncF,
-    ptr_alloc_rwx:      NativeFuncG,
-    ptr_platform:       usize,
-}
-
-unsafe extern "win64" fn svc_alloc(size: usize, align: usize) -> *mut u8 {
-    let layout = Layout::from_size_align(size, align).unwrap();
-    alloc(layout)
-}
-unsafe extern "win64" fn svc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
-    let layout = Layout::from_size_align(size, align).unwrap();
-    alloc_zeroed(layout)
-}
-unsafe extern "win64" fn svc_free(ptr: *mut u8, size: usize, align: usize) {
-    let layout = Layout::from_size_align(size, align).unwrap();
-    dealloc(ptr, layout)
-}
-unsafe extern "win64" fn svc_realloc(memblock: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
-    let layout = Layout::from_size_align(old_size, old_align).unwrap();
-    realloc(memblock, layout, new_size)
-}
-unsafe extern "win64" fn svc_exit(status: usize) -> ! {
-    std::process::exit(status as i32)
-}
-unsafe extern "win64" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
-    let slice = std::slice::from_raw_parts_mut(buf, count);
-    match fd {
-        0 => match stdin().read(slice) {
-            Ok(x) => x,
-            _error => 0,
-        },
-        _ => { 0 },
+mod win_api {
+    #[link(name = "kernel32")]
+    extern "win64" {
+        pub fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
+        pub fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
+        pub fn VirtualAlloc(lpAddress: usize, dwSize: usize, flAllocationType: u32, flProtect: u32) -> usize;
     }
 }
-unsafe extern "win64" fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
-    let slice = std::slice::from_raw_parts(buf, count);
-    match fd {
-        1 => match stdout().write(slice) {
-            Ok(x) => x,
-            _error => 0,
-        },
-        2 => match stderr().write(slice) {
-            Ok(x) => x,
-            _error => 0,
-        },
-        _ => { 0 },
-    }
+#[cfg(not(target_os = "windows"))]
+#[allow(non_snake_case, non_upper_case_globals)]
+mod win_api {
+    pub const GetModuleHandleW: usize = 0;
+    pub const GetProcAddress: usize = 0;
+    pub fn VirtualAlloc(_lpAddress: usize, _dwSize: usize, _flAllocationType: u32, _flProtect: u32) -> usize { 0 }
 }
-#[inline(always)]
-pub fn mmap(
-    addr: *const u8,
-    len: usize,
-    protect: i32,
-    flags: i32,
-    fd: u32,
-    offset: isize,
-) -> usize {
-    let out;
-    unsafe {
-        asm!("syscall", in("rax") 9, in("rdi") addr, in("rsi") len, in("rdx") protect, in("r10") flags, in("r8") fd, in("r9") offset, lateout("rax") out, out("rcx") _, out("r11") _);
-    }
-    out
-}
-static mut G_DEBUG: u32 = 0;
+
 unsafe extern "win64" fn svc_alloc_rwx(mut size: usize) -> *mut u8 {
     let (mut preferred_addr, mut off) = (0, 0);
-    if (size >> 63) == 0 && G_DEBUG != 0 {
-        preferred_addr = 0x2000_0000usize;
+    if cfg!(debug_assertions) && (size >> 63) == 0 {
+        preferred_addr = if cfg!(windows) { 0x9_2000_0000usize } else { 0x2000_0000usize };
         off = $$$$leading_unused_bytes$$$$usize;
         size += off;
     }
     size &= (1usize << 63) - 1;
-    let mut ret = mmap(preferred_addr as *const u8, size, 0x7, 0x22, 0xffffffff, 0); // currently Linux-only
-    if ret == usize::MAX {
-        ret = 0;
+    let ret;
+    if cfg!(windows) {
+        ret = win_api::VirtualAlloc(preferred_addr, size,
+            0x00003000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */);
     } else {
-        ret += off;
+        core::arch::asm!("syscall", in("rax") 9, in("rdi") preferred_addr, in("rsi") size,
+            in("rdx") 0x7 /* protect */, in("r10") 0x22 /* flags */,
+            in("r8") -1 /* fd */, in("r9") 0 /* offset */,
+            lateout("rax") ret, out("rcx") _, out("r11") _);
     }
-    ret as *mut u8
+    (if ret == 0 || ret == usize::MAX { 0 } else { ret + off }) as *mut u8
 }
 
-type StubPtr = unsafe extern "win64" fn(*mut u8, *const u8, usize, usize) -> !;
-
-const STUB_BASE85: &[u8] = b$$$$stub_base85$$$$;
+static STUB_BASE85: [u8; $$$$stub_base85_len$$$$] = *b$$$$stub_base85$$$$;
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
-const ENTRYPOINT_OFFSET: usize = $$$$entrypoint_offset$$$$;
 
-fn main() {
-    unsafe {
-        let args: Vec<String> = env::args().collect();
-        if args.len() >= 2 && args[1] == "--debug" {
-            G_DEBUG = 1;
-        }
-        let mut pd = PlatformData {
-            env_id:                 0,      // For Rust, we default to ENV_ID_UNKNOWN
-            env_flags:              if cfg!(windows) { 0 } else { 1 },
-            pe_image_base:          $$$$pe_image_base$$$$u64,
-            pe_off_reloc:           $$$$pe_off_reloc$$$$u64,
-            pe_size_reloc:          $$$$pe_size_reloc$$$$u64,
-            win_GetModuleHandleW:   0,      // [TBD] pointer to kernel32::GetModuleHandleW
-            win_GetProcAddress:     0,      // [TBD] pointer to kernel32::GetProcAddress
-            leading_unused_bytes:   $$$$leading_unused_bytes$$$$u64,
-        };
-        let mut sf = ServiceFunctions {
-            ptr_imagebase:      0,
-            ptr_alloc:          svc_alloc,
-            ptr_alloc_zeroed:   svc_alloc_zeroed,
-            ptr_dealloc:        svc_free,
-            ptr_realloc:        svc_realloc,
-            ptr_exit:           svc_exit,
-            ptr_read_stdio:     svc_read_stdio,
-            ptr_write_stdio:    svc_write_stdio,
-            ptr_alloc_rwx:      svc_alloc_rwx,
-            ptr_platform:       std::ptr::addr_of_mut!(pd) as usize,
-        };
-
-        let stub = svc_alloc_rwx(0x8000_0000_0000_1000usize);
-        b85tobin(stub, STUB_BASE85.as_ptr());
-        b85tobin(BINARY_BASE85.as_mut_ptr(), BINARY_BASE85.as_ptr());
-        let stub_fn: StubPtr = core::mem::transmute(stub);
-        stub_fn(core::mem::transmute(std::ptr::addr_of_mut!(sf)), BINARY_BASE85.as_ptr(), ENTRYPOINT_OFFSET, G_DEBUG as usize);
-    }
+#[no_mangle]
+pub unsafe fn _start() -> ! {
+    core::arch::asm!(
+        "and    rsp, 0xFFFFFFFFFFFFFFF0",       // Align stack to 16 byte boundary
+        // [rsp+368, rsp+432]: PLATFORM_DATA
+        // [rsp+288, rsp+368]: SERVICE_FUNCTIONS
+        // [rsp+ 32, rsp+288]: digittobin
+        // [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
+        "sub    rsp, 432",
+        // Initialize base85 decoder buffer
+        "lea    rax, [rip + 6f]",               // rax = b85
+        "lea    rcx, QWORD PTR [rsp+ 32]",      // rcx = digittobin
+        "xor    ebx, ebx",
+        "2:",
+        "movzx  edx, BYTE PTR [rax+rbx]",       // Upper 32bit of rdx automatically gets zeroed
+        "mov    BYTE PTR [rcx+rdx], bl",
+        "inc    ebx",
+        "cmp    ebx, 85",
+        "jb     2b",
+        // PLATFORM_DATA
+        "lea    rcx, QWORD PTR [rsp+368]",      // rcx = PLATFORM_DATA table
+        "mov    QWORD PTR [rcx+  0], r8",       // env_id
+        "mov    QWORD PTR [rcx+  8], r9",       // env_flags
+        "mov    QWORD PTR [rcx+ 16], $$$$leading_unused_bytes$$$$", // leading_unused_bytes
+        "mov    QWORD PTR [rcx+ 24], $$$$pe_image_base$$$$",        // pe_image_base
+        "mov    QWORD PTR [rcx+ 32], $$$$pe_off_reloc$$$$",         // pe_off_reloc
+        "mov    QWORD PTR [rcx+ 40], $$$$pe_size_reloc$$$$",        // pe_size_reloc
+        "mov    QWORD PTR [rcx+ 48], r10",      // win_GetModuleHandleW
+        "mov    QWORD PTR [rcx+ 56], r11",      // win_GetProcAddress
+        // SERVICE_FUNCTIONS
+        "lea    rax, QWORD PTR [rsp+288]",      // rax = SERVICE_FUNCTIONS table
+        "mov    QWORD PTR [rax+  0], 0",        // ptr_imagebase
+        "mov    QWORD PTR [rax+  8], 0",        // ptr_alloc
+        "mov    QWORD PTR [rax+ 16], 0",        // ptr_alloc_zeroed
+        "mov    QWORD PTR [rax+ 24], 0",        // ptr_dealloc
+        "mov    QWORD PTR [rax+ 32], 0",        // ptr_realloc
+        "mov    QWORD PTR [rax+ 40], 0",        // ptr_exit
+        "mov    QWORD PTR [rax+ 48], 0",        // ptr_read_stdio
+        "mov    QWORD PTR [rax+ 56], 0",        // ptr_write_stdio
+        "mov    QWORD PTR [rax+ 64], r12",      // ptr_alloc_rwx
+        "mov    QWORD PTR [rax+ 72], rcx",      // ptr_platform
+        // Allocate memory for stub
+        "movabs rcx, 0x8000000000001000",
+        "call   r12",
+        "mov    r15, rax",                      // r15 = stub memory
+        // Decode stub (rsi -> rdi; rcx = digittobin)
+        "lea    rcx, QWORD PTR [rsp+ 32]",      // rcx = digittobin
+        "mov    rsi, r13",                      // rsi = STUB_BASE85
+        "mov    rdi, r15",                      // rdi = stub memory
+        "call   3f",
+        // Decode binary (rsi -> rdi; rcx = digittobin)
+        "mov    rsi, r14",                      // rsi = BINARY_BASE85
+        "mov    rdi, rsi",                      // rdi = BINARY_BASE85 (in-place decoding)
+        "call   3f",
+        // Call stub
+        "lea    rcx, QWORD PTR [rsp+288]",      // rcx = SERVICE_FUNCTIONS table
+        "mov    rdx, r14",                      // rdx = LZMA-compressed binary
+        "mov    r8, $$$$entrypoint_offset$$$$", // r8  = Entrypoint offset
+        "mov    r9, 0",                         // r9  = 1 if debugging is enabled, otherwise 0
+        "add    rsp, 256",                      // Discard digittobin
+        "call   r15",
+        // Base85 decoder
+        "3:",
+        "mov    ebx, 85",
+        "4:",
+        "movzx  eax, BYTE PTR [rsi]",
+        "cmp    eax, 93",                       // 93 = 0x5D = b']' denotes end of base85 stream
+        "je     5f",
+        "movzx  edx, BYTE PTR [rsi+  0]",
+        "movzx  eax, BYTE PTR [rcx+rdx]",
+        "mul    ebx",
+        "movzx  edx, BYTE PTR [rsi+  1]",
+        "movzx  edx, BYTE PTR [rcx+rdx]",
+        "add    eax, edx",
+        "mul    ebx",
+        "movzx  edx, BYTE PTR [rsi+  2]",
+        "movzx  edx, BYTE PTR [rcx+rdx]",
+        "add    eax, edx",
+        "mul    ebx",
+        "movzx  edx, BYTE PTR [rsi+  3]",
+        "movzx  edx, BYTE PTR [rcx+rdx]",
+        "add    eax, edx",
+        "mul    ebx",
+        "movzx  edx, BYTE PTR [rsi+  4]",
+        "movzx  edx, BYTE PTR [rcx+rdx]",
+        "add    eax, edx",
+        "bswap  eax",
+        "mov    DWORD PTR [rdi], eax",
+        "add    rsi, 5",
+        "add    rdi, 4",
+        "jmp    4b",
+        "5:",
+        "ret",
+        // b85 table
+        "6:",
+        ".quad  0x3736353433323130",
+        ".quad  0x4645444342413938",
+        ".quad  0x4E4D4C4B4A494847",
+        ".quad  0x565554535251504F",
+        ".quad  0x646362615A595857",
+        ".quad  0x6C6B6A6968676665",
+        ".quad  0x74737271706F6E6D",
+        ".quad  0x23217A7978777675",
+        ".quad  0x2D2B2A2928262524",
+        ".quad  0x5F5E403F3E3D3C3B",
+        ".quad  0x0000007E7D7C7B60",
+        in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
+        in("r9") if cfg!(windows) { 0 } else { 1 }, // Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+        in("r10") win_api::GetModuleHandleW,
+        in("r11") win_api::GetProcAddress,
+        in("r12") svc_alloc_rwx,
+        in("r13") STUB_BASE85.as_ptr(),
+        in("r14") BINARY_BASE85.as_mut_ptr(),
+        options(noreturn)
+    )
 }
+#[allow(dead_code)]
+fn main() { unsafe { _start() } }
 //==============================================================================
 // LOADER END
 //==============================================================================

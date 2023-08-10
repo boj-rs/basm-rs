@@ -79,10 +79,17 @@
             ],
         },
         {
+            "label": "build-release-amd64-win-rs-submit",
+            "type": "shell",
+            "command": "mkdir ./target/x86_64-pc-windows-msvc/release; ./release-64bit-windows-rs.cmd > ./target/x86_64-pc-windows-msvc/release/loader.rs; code --reuse-window ./target/x86_64-pc-windows-msvc/release/loader.rs",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
             "label": "build-release-amd64-cargo",
             "type": "shell",
             "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/release; ./release-64bit.sh > ./target/x86_64-unknown-linux-gnu/release/loader.c",
-            ,
             "problemMatcher": [
                 "$rustc"
             ],
@@ -94,6 +101,14 @@
             "dependsOn": [
                 "build-release-amd64-cargo"
             ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-rs-submit",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/release; ./release-rs.sh > ./target/x86_64-unknown-linux-gnu/release/loader.rs; code --reuse-window ./target/x86_64-unknown-linux-gnu/release/loader.rs",
             "problemMatcher": [
                 "$rustc"
             ],

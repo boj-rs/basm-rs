@@ -83,6 +83,7 @@ stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 while len(stub) % 4 != 0:
     stub.append(0)
 stub_b85 = base64.b85encode(stub, pad=False).decode('ascii') + ']'
+stub_b85_len = len(stub_b85)
 if lang_name == "C":
     stub_b85 = stub_b85.replace("?", "\?")
 stub_b85 = '"' + stub_b85 + '"'
@@ -103,6 +104,7 @@ out = multiple_replace(template, {
     "$$$$stub_raw$$$$": stub_raw,
     "$$$$stub_base85$$$$": stub_b85,
     "$$$$stub_len$$$$": str(len(stub)),
+    "$$$$stub_base85_len$$$$": str(stub_b85_len),
     "$$$$binary_base85$$$$": r,
     "$$$$binary_base85_len$$$$": str(len(code_b85)),
     "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
