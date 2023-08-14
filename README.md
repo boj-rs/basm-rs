@@ -355,7 +355,47 @@ SOFTWARE.
 
 [MINT64 OS](https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c)
 ```
-TBD
+/**
+ *  file    ApplicationLoader.c
+ *  date    2009/12/26
+ *  author  kkamagui
+ *          Copyright(c)2008 All rights reserved by kkamagui
+ *  brief   응용프로그램을 로드하여 실행하는 로더(Loader)에 관련된 함수를 정의한 소스 파일
+ */
+(brief in English:
+    source file defining functions for loader that loads and runs applications)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+========
+
+The ELF parsing and relocation routines in basm-rs were adapted
+from the following implementation of MINT64OS, licensed under GPLv2+:
+    https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
+
+Unlike all other parts of basm-rs, which are under the MIT license,
+the files implementing ELF parsing and relocation are exceptionally
+licensed under GPLv2+ since it is derived from an existing GPLv2+
+implementation, "Loader.c" (see above). Although GPLv2+ mandates
+licensing the project in its entirety as GPLv2+, the original author
+has kindly granted us permission to confine the GPLv2+ license to
+the parts explicitly derived from "Loader.c".
+
+There are currently three files licensed under GPLv2+:
+    scripts/static-pie-elf2bin.py
+    src/platform/loader/amd64_elf.rs
+    src/platform/loader/i686_elf.rs
 ```
 
 [Micro LZMA decoder](https://github.com/ilyakurdyukov/micro-lzmadec)
