@@ -222,8 +222,7 @@ int main(int argc, char *argv[]) {
 #elif defined(__linux__)
     pd.env_id               = ENV_ID_LINUX;
     // Linux's stack growth works differently than Windows.
-    // However, we do make sure the stack grows since we cannot rely on
-    //   Microsoft compiler's behavior on the stack usage.
+    // Hence, we disable the __chkstk mechanism on Linux.
     pd.env_flags            |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
