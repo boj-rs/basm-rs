@@ -70,6 +70,14 @@ impl<const N: usize> Reader<N> {
         unsafe { self.0.get_unchecked(self.2).assume_init_read() }
     }
     #[inline]
+    pub fn try_peek(&mut self) -> Option<u8> {
+        if self.2 >= self.1 && !self.try_fill() {
+            None
+        } else {
+            unsafe { Some(self.0.get_unchecked(self.2).assume_init_read()) }
+        }
+    }
+    #[inline]
     pub fn fill(&mut self) {
         self.1 = services::read_stdio(0, unsafe {
             MaybeUninit::slice_assume_init_mut(&mut self.0)
@@ -153,6 +161,23 @@ impl<const N: usize> Reader<N> {
                 skip += 1;
             } else {
                 break skip;
+            }
+        }
+    }
+    // returns (skipped characters, whether a non-whitespace character was found without reaching EOF)
+    #[inline]
+    pub fn try_skip_white(&mut self) -> (usize, bool) {
+        let mut skip = 0;
+        loop {
+            match self.try_peek() {
+                None => { break (skip, false); },
+                Some(x) => {
+                    if x <= 32 {
+                        self.2 += 1; skip += 1;
+                    } else {
+                        break (skip, true);
+                    }
+                }
             }
         }
     }
