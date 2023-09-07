@@ -52,13 +52,13 @@ LOC _state, 8
 
 
 _start:
-    sub     rsp, 24         ; for alignment
-    push    rcx             ; rsp + 24
-    push    rdx             ; rsp + 16
-    push    rsi             ; rsp +  8
-    push    rdi             ; rsp +  0
+    sub     rsp, 40          ; for alignment and shadow space
+    mov     qword [rsp + 72], r9
+    mov     qword [rsp + 64], r8
+    mov     qword [rsp + 56], rdx
+    mov     qword [rsp + 48], rcx
 
-    movzx   eax, byte [rsi + 0]
+    movzx   eax, byte [rdx + 0]
     xor     edx, edx
     xor     ecx, ecx
     mov     cl, 45
@@ -81,39 +81,44 @@ _start:
     add     eax, 2048
     mov     r12, rax        ; r12 = tsize
 
-    mov     rbx, rdi                ; rbx is preserved upon function calls
-    mov     rdi, qword [rsi + 5]
+    mov     rbx, qword [rsp + 48]   ; rbx is preserved upon function calls
+    mov     rsi, qword [rsp + 56]   ; rsi is preserved upon function calls
+    mov     rcx, qword [rsi + 5]    ; svc_alloc_rwx: size of memory
     mov     rax, qword [rbx + 64]
     call    rax             ; allocate the Dest memory
     mov     qword [rbx + 0], rax    ; save the image base address in the SERVICE_FUNCTIONS table
+    mov     r9, rax                 ; r9 = Dst
 
-    lea     rdi, [r12 + r12 + 0]
-    mov     rax, qword [rbx + 8]
-    call    rax             ; allocate the Temp memory
-    mov     r10, rax        ; r10 = Temp
-    mov     r9, qword [rbx + 0]     ; r9 = Dst
-
-    mov     r8, qword [rsp + 8]    ; r8 = Src
+    mov     r8, qword [rsp + 56]    ; r8 = Src
     mov     esi, dword [r8 + 14]
     bswap   esi                     ; esi = initial 32 bits of the stream
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
     add     r8, 18                  ; r8 = Src + 18
 
+    lea     rcx, [r12 + r12 + 0]
+    mov     r11, rsp                ; Save rsp
+    mov     eax, 2048               ; __chkstk: Touch QWORD every 2K bytes (not 4K for safety)
+_c: cmp     rcx, rax
+    jle     _e
+    sub     rsp, rax
+    sub     rcx, rax
+    test    qword [rsp], rsp
+    jmp     _c
+_e: sub     rsp, rcx
+    and     rsp, 0xFFFFFFFFFFFFFFF8 ; Align stack to 8-byte boundary
+    mov     r10, rsp                ; r10 = Temp
     call    _lzma_dec
+    mov     rsp, r11                ; Restore rsp
 
-    mov     rbx, qword [rsp + 0]    ; _lzma_dec does not preserve rbx
-    mov     rdi, r10
-    mov     rax, qword [rbx + 24]
-    call    rax             ; free the Temp memory
-
+    mov     rbx, qword [rsp + 48]   ; _lzma_dec does not preserve rbx
     mov     rax, qword [rbx + 0]
-    mov     rcx, qword [rsp + 16]
+    mov     rcx, qword [rsp + 64]
     add     rax, rcx
-    mov     rdx, qword [rsp + 24]
+    mov     rdx, qword [rsp + 72]
     bt      rdx, 0
     jnc     _f
     mov     byte [rax], 0xcc    ; int 3
-_f: mov     rdi, rbx        ; the SERVICE_FUNCTIONS table
+_f: mov     rcx, rbx        ; the SERVICE_FUNCTIONS table
     call    rax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 

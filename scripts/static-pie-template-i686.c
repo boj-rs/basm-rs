@@ -12,10 +12,6 @@ $$$$solution_src$$$$
 //==============================================================================
 // LOADER BEGIN
 //==============================================================================
-// Code adapted from:
-//     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-//==============================================================================
 
 #include <stdint.h>
 #include <stdio.h>
@@ -34,7 +30,8 @@ $$$$solution_src$$$$
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Base85 decoder
+// Base85 decoder. Code adapted from:
+//     https://github.com/rafagafe/base85/blob/master/base85.c
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -65,6 +62,17 @@ void b85tobin(void *dest, char const *src) {
 #pragma pack(push, 1)
 
 typedef struct {
+    uint64_t    env_id;
+    uint64_t    env_flags;
+    uint64_t    leading_unused_bytes;
+    uint64_t    pe_image_base;
+    uint64_t    pe_off_reloc;
+    uint64_t    pe_size_reloc;
+    uint64_t    win_GetModuleHandleW;   // pointer to kernel32::GetModuleHandleW
+    uint64_t    win_GetProcAddress;     // pointer to kernel32::GetProcAddress
+} PLATFORM_DATA;
+
+typedef struct {
     void *ptr_imagebase;            // pointer to data
     void *ptr_alloc;                // pointer to function
     void *ptr_alloc_zeroed;         // pointer to function
@@ -74,21 +82,27 @@ typedef struct {
     void *ptr_read_stdio;           // pointer to function
     void *ptr_write_stdio;          // pointer to function
     void *ptr_alloc_rwx;            // pointer to function
+    void *ptr_platform;             // pointer to data
 } SERVICE_FUNCTIONS;
 
 #pragma pack(pop)
 
-void *svc_alloc(size_t size) {
+#define ENV_ID_UNKNOWN              0
+#define ENV_ID_WINDOWS              1
+#define ENV_ID_LINUX                2
+#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
+
+void *svc_alloc(size_t size, size_t align) {
     return malloc(size);
 }
-void *svc_alloc_zeroed(size_t size) {
+void *svc_alloc_zeroed(size_t size, size_t align) {
     return calloc(1, size);
 }
-void svc_free(void *ptr) {
+void svc_free(void *ptr, size_t size, size_t align) {
     free(ptr);
 }
-void *svc_realloc(void* memblock, size_t size) {
-    return realloc(memblock, size);
+void *svc_realloc(void* memblock, size_t old_size, size_t old_align, size_t new_size) {
+    return realloc(memblock, new_size);
 }
 void svc_exit(size_t status) {
     exit((int) status);
@@ -103,51 +117,70 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
 }
 static uint32_t g_debug = 0;
 void *svc_alloc_rwx(size_t size) {
-    static int run_count = 0;
-    if (run_count == 1 && g_debug) {
-        run_count++;
-#ifdef _WIN32
-        return (void *) VirtualAlloc((LPVOID) 0x20000000, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#else
-        void *ret = (void *) mmap((void *) 0x20000000, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-        return (ret == MAP_FAILED) ? NULL : ret;
-#endif
-    } else {
-        if (run_count < 2) run_count++;
-#ifdef _WIN32
-        return (void *) VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#else
-        void *ret = (void *) mmap(NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        return (ret == MAP_FAILED) ? NULL : ret;
-#endif
+    size_t preferred_addr = 0;
+    size_t off = 0;
+    if (!(size >> 31) && g_debug) {
+        preferred_addr = 0x20000000;
+        off = $$$$leading_unused_bytes$$$$;
+        size += off;
     }
+    size &= (1ULL << 31) - 1;
+#ifdef _WIN32
+    size_t ret = (size_t) VirtualAlloc((LPVOID) preferred_addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
+    size_t ret = (size_t) mmap((void *) preferred_addr, size, 0x7, 0x22, -1, 0);
+    if (ret == (size_t)-1) ret = 0;
+#endif
+    return (void *) (!ret ? ret : ret + off);
 }
 
-SERVICE_FUNCTIONS g_sf;
 typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
-char binary_base85[][4096] = $$$$binary_base85$$$$;
+char binary_base85[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 int main(int argc, char *argv[]) {
+    PLATFORM_DATA pd;
+    SERVICE_FUNCTIONS sf;
     if (argc >= 2 && !strcmp("--debug", argv[1])) {
         g_debug = 1;
     }
-    g_sf.ptr_imagebase      = NULL;
-    g_sf.ptr_alloc          = (void *) svc_alloc;
-    g_sf.ptr_alloc_zeroed   = (void *) svc_alloc_zeroed;
-    g_sf.ptr_dealloc        = (void *) svc_free;
-    g_sf.ptr_realloc        = (void *) svc_realloc;
-    g_sf.ptr_exit           = (void *) svc_exit;
-    g_sf.ptr_read_stdio     = (void *) svc_read_stdio;
-    g_sf.ptr_write_stdio    = (void *) svc_write_stdio;
-    g_sf.ptr_alloc_rwx      = (void *) svc_alloc_rwx;
+    pd.env_flags            = 0; // necessary since pd is on stack
+#if defined(_WIN32)
+    pd.env_id               = ENV_ID_WINDOWS;
+#elif defined(__linux__)
+    pd.env_id               = ENV_ID_LINUX;
+    // Linux's stack growth works differently than Windows.
+    // However, we do make sure the stack grows since we cannot rely on
+    //   Microsoft compiler's behavior on the stack usage.
+    pd.env_flags            |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
+#else
+    pd.env_id               = ENV_ID_UNKNOWN;
+#endif
+    pd.leading_unused_bytes = $$$$leading_unused_bytes$$$$ULL;
+    pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
+    pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
+    pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
+#if defined(_WIN32)
+    pd.win_GetModuleHandleW = (uint64_t) GetModuleHandleW;
+    pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
+#endif
+    sf.ptr_imagebase        = NULL;
+    sf.ptr_alloc            = (void *) svc_alloc;
+    sf.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
+    sf.ptr_dealloc          = (void *) svc_free;
+    sf.ptr_realloc          = (void *) svc_realloc;
+    sf.ptr_exit             = (void *) svc_exit;
+    sf.ptr_read_stdio       = (void *) svc_read_stdio;
+    sf.ptr_write_stdio      = (void *) svc_write_stdio;
+    sf.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
+    sf.ptr_platform         = (void *) &pd;
 
-    stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x1000);
+    stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x80001000);
     b85tobin((void *) stub, stub_base85);
     b85tobin(binary_base85, (char const *)binary_base85);
-    stub(&g_sf, binary_base85, entrypoint_offset, (size_t) g_debug);
+    stub(&sf, binary_base85, entrypoint_offset, (size_t) g_debug);
     return 0; // never reached
 }
 //==============================================================================

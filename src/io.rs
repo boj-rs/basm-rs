@@ -2,7 +2,7 @@ use core::mem::MaybeUninit;
 use alloc::vec::Vec;
 use alloc::string::String;
 
-use crate::services;
+use crate::platform::services;
 
 pub struct Reader<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
 pub struct Writer<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize);
@@ -70,6 +70,14 @@ impl<const N: usize> Reader<N> {
         unsafe { self.0.get_unchecked(self.2).assume_init_read() }
     }
     #[inline]
+    pub fn try_peek(&mut self) -> Option<u8> {
+        if self.2 >= self.1 && !self.try_fill() {
+            None
+        } else {
+            unsafe { Some(self.0.get_unchecked(self.2).assume_init_read()) }
+        }
+    }
+    #[inline]
     pub fn fill(&mut self) {
         self.1 = services::read_stdio(0, unsafe {
             MaybeUninit::slice_assume_init_mut(&mut self.0)
@@ -95,37 +103,54 @@ impl<const N: usize> Reader<N> {
         c
     }
     #[inline]
-    pub fn next_i64(&mut self) -> i64 {
-        if self.peek() == b'-' {
-            self.2 += 1;
-            -(self.next_usize() as i64)
-        } else {
-            self.next_usize() as i64
-        }
-    }
-    #[inline]
-    pub fn next_i32(&mut self) -> i32 {
-        if self.peek() == b'-' {
-            self.2 += 1;
-            -(self.next_usize() as i32)
-        } else {
-            self.next_usize() as i32
-        }
-    }
-    #[inline]
-    pub fn next_usize(&mut self) -> usize {
+    fn next_u64_noskip(&mut self) -> u64 {
         let mut n = 0;
         loop {
             let b = self.peek();
             self.2 += 1;
             if b > 32 {
                 n *= 10;
-                n += b as usize & 0x0F;
+                n += b as u64 & 0x0F;
             } else {
                 break;
             }
         }
         n
+    }
+    #[inline]
+    pub fn next_i64(&mut self) -> i64 {
+        self.skip_white();
+        if self.peek() == b'-' {
+            self.2 += 1;
+            -(self.next_u64_noskip() as i64)
+        } else {
+            self.next_u64_noskip() as i64
+        }
+    }
+    #[inline]
+    pub fn next_i32(&mut self) -> i32 {
+        self.skip_white();
+        if self.peek() == b'-' {
+            self.2 += 1;
+            -(self.next_u64_noskip() as i32)
+        } else {
+            self.next_u64_noskip() as i32
+        }
+    }
+    #[inline]
+    pub fn next_u64(&mut self) -> u64 {
+        self.skip_white();
+        self.next_u64_noskip()
+    }
+    #[inline]
+    pub fn next_u32(&mut self) -> u32 {
+        self.skip_white();
+        self.next_u64_noskip() as u32
+    }
+    #[inline]
+    pub fn next_usize(&mut self) -> usize {
+        self.skip_white();
+        self.next_u64_noskip() as usize
     }
     #[inline]
     pub fn skip_white(&mut self) -> usize {
@@ -136,6 +161,23 @@ impl<const N: usize> Reader<N> {
                 skip += 1;
             } else {
                 break skip;
+            }
+        }
+    }
+    // returns (skipped characters, whether a non-whitespace character was found without reaching EOF)
+    #[inline]
+    pub fn try_skip_white(&mut self) -> (usize, bool) {
+        let mut skip = 0;
+        loop {
+            match self.try_peek() {
+                None => { break (skip, false); },
+                Some(x) => {
+                    if x <= 32 {
+                        self.2 += 1; skip += 1;
+                    } else {
+                        break (skip, true);
+                    }
+                }
             }
         }
     }
@@ -151,6 +193,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline]
     pub fn next_word(&mut self, buf: &mut [u8]) -> usize {
+        self.skip_white();
         let mut i = 0;
         loop {
             let b = self.peek();
@@ -164,6 +207,7 @@ impl<const N: usize> Reader<N> {
         }
     }
     pub fn next_string(&mut self) -> String {
+        self.skip_white();
         let mut buf = Vec::new();
         loop {
             let b = self.peek();
@@ -191,6 +235,7 @@ impl<const N: usize> Reader<N> {
     }
 
     pub fn next_f64(&mut self) -> f64 {
+        self.skip_white();
         let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
         let buf = unsafe { MaybeUninit::slice_assume_init_mut(&mut buf) };
         let n = self.next_word(buf);
