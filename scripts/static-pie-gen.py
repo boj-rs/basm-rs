@@ -36,10 +36,12 @@ assert 'pe_size_reloc' in loader_fdict
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
-compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_ALONE, filters=[{'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0}])
-compressed_memory_bin = bytearray(compressed_memory_bin)
-compressed_memory_bin[5:13] = len(memory_bin).to_bytes(8, byteorder='little')   # fill the "Uncompressed Size" field
-compressed_memory_bin = bytes(compressed_memory_bin)
+lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 27}
+compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
+lzma_header_properties = ((lzma_filter['pb'] * 5 + lzma_filter['lp']) * 9 + lzma_filter['lc']).to_bytes(1, byteorder='little')
+lzma_header_dictionary_size = lzma_filter['dict_size'].to_bytes(4, byteorder='little')
+lzma_header_uncompressed_size = len(memory_bin).to_bytes(8, byteorder='little')
+compressed_memory_bin = lzma_header_properties + lzma_header_dictionary_size + lzma_header_uncompressed_size + bytes(compressed_memory_bin)
 with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 
