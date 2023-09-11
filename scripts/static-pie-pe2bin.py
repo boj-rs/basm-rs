@@ -1,6 +1,12 @@
 import json
-import pefile
 import sys
+try:
+    import pefile
+except ModuleNotFoundError as e:
+    print("basm-rs: \033[91mFailed\033[0m to load the required dependency 'pefile'. " + \
+        "Please \033[92mrun\033[0m the following command to install it:\n" + \
+        "  \033[93mpip install pefile\n\033[0m", file=sys.stderr)
+    raise e
 
 if __name__ == '__main__':
     try:
