@@ -1,3 +1,5 @@
+#![cfg(target_arch = "x86_64")]
+
 use core::{arch::asm, mem::MaybeUninit};
 
 use super::Stat;

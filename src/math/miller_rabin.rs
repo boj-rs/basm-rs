@@ -11,7 +11,7 @@ pub fn is_prime_u32(x: u32) -> bool {
         x != 1
     } else {
         is_sprp_u32(
-            U32_BASE[((0xAFF7B4usize * x as usize) >> 7) & 1023] as u32,
+            U32_BASE[((0x00AF_F7B4usize * x as usize) >> 7) & 1023] as u32,
             x,
         )
     }
@@ -28,8 +28,8 @@ pub fn is_prime_u64(x: u64) -> bool {
         x != 1
     } else {
         let mut h = x;
-        h = ((h >> 32) ^ h) * 0x45d9f3b3335b369;
-        h = ((h >> 32) ^ h) * 0x3335b36945d9f3b;
+        h = ((h >> 32) ^ h) * 0x045d_9f3b_3335_b369;
+        h = ((h >> 32) ^ h) * 0x0333_5b36_945d_9f3b;
         h = (h >> 32) ^ h;
         let b = U64_BASE[h as usize & 16383] as u64;
         is_sprp_u64(x, b & 4095) && is_sprp_u64(x, b >> 12)
@@ -154,6 +154,7 @@ const U32_BASE: [u8; 1024] = [
     15, 11, 35, 13, 6, 5, 2, 14, 7, 2,
 ];
 
+#[allow(clippy::unreadable_literal)]
 const U64_BASE: [u32; 16384] = [
     2404423, 3027617, 3715179, 3264583, 1593555, 5853461, 1552463, 1896881, 2904107, 5600043,
     1356087, 2044251, 290821, 1150981, 1642719, 3076389, 667689, 2650251, 1200327, 1724421,

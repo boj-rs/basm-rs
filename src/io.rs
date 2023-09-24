@@ -1,7 +1,8 @@
-use core::arch::asm;
 use core::mem::MaybeUninit;
+use alloc::vec::Vec;
+use alloc::string::String;
 
-use crate::syscall;
+use crate::platform::services;
 
 pub struct Reader<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize, pub usize);
 pub struct Writer<const N: usize = BUF_SIZE>(pub [MaybeUninit<u8>; N], pub usize);
@@ -31,44 +32,16 @@ impl<const N: usize> Writer<N> {
     }
     #[inline]
     pub fn flush(&mut self) {
-        syscall::write(1, unsafe {
+        services::write_stdio(1, unsafe {
             MaybeUninit::slice_assume_init_ref(&self.0[..self.1])
         });
         self.1 = 0;
     }
     #[inline]
-    pub fn write_f64(&mut self, mut f: f64) {
-        // integer part
-        if f < 0.0 {
-            self.write(b"-");
-            f = -f;
-        }
-        let mut n = f as usize;
-        self.write_usize(n);
-
-        // fractional part
-        let frac = f - (n as f64);
-        if frac == 0.0 {
-            return;
-        }
-        let mut buf = [b'0'; 11];
-        buf[0] = b'.';
-        let mut i = buf.len();
-        n = (frac * 10_000_000_000.0) as usize;
-        while n > 0 {
-            i -= 1;
-            buf[i] = (n % 10) as u8 + b'0';
-            n /= 10;
-        }
-
-        // remove trailing zeros
-        let mut len = buf.len();
-        while len > 0 && buf[len - 1] == b'0' {
-            len -= 1;
-        }
-        if len > 1 {
-            self.write(&buf[..len]);
-        }
+    pub fn write_f64(&mut self, f: f64) {
+        let mut buffer = dtoa::Buffer::new();
+        let printed = buffer.format(f);
+        self.write(printed.as_bytes());
     }
 }
 
@@ -97,8 +70,16 @@ impl<const N: usize> Reader<N> {
         unsafe { self.0.get_unchecked(self.2).assume_init_read() }
     }
     #[inline]
+    pub fn try_peek(&mut self) -> Option<u8> {
+        if self.2 >= self.1 && !self.try_fill() {
+            None
+        } else {
+            unsafe { Some(self.0.get_unchecked(self.2).assume_init_read()) }
+        }
+    }
+    #[inline]
     pub fn fill(&mut self) {
-        self.1 = syscall::read(0, unsafe {
+        self.1 = services::read_stdio(0, unsafe {
             MaybeUninit::slice_assume_init_mut(&mut self.0)
         }) as usize;
         self.2 = 0;
@@ -108,7 +89,7 @@ impl<const N: usize> Reader<N> {
         if self.2 < self.1 {
             true
         } else {
-            self.1 = syscall::read(0, unsafe {
+            self.1 = services::read_stdio(0, unsafe {
                 MaybeUninit::slice_assume_init_mut(&mut self.0)
             }) as usize;
             self.2 = 0;
@@ -122,37 +103,54 @@ impl<const N: usize> Reader<N> {
         c
     }
     #[inline]
-    pub fn next_i64(&mut self) -> i64 {
-        if self.peek() == b'-' {
-            self.2 += 1;
-            -(self.next_usize() as i64)
-        } else {
-            self.next_usize() as i64
-        }
-    }
-    #[inline]
-    pub fn next_i32(&mut self) -> i32 {
-        if self.peek() == b'-' {
-            self.2 += 1;
-            -(self.next_usize() as i32)
-        } else {
-            self.next_usize() as i32
-        }
-    }
-    #[inline]
-    pub fn next_usize(&mut self) -> usize {
+    fn next_u64_noskip(&mut self) -> u64 {
         let mut n = 0;
         loop {
             let b = self.peek();
             self.2 += 1;
             if b > 32 {
                 n *= 10;
-                n += b as usize & 0x0F;
+                n += b as u64 & 0x0F;
             } else {
                 break;
             }
         }
         n
+    }
+    #[inline]
+    pub fn next_i64(&mut self) -> i64 {
+        self.skip_white();
+        if self.peek() == b'-' {
+            self.2 += 1;
+            -(self.next_u64_noskip() as i64)
+        } else {
+            self.next_u64_noskip() as i64
+        }
+    }
+    #[inline]
+    pub fn next_i32(&mut self) -> i32 {
+        self.skip_white();
+        if self.peek() == b'-' {
+            self.2 += 1;
+            -(self.next_u64_noskip() as i32)
+        } else {
+            self.next_u64_noskip() as i32
+        }
+    }
+    #[inline]
+    pub fn next_u64(&mut self) -> u64 {
+        self.skip_white();
+        self.next_u64_noskip()
+    }
+    #[inline]
+    pub fn next_u32(&mut self) -> u32 {
+        self.skip_white();
+        self.next_u64_noskip() as u32
+    }
+    #[inline]
+    pub fn next_usize(&mut self) -> usize {
+        self.skip_white();
+        self.next_u64_noskip() as usize
     }
     #[inline]
     pub fn skip_white(&mut self) -> usize {
@@ -163,6 +161,23 @@ impl<const N: usize> Reader<N> {
                 skip += 1;
             } else {
                 break skip;
+            }
+        }
+    }
+    // returns (skipped characters, whether a non-whitespace character was found without reaching EOF)
+    #[inline]
+    pub fn try_skip_white(&mut self) -> (usize, bool) {
+        let mut skip = 0;
+        loop {
+            match self.try_peek() {
+                None => { break (skip, false); },
+                Some(x) => {
+                    if x <= 32 {
+                        self.2 += 1; skip += 1;
+                    } else {
+                        break (skip, true);
+                    }
+                }
             }
         }
     }
@@ -178,6 +193,7 @@ impl<const N: usize> Reader<N> {
     }
     #[inline]
     pub fn next_word(&mut self, buf: &mut [u8]) -> usize {
+        self.skip_white();
         let mut i = 0;
         loop {
             let b = self.peek();
@@ -190,8 +206,36 @@ impl<const N: usize> Reader<N> {
             }
         }
     }
+    pub fn next_string(&mut self) -> String {
+        self.skip_white();
+        let mut buf = Vec::new();
+        loop {
+            let b = self.peek();
+            self.2 += 1;
+            if b <= 32 {
+                break;
+            } else {
+                buf.push(b);
+            }
+        }
+        String::from_utf8(buf).unwrap()
+    }
+    pub fn read_line(&mut self) -> String {
+        let mut buf = Vec::new();
+        loop {
+            let b = self.peek();
+            self.2 += 1;
+            if b == b'\n' {
+                break;
+            } else {
+                if b != b'\r' { buf.push(b); }
+            }
+        }
+        String::from_utf8(buf).unwrap()
+    }
 
     pub fn next_f64(&mut self) -> f64 {
+        self.skip_white();
         let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
         let buf = unsafe { MaybeUninit::slice_assume_init_mut(&mut buf) };
         let n = self.next_word(buf);
@@ -369,15 +413,23 @@ impl<const N: usize> Print<f64> for Writer<N> {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
+use core::arch::asm;
+
+#[cfg(target_arch = "x86_64")]
 const PAGE: usize = 4096;
+
+#[cfg(target_arch = "x86_64")]
 pub struct MmapReader<const N: usize = BUF_SIZE>(pub *mut u8, pub usize, pub usize);
 
+#[cfg(target_arch = "x86_64")]
 impl<const N: usize> Default for MmapReader<N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 impl<const N: usize> MmapReader<N> {
     pub fn new() -> Self {
         let ptr;

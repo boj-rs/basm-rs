@@ -1,0 +1,146 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-debug-amd64-cargo",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/debug; ./scripts/static-pie.sh x86_64-unknown-linux-gnu C Debug > ./target/x86_64-unknown-linux-gnu/debug/loader.c",
+        },
+        {
+            "label": "build-debug-amd64-loader",
+            "type": "shell",
+            "command": "gcc ./target/x86_64-unknown-linux-gnu/debug/loader.c -o ./target/x86_64-unknown-linux-gnu/debug/loader",
+            "dependsOn": [
+                "build-debug-amd64-cargo"
+            ],
+        },
+        {
+            "label": "build-debug-amd64-chmod",
+            "type": "shell",
+            "command": "chmod +x ./target/x86_64-unknown-linux-gnu/debug/loader",
+            "dependsOn": [
+                "build-debug-amd64-loader"
+            ],
+        },
+        {
+            "label": "build-debug-amd64",
+            "dependsOn": [
+                "build-debug-amd64-cargo",
+                "build-debug-amd64-loader",
+                "build-debug-amd64-chmod"
+            ],
+        },
+        {
+            "label": "build-debug-amd64-win-cargo",
+            "type": "shell",
+            "command": "mkdir ./target/x86_64-pc-windows-msvc/debug; ./debug-64bit-windows.cmd > ./target/x86_64-pc-windows-msvc/debug/loader.c",
+        },
+        {
+            "label": "build-debug-amd64-win-loader",
+            "type": "shell",
+            "command": "cl ./target/x86_64-pc-windows-msvc/debug/loader.c /F268435456 /Fe./target/x86_64-pc-windows-msvc/debug/loader.exe",
+            "dependsOn": [
+                "build-debug-amd64-win-cargo"
+            ],
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true,
+            },
+        },
+        {
+            "label": "build-debug-amd64-win",
+            "dependsOn": [
+                "build-debug-amd64-win-cargo",
+                "build-debug-amd64-win-loader"
+            ],
+        },
+        {
+            "label": "build-release-amd64-win-cargo",
+            "type": "shell",
+            "command": "mkdir ./target/x86_64-pc-windows-msvc/release; ./release-64bit-windows.cmd > ./target/x86_64-pc-windows-msvc/release/loader.c",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-win-submit",
+            "type": "shell",
+            "command": "code --reuse-window ./target/x86_64-pc-windows-msvc/release/loader.c",
+            "dependsOn": [
+                "build-release-amd64-win-cargo"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-win-rs-submit",
+            "type": "shell",
+            "command": "mkdir ./target/x86_64-pc-windows-msvc/release; ./release-64bit-windows-rs.cmd > ./target/x86_64-pc-windows-msvc/release/loader.rs; code --reuse-window ./target/x86_64-pc-windows-msvc/release/loader.rs",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-cargo",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/release; ./release-64bit.sh > ./target/x86_64-unknown-linux-gnu/release/loader.c",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-submit",
+            "type": "shell",
+            "command": "code --reuse-window ./target/x86_64-unknown-linux-gnu/release/loader.c",
+            "dependsOn": [
+                "build-release-amd64-cargo"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-rs-submit",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/release; ./release-rs.sh > ./target/x86_64-unknown-linux-gnu/release/loader.rs; code --reuse-window ./target/x86_64-unknown-linux-gnu/release/loader.rs",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-debug-i686-cargo",
+            "type": "shell",
+            "command": "mkdir -p ./target/i686-unknown-linux-gnu/debug; ./scripts/static-pie.sh i686-unknown-linux-gnu C Debug > ./target/i686-unknown-linux-gnu/debug/loader.c",
+        },
+        {
+            "label": "build-debug-i686-loader",
+            "type": "shell",
+            "command": "gcc ./target/i686-unknown-linux-gnu/debug/loader.c -o ./target/i686-unknown-linux-gnu/debug/loader -m32",
+            "dependsOn": [
+                "build-debug-i686-cargo"
+            ],
+        },
+        {
+            "label": "build-debug-i686-chmod",
+            "type": "shell",
+            "command": "chmod +x ./target/i686-unknown-linux-gnu/debug/loader",
+            "dependsOn": [
+                "build-debug-i686-loader"
+            ],
+        },
+        {
+            "label": "build-debug-i686",
+            "dependsOn": [
+                "build-debug-i686-cargo",
+                "build-debug-i686-loader",
+                "build-debug-i686-chmod"
+            ],
+        },
+    ],
+}
