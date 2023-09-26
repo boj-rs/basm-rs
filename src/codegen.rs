@@ -53,6 +53,15 @@ unsafe extern "win64" fn _start() -> ! {
     asm!(
         "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "sub    rsp, 144",                  // 144 = 16*9 -> stack alignment preserved
+        "lea    rcx, [rsp]",                // rcx = SERVICE_FUNCTIONS table
+        "lea    rdx, [rsp+80]",             // rdx = PLATFORM_DATA table
+        "lea    rdi, [rip + __ehdr_start]",
+        "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
+        "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
+        "mov    QWORD PTR [rdx], 2",        // env_id = 2 (ENV_ID_LINUX)
+        "mov    QWORD PTR [rdx+8], 3",      // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "1:",
         "mov    rbx, rcx", // Save SERVICE_FUNCTIONS table
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
