@@ -182,17 +182,31 @@ unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
+        "xor    eax, eax",                  // eax=0 (running without loader) / eax=1 (running with loader)
+        "nop",                              // padding to reserve space so that loader can patch prologue
         "nop",
-        "mov    edi, DWORD PTR [esp + 4]",  // edi: SERVICE_FUNCTIONS table
+        "mov    edi, DWORD PTR [esp + 4]",  // edi = SERVICE_FUNCTIONS table
         "and    esp, 0xFFFFFFF0",
-        "call   1f",
+        "test   eax, eax",
+        "jnz    1f",
+        "sub    esp, 112",                  // 112 = 16*7 -> stack alignment preserved (8 bytes wasted for alignment)
+        "lea    edi, [esp]",                // edi = SERVICE_FUNCTIONS table
+        "lea    edx, [esp+40]",             // edx = PLATFORM_DATA table
+        "mov    DWORD PTR [edi+36], edx",   // ptr_platform
+        "mov    DWORD PTR [edx], 2",        // env_id = 2 (ENV_ID_LINUX)
+        "mov    DWORD PTR [edx+4], 0",      // zero upper dword
+        "mov    DWORD PTR [edx+8], 3",      // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "mov    DWORD PTR [edx+12], 0",     // zero upper dword
         "1:",
-        "pop    ecx",                       // ecx: _start + 0xD (obtained by counting the opcode size in bytes)
-        "call   {2}",                       // eax: offset of _start from the image base
+        "call   2f",
+        "2:",
+        "pop    ecx",                       // ecx = _start + 60 (obtained by counting the opcode size in bytes)
+        "call   {2}",                       // eax = offset of _start from the image base
         "sub    ecx, eax",
-        "sub    ecx, 0xD",                  // ecx: the in-memory image base (i.e., __ehdr_start)
-        "call   {3}",                       // eax: offset of _DYNAMIC table from the image base
-        "add    eax, ecx",                  // eax: _DYNAMIC table
+        "sub    ecx, 60",                   // ecx = the in-memory image base (i.e., __ehdr_start)
+        "mov    DWORD PTR [edi], ecx",      // save __ehdr_start to cover the case of launching without loader
+        "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
+        "add    eax, ecx",                  // eax = _DYNAMIC table
         "sub    esp, 8",                    // For stack alignment
         "push   eax",
         "push   ecx",
