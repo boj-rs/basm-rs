@@ -110,6 +110,18 @@ unsafe extern "win64" fn _start() -> ! {
 #[no_mangle]
 #[naked]
 #[link_section = ".data"]
+unsafe extern "cdecl" fn _get_start_offset() -> ! {
+    asm!(
+        "lea    eax, [_start]",
+        "ret",
+        options(noreturn)
+    );
+}
+
+#[cfg(target_arch = "x86")]
+#[no_mangle]
+#[naked]
+#[link_section = ".data"]
 unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
     asm!(
         "lea    eax, [_DYNAMIC]",
@@ -128,21 +140,24 @@ unsafe extern "cdecl" fn _start() -> ! {
         "nop",
         "mov    edi, DWORD PTR [esp + 4]",  // edi: SERVICE_FUNCTIONS table
         "and    esp, 0xFFFFFFF0",
-        "call   {2}",
-        "mov    ecx, DWORD PTR [edi + 36]", // ecx: PLATFORM_DATA table
-        "mov    edx, DWORD PTR [ecx + 16]", // edx: Leading unused bytes
-        "mov    ebx, DWORD PTR [edi]",      // ebx: (Loaded base address) + (Leading unused bytes)
-        "sub    ebx, edx",                  // ebx: Loaded base address
-        "add    eax, ebx",                  // eax: _DYNAMIC table
-        "sub    esp, 8",
+        "call   1f",
+        "1:",
+        "pop    ecx",                       // ecx: _start + 0xD (obtained by counting the opcode size in bytes)
+        "call   {2}",                       // eax: offset of _start from the image base
+        "sub    ecx, eax",
+        "sub    ecx, 0xD",                  // ecx: the in-memory image base (i.e., __ehdr_start)
+        "call   {3}",                       // eax: offset of _DYNAMIC table from the image base
+        "add    eax, ecx",                  // eax: _DYNAMIC table
+        "sub    esp, 8",                    // For stack alignment
         "push   eax",
-        "push   ebx",
+        "push   ecx",
         "call   {0}",
         "add    esp, 4",
         "push   edi",
         "call   {1}",
         sym loader::i686_elf::relocate,
         sym _start_rust,
+        sym _get_start_offset,
         sym _get_dynamic_section_offset,
         options(noreturn)
     );
