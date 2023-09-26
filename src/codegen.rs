@@ -7,6 +7,39 @@ use basm::platform::{allocator, loader};
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
 
+/* We need to support multiple scenarios.
+ *   1) Architectures: x86, x86-64
+ *   2) Platforms for build: Windows, Linux
+ *   3) Platforms on which the binary can run: Windows, Linux
+ *   4) Running without the loader, running with the loader
+ * This is the reason why the code is complicated.
+ *
+ * For 1), we implement separate versions of assembly routines.
+ * For 2), we handle relocations for PE (Windows) and ELF (Linux).
+ *   Also, some LLVM platform bindings that are missing on no-std builds
+ *   are included when compiling on Windows. THis includes __chkstk.
+ * For 3), we implement a platform-abstraction layer (PAL).
+ *   Also, we disable __chkstk if Windows-compiled binaries run on Linux.
+ * For 4), we build the binary to run without the loader.
+ *   When running without the loader, the binary will fabricate a dummy
+ *     SERVICE_FUNCTIONS and PLATFORM_DATA table at the beginning of the
+ *     EntryPoint (_start).
+ *   When running with the loader, the loader patches the beginning of
+ *     the EntryPoint (_start) to override the platform configuration data.
+ *
+ * When running without the loader, the relocations are handled differently.
+ *   For Windows, the Windows kernel will handle relocations for us,
+ *     so it is not necessary to consider them. However, we must link against
+ *     the two OS functions: GetModuleHandleW and GetProcAddress. They cannot
+ *     be found at runtime, unless we adopt Windows internals-dependent hacks
+ *     employed in shellcodes.
+ *   For Linux, we still need to handle relocations by ourselves. We need to
+ *     identify the image base address and the dynamic table address. Contrary
+ *     to Windows, Linux kernel ABI uses system calls, whose use don't require
+ *     linking against system libraries. However, do note that in order to
+ *     process relocations we temporarily need to mark the memory segments as
+ *     writable. It will probably suffice to mark them as RWX through mprotect.
+ */
 
 #[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86")))]
 compile_error!("The target architecture is not supported.");
@@ -20,14 +53,11 @@ unsafe extern "win64" fn _start() -> ! {
     asm!(
         "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
-        "mov    r12, rcx",
-        "mov    rdi, QWORD PTR [rcx + 0]",
+        "mov    rbx, rcx", // Save SERVICE_FUNCTIONS table
+        "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
-        "mov    rax, QWORD PTR [rcx + 72]", // PLATFORM_DATA
-        "mov    rbx, QWORD PTR [rax + 16]", // Leading unused bytes
-        "sub    rdi, rbx",
         "call   {0}",
-        "mov    rdi, r12",
+        "mov    rdi, rbx",
         "call   {1}",
         sym loader::amd64_elf::relocate, sym _start_rust, options(noreturn)
     );
