@@ -17,7 +17,7 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
  * For 1), we implement separate versions of assembly routines.
  * For 2), we handle relocations for PE (Windows) and ELF (Linux).
  *   Also, some LLVM platform bindings that are missing on no-std builds
- *   are included when compiling on Windows. THis includes __chkstk.
+ *   are included when compiling on Windows. This includes __chkstk.
  * For 3), we implement a platform-abstraction layer (PAL).
  *   Also, we disable __chkstk if Windows-compiled binaries run on Linux.
  * For 4), we build the binary to run without the loader.
