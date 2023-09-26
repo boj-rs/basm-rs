@@ -51,8 +51,12 @@ unsafe extern "win64" fn _start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
+        "xor    eax, eax",                  // rax=0 (running without loader) / rax=1 (running with loader)
+        "nop",                              // padding to reserve space so that loader can patch prologue
         "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "test   rax, rax",
+        "jnz    1f",
         "sub    rsp, 144",                  // 144 = 16*9 -> stack alignment preserved
         "lea    rcx, [rsp]",                // rcx = SERVICE_FUNCTIONS table
         "lea    rdx, [rsp+80]",             // rdx = PLATFORM_DATA table
@@ -72,6 +76,14 @@ unsafe extern "win64" fn _start() -> ! {
     );
 }
 
+#[cfg(target_os = "windows")]
+#[allow(non_snake_case)]
+#[link(name = "kernel32")]
+extern "win64" {
+    fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
+    fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
+}
+
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 #[no_mangle]
 #[naked]
@@ -80,9 +92,27 @@ unsafe extern "win64" fn _start() -> ! {
     //   on the 16-byte boundary BEFORE `call' instruction
     // In addition, we need to provide a `shadow space' of 32 bytes
     asm!(
+        "xor    eax, eax",                  // rax=0 (running without loader) / rax=1 (running with loader)
+        "nop",                              // padding to reserve space so that loader can patch prologue
         "nop",
-        "and    rsp, 0xFFFFFFFFFFFFFFE0",
-        "sub    rsp, 32",
+        "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "test   rax, rax",
+        "jnz    1f",
+        "sub    rsp, 176",                  // 176 = 144 (tables) + 32 (shadow space) : preserves stack alignment
+        "lea    rcx, [rsp+32]",             // rcx = SERVICE_FUNCTIONS table
+        "lea    rdx, [rsp+112]",            // rdx = PLATFORM_DATA table
+        "lea    rdi, [rip + __ImageBase]",
+        "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
+        "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
+        "mov    QWORD PTR [rdx], 1",        // env_id = 1 (ENV_ID_WINDOWS)
+        "mov    QWORD PTR [rdx+8], 2",      // env_flags = 2 (ENV_FLAGS_NATIVE)
+        "lea    rax, [rip+{3}]",
+        "mov    QWORD PTR [rdx+48], rax",   // GetModuleHandleW
+        "lea    rax, [rip+{4}]",
+        "mov    QWORD PTR [rdx+56], rax",   // GetProcAddress
+        "mov    rbx, rcx",
+        "jmp    2f",
+        "1:",
         "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
         "mov    rax, QWORD PTR [rbx + 72]", // PLATFORM_DATA
         "mov    rdi, QWORD PTR [rax + 24]", // ImageBase
@@ -93,10 +123,11 @@ unsafe extern "win64" fn _start() -> ! {
         "sub    rsi, r8",
         "add    rdx, r8",
         "call   {0}",
+        "2:",
         "mov    rax, QWORD PTR [rbx + 72]",
         "mov    rdx, QWORD PTR [rax + 8]",
         "btc    rdx, 0",
-        "jnc    1f",
+        "jnc    3f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
         //   `before' accessing the yet-to-be-committed stack pages.
@@ -108,10 +139,15 @@ unsafe extern "win64" fn _start() -> ! {
         "lea    rcx, QWORD PTR [rip + {2}]",
         "mov    BYTE PTR [rcx], 0xc3",
         // END Linux patch
-        "1:",
+        "3:",
         "mov    rcx, rbx",
         "call   {1}",
-        sym loader::amd64_pe::relocate, sym _start_rust, sym __chkstk, options(noreturn)
+        sym loader::amd64_pe::relocate,
+        sym _start_rust,
+        sym __chkstk,
+        sym GetModuleHandleW,
+        sym GetProcAddress,
+        options(noreturn)
     );
 }
 
