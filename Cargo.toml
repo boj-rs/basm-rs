@@ -18,3 +18,6 @@ lto = true
 overflow-checks = false
 codegen-units = 1
 strip = true
+
+[profile.submit]
+inherits = "release"
