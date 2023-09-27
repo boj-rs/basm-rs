@@ -1,9 +1,15 @@
+#[cfg(not(test))]
 pub mod loader;
+#[cfg(not(test))]
 pub mod malloc;
+#[cfg(not(test))]
 pub mod os;
+#[cfg(not(test))]
 pub mod allocator;
+#[cfg_attr(test, path = "services_std.rs")]
 pub mod services;
 
+#[cfg(not(test))]
 pub fn init(service_functions_by_loader: usize) {
     services::install(service_functions_by_loader);
 
@@ -24,4 +30,8 @@ pub fn init(service_functions_by_loader: usize) {
             }
         }
     }
+}
+
+#[cfg(test)]
+pub fn init(_service_functions_by_loader: usize) {
 }
