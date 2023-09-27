@@ -43,7 +43,7 @@ fi
 if [[ "$build_mode" == "Debug" ]]; then
   build_mode_dir="debug"
 elif [[ "$build_mode" == "Release" ]]; then
-  build_mode_dir="release"
+  build_mode_dir="submit"
 else
   >&2 echo "Unknown build mode ${build_mode}"
   exit
@@ -54,7 +54,7 @@ binary_path=basm.bin
 if [[ "$build_mode" == "Debug" ]]; then
   cargo +nightly build --target "$target_name" "$@"
 else
-  cargo +nightly build --target "$target_name" --release "$@"
+  cargo +nightly build --target "$target_name" --profile submit --config .cargo/config_submit.toml "$@"
 fi
 
 if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
