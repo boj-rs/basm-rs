@@ -1,3 +1,5 @@
+#![cfg(not(test))]
+
 use core::arch::asm;
 
 use crate::solution;
@@ -265,27 +267,22 @@ extern "win64" fn __CxxFrameHandler3() -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
 
-#[cfg(not(test))]
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
 
-#[cfg(not(test))]
 #[alloc_error_handler]
 fn alloc_fail(_: core::alloc::Layout) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
 
-
-#[cfg(not(test))]
 #[no_mangle]
 #[allow(non_snake_case)]
 pub fn _Unwind_Resume() {
     unsafe { core::hint::unreachable_unchecked() }
 }
 
-#[cfg(not(test))]
 #[no_mangle]
 pub fn rust_eh_personality() {
     unsafe { core::hint::unreachable_unchecked() }
