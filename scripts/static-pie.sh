@@ -43,7 +43,7 @@ fi
 if [[ "$build_mode" == "Debug" ]]; then
   build_mode_dir="debug"
 elif [[ "$build_mode" == "Release" ]]; then
-  build_mode_dir="submit"
+  build_mode_dir="release"
 else
   >&2 echo "Unknown build mode ${build_mode}"
   exit
@@ -52,16 +52,16 @@ fi
 
 binary_path=basm.bin
 if [[ "$build_mode" == "Debug" ]]; then
-  cargo +nightly build --target "$target_name" "$@"
+  cargo +nightly build --target "$target_name" --bin basm-submit "$@"
 else
-  cargo +nightly build --target "$target_name" --profile submit --config .cargo/config_submit.toml "$@"
+  cargo +nightly build --target "$target_name" --bin basm-submit --release "$@"
 fi
 
 if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
-  python3 scripts/static-pie-gen.py src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm.exe scripts/"$stub" "$lang_name" scripts/"$template"
+  python3 scripts/static-pie-gen.py src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit.exe scripts/"$stub" "$lang_name" scripts/"$template"
 else
-  cp target/"$target_name"/"$build_mode_dir"/basm target/"$target_name"/"$build_mode_dir"/basm_stripped
-  objcopy --strip-all target/"$target_name"/"$build_mode_dir"/basm_stripped
-  objcopy --remove-section .eh_frame target/"$target_name"/"$build_mode_dir"/basm_stripped
-  python3 scripts/static-pie-gen.py src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm_stripped scripts/"$stub" "$lang_name" scripts/"$template"
+  cp target/"$target_name"/"$build_mode_dir"/basm-submit target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
+  objcopy --strip-all target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
+  objcopy --remove-section .eh_frame target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
+  python3 scripts/static-pie-gen.py src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit-stripped scripts/"$stub" "$lang_name" scripts/"$template"
 fi

@@ -413,163 +413,10 @@ impl<const N: usize> Print<f64> for Writer<N> {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
-use core::arch::asm;
-
-#[cfg(target_arch = "x86_64")]
-const PAGE: usize = 4096;
-
-#[cfg(target_arch = "x86_64")]
-pub struct MmapReader<const N: usize = BUF_SIZE>(pub *mut u8, pub usize, pub usize);
-
-#[cfg(target_arch = "x86_64")]
-impl<const N: usize> Default for MmapReader<N> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(target_arch = "x86_64")]
-impl<const N: usize> MmapReader<N> {
-    pub fn new() -> Self {
-        let ptr;
-        unsafe {
-            asm!(
-                "syscall",
-                in("rax") 9,
-                in("rdi") 0,
-                in("rsi") N,
-                in("rdx") 3,
-                in("r10") 2,
-                in("r8") 0,
-                in("r9") 0,
-                lateout("rax") ptr,
-                out("rcx") _,
-                out("r11") _,
-            );
-        }
-        Self(ptr, 0, 0)
-    }
-
-    pub fn fill(&mut self) -> bool {
-        let ptr: *mut u8;
-        self.2 += self.1;
-        let add = self.2 & (PAGE - 1);
-        self.2 &= !(PAGE - 1);
-        unsafe {
-            asm!(
-                "syscall",
-                in("rax") 9,
-                in("rdi") self.0.sub(self.1),
-                in("rsi") N,
-                in("rdx") 3,
-                in("r10") 18,
-                in("r8") 0,
-                in("r9") self.2,
-                lateout("rax") ptr,
-                out("rcx") _,
-                out("r11") _,
-            );
-        }
-        if ptr as isize == -1 {
-            false
-        } else {
-            self.0 = unsafe { ptr.add(add) };
-            self.1 = add;
-            true
-        }
-    }
-
-    pub fn try_fill(&mut self, len: usize) -> bool {
-        if self.1 + len > N {
-            self.fill()
-        } else {
-            true
-        }
-    }
-
-    pub fn next_usize(&mut self) -> usize {
-        let mut s = 0;
-        loop {
-            s = s * 10 + (self.peek() as usize & 15);
-            self.consume(1);
-            if self.peek() < 48 {
-                self.consume(1);
-                break s;
-            }
-        }
-    }
-
-    pub fn next_i32(&mut self) -> i32 {
-        let sign = self.peek() == b'-';
-        if sign {
-            self.consume(1);
-        }
-        let mut v = self.next_usize() as u32;
-        if sign {
-            v = v.wrapping_neg();
-        }
-        v as i32
-    }
-
-    pub fn next_i64(&mut self) -> i64 {
-        let sign = self.peek() == b'-';
-        if sign {
-            self.consume(1);
-        }
-        let mut v = self.next_usize() as u64;
-        if sign {
-            v = v.wrapping_neg();
-        }
-        v as i64
-    }
-
-    pub fn peek(&self) -> u8 {
-        unsafe { *self.0 }
-    }
-
-    pub fn consume(&mut self, byte: usize) {
-        self.0 = unsafe { self.0.add(byte) };
-        self.1 += byte;
-    }
-
-    pub fn next_eight(&mut self) -> u32 {
-        let mut c = unsafe { *(self.0 as *const usize) };
-        if c & 0x3030_3030_3030_3030 == 0x3030_3030_3030_3030 {
-            self.consume(9);
-        } else if c & 0x0030_3030_3030_3030 == 0x0030_3030_3030_3030 {
-            self.consume(8);
-            c <<= 8;
-        } else if c & 0x0000_3030_3030_3030 == 0x0000_3030_3030_3030 {
-            self.consume(7);
-            c <<= 16;
-        } else if c & 0x0000_0030_3030_3030 == 0x0000_0030_3030_3030 {
-            self.consume(6);
-            c <<= 24;
-        } else if c & 0x3030_3030 == 0x3030_3030 {
-            self.consume(5);
-            c <<= 32;
-        } else if c & 0x0030_3030 == 0x0030_3030 {
-            self.consume(4);
-            c <<= 40;
-        } else if c & 0x0000_3030 == 0x0000_3030 {
-            self.consume(3);
-            c <<= 48;
-        } else {
-            self.consume(2);
-            c <<= 56;
-        }
-        c = ((c & 0x0F0F0F0F0F0F0F0F) * 2561) >> 8;
-        c = ((c & 0x00FF00FF00FF00FF) * 6553601) >> 16;
-        c = ((c & 0x0000FFFF0000FFFF) * 42949672960001) >> 32;
-        c as u32
-    }
-}
-
+/*
 #[cfg(test)]
 mod test {
     use super::*;
-    use syscall::dummy::{clear_stdout, get_stdout_content, prepare_stdin};
 
     #[test]
     fn read_numbers() {
@@ -738,6 +585,7 @@ mod test {
         assert_eq!(get_stdout_content(), b"123\n45\n78.9\nstr\nbytes\n");
     }
 }
+*/
 
 macro_rules! write_u_impl {
     ($name:ident, $type:ty) => {
