@@ -2,6 +2,16 @@
 name = "basm"
 version = "0.1.0"
 edition = "2021"
+default-run = "basm"
+
+[[bin]]
+name = "basm"
+test = false
+
+[[bin]]
+name = "basm-submit"
+test = false
+path = "src/main.rs"
 
 [dependencies]
 compiler_builtins = { version = "0.1.98", features = ["mem"] }
