@@ -1,6 +1,0 @@
-[target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "target-feature=+avx,+avx2,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+fma,+f16c,+aes", "-C", "relocation-model=pie", "-C", "target-cpu=haswell", "-C", "link-arg=-Wl,-z,max-page-size=128"]
-[target.i686-unknown-linux-gnu]
-rustflags = ["-C", "target-feature=+avx,+avx2,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+fma,+f16c,+aes", "-C", "relocation-model=pie", "-C", "target-cpu=haswell", "-C", "link-arg=-Wl,-z,max-page-size=128"]
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+avx,+avx2,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+fma,+f16c,+aes", "-C", "relocation-model=pie", "-C", "target-cpu=haswell", "-C", "link-arg=/ALIGN:128"]
