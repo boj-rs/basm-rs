@@ -9,6 +9,7 @@
 #![cfg_attr(not(test), no_main)]
 extern crate alloc;
 
-mod codegen;
 #[cfg_attr(test, allow(dead_code))]
+#[path = "../solution.rs"]
 mod solution;
+mod codegen;
