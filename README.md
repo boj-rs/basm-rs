@@ -81,9 +81,9 @@ pub fn main() {
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
 
-`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 아래 전용 빌드 스크립트 중 하나를 사용하여 빌드하셔야 합니다.
+`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
 
-> cargo build 명령을 직접 사용하는 것은 권장되지 않습니다. 빌드 스크립트를 실행하시면 내부적으로 환경설정을 거쳐 cargo build를 호출합니다.
+> cargo run 및 cargo run --release로 프로그램을 실행할 수 있고 cargo test나 cargo bench를 이용하여 테스트 및 성능 측정을 할 수 있습니다. 다만 로컬 환경에서 개발이 끝난 후 온라인 저지에 제출할 수 있는 형태로 빌드하기 위해서는 반드시 아래에 설명된 전용 스크립트를 사용해야 합니다.
 
 Windows 환경에서 빌드하는 방법입니다.
 
@@ -141,7 +141,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
   - https://learn.microsoft.com/ko-kr/windows/dev-environment/rust/setup
   - https://rust-lang.github.io/rustup/installation/windows-msvc.html
 
-- `std`를 사용할 수 없습니다.
+- `std`를 사용할 수 없습니다. 단, `cargo test` 시에는 `std`를 사용할 수 있습니다.
 
 - `libc`를 사용할 수 없습니다.
 
