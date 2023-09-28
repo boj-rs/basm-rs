@@ -7,10 +7,12 @@ default-run = "basm"
 [[bin]]
 name = "basm"
 test = false
+bench = false
 
 [[bin]]
 name = "basm-submit"
 test = false
+bench = false
 path = "src/main.rs"
 
 [dependencies]
