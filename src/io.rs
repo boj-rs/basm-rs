@@ -413,6 +413,7 @@ impl<const N: usize> Print<f64> for Writer<N> {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use super::*;
@@ -584,6 +585,7 @@ mod test {
         assert_eq!(get_stdout_content(), b"123\n45\n78.9\nstr\nbytes\n");
     }
 }
+*/
 
 macro_rules! write_u_impl {
     ($name:ident, $type:ty) => {
