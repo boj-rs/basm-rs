@@ -40,7 +40,9 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
  *     to Windows, Linux kernel ABI uses system calls, whose use don't require
  *     linking against system libraries. However, do note that in order to
  *     process relocations we temporarily need to mark the memory segments as
- *     writable. It will probably suffice to mark them as RWX through mprotect.
+ *     writable. It will probably suffice to mark them as RWX through mprotect;
+ *     we actually don't even bother to call mprotect, trusting the linker to
+ *     have done a good job of marking sections needing relocations as writable.
  */
 
 #[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86")))]
