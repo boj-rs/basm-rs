@@ -103,6 +103,18 @@ impl<const N: usize> Writer<N> {
             }
         }
     }
+    pub fn i8(&mut self, n: i8) {
+        self.i32(n as i32);
+    }
+    pub fn u8(&mut self, n: u8) {
+        self.u32(n as u32);
+    }
+    pub fn i16(&mut self, n: i16) {
+        self.i32(n as i32);
+    }
+    pub fn u16(&mut self, n: u16) {
+        self.u32(n as u32);
+    }
     pub fn i32(&mut self, n: i32) {
         if n < 0 {
             self.byte(b'-');
@@ -188,5 +200,117 @@ impl<const N: usize> Writer<N> {
         let len = 16 - looff;
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&lo128.0[looff..]); }
         self.off += len;
+    }
+    pub fn i128(&mut self, n: i128) {
+        if n < 0 {
+            self.byte(b'-');
+            self.u128((n as u128).wrapping_neg());
+        } else {
+            self.u128(n as u128);
+        }
+    }
+    pub fn u128(&mut self, mut n: u128) {
+        let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
+        let mut offset = buf.len() - 1;
+        buf[offset].write(b'0' + (n % 10) as u8);
+        n /= 10;
+        while n > 0 {
+            offset -= 1;
+            buf[offset].write(b'0' + (n % 10) as u8);
+            n /= 10;
+        }
+        self.bytes(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
+    }
+    #[cfg(target_pointer_width = "32")]
+    pub fn usize(&mut self, n: usize) {
+        self.u32(n as u32);
+    }
+    #[cfg(target_pointer_width = "64")]
+    pub fn usize(&mut self, n: usize) {
+        self.u64(n as u64);
+    }
+    #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
+    pub fn usize(&mut self, mut n: usize) {
+        self.u128(n as u128);
+    }
+    pub fn f64(&mut self, f: f64) {
+        let mut buffer = dtoa::Buffer::new();
+        let printed = buffer.format(f);
+        self.bytes(printed.as_bytes());
+    }
+}
+
+pub trait Print<T> {
+    fn print(&mut self, x: T);
+    fn println(&mut self, x: T);
+}
+
+impl<const N: usize> Print<&[u8]> for Writer<N> {
+    fn print(&mut self, x: &[u8]) {
+        self.bytes(x);
+    }
+    fn println(&mut self, x: &[u8]) {
+        self.bytes(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
+    fn print(&mut self, x: &[u8; M]) {
+        self.bytes(x);
+    }
+    fn println(&mut self, x: &[u8; M]) {
+        self.bytes(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<&str> for Writer<N> {
+    fn print(&mut self, x: &str) {
+        self.bytes(x.as_bytes());
+    }
+    fn println(&mut self, x: &str) {
+        self.bytes(x.as_bytes());
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<i32> for Writer<N> {
+    fn print(&mut self, x: i32) {
+        self.i32(x);
+    }
+    fn println(&mut self, x: i32) {
+        self.i32(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<i64> for Writer<N> {
+    fn print(&mut self, x: i64) {
+        self.i64(x);
+    }
+    fn println(&mut self, x: i64) {
+        self.i64(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<usize> for Writer<N> {
+    fn print(&mut self, x: usize) {
+        self.usize(x);
+    }
+    fn println(&mut self, x: usize) {
+        self.usize(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<f64> for Writer<N> {
+    fn print(&mut self, x: f64) {
+        self.f64(x);
+    }
+    fn println(&mut self, x: f64) {
+        self.f64(x);
+        self.byte(b'\n');
     }
 }

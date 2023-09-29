@@ -1,4 +1,4 @@
-use basm::platform::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer, Print};
 
 #[cfg_attr(not(debug_assertions), inline(always))]
 #[cfg_attr(debug_assertions, inline(never))]
@@ -7,5 +7,5 @@ pub fn main() {
     let mut writer: Writer = Default::default();
     let a = reader.i64();
     let b = reader.i64();
-    writer.i64(a + b);
+    writer.println(a + b);
 }
