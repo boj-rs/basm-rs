@@ -221,16 +221,17 @@ impl<const N: usize> Reader<N> {
     }
     fn noskip_u128(&mut self) -> u128 {
         let mut n = 0;
-        loop {
+        while self.off < self.len {
             let b = unsafe { self.buf[self.off].assume_init() };
             if b > 32 {
                 n *= 10;
                 n += b as u128 & 0x0F;
                 self.off += 1;
             } else {
-                break n;
+                break;
             }
         }
+        n
     }
 
     pub fn i8(&mut self) -> i8 {
