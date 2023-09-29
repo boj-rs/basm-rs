@@ -16,7 +16,7 @@ impl<const N: usize> Default for Reader<N> {
 
 impl<const N: usize> Reader<N> {
     const _DUMMY: usize = {
-        assert!(N >= super::MIN_BUF_SIZE, "Buffer size for Writer must be at least MIN_BUF_SIZE");
+        assert!(N >= super::MIN_BUF_SIZE, "Buffer size for Reader must be at least MIN_BUF_SIZE");
         0
     };
     pub fn new() -> Self {
@@ -51,7 +51,7 @@ impl<const N: usize> Reader<N> {
              * console environment. */
             let white_pos = MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]).iter().position(|&b| b <= b' ');
             if white_pos.is_none() {
-                /* No white space has been found. We have to read.
+                /* No whitespace has been found. We have to read.
                  * We try to read as much as possible at once. */
                 self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..]));
             }
@@ -74,7 +74,7 @@ impl<const N: usize> Reader<N> {
         }
         consumed
     }
-    pub fn skip_until_whitespace(&mut self) -> usize {
+    pub fn skip_whitespace(&mut self) -> usize {
         let mut len = 0;
         #[target_feature(enable = "avx2")]
         unsafe fn nonwhite(s: &[u8]) -> Option<usize> {
@@ -227,7 +227,7 @@ impl<const N: usize> Reader<N> {
         self.u32() as u16
     }
     pub fn i32(&mut self) -> i32 {
-        self.skip_until_whitespace();
+        self.skip_whitespace();
         self.try_refill(12);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
         (if sign {
@@ -238,12 +238,12 @@ impl<const N: usize> Reader<N> {
         }) as i32
     }
     pub fn u32(&mut self) -> u32 {
-        self.skip_until_whitespace();
+        self.skip_whitespace();
         self.try_refill(11);
         self.noskip_u32()
     }
     pub fn i64(&mut self) -> i64 {
-        self.skip_until_whitespace();
+        self.skip_whitespace();
         self.try_refill(22);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
         (if sign {
@@ -254,12 +254,12 @@ impl<const N: usize> Reader<N> {
         }) as i64
     }
     pub fn u64(&mut self) -> u64 {
-        self.skip_until_whitespace();
+        self.skip_whitespace();
         self.try_refill(21);
         self.noskip_u64()
     }
     pub fn i128(&mut self) -> i128 {
-        self.skip_until_whitespace();
+        self.skip_whitespace();
         self.try_refill(41);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
         (if sign {
@@ -270,7 +270,7 @@ impl<const N: usize> Reader<N> {
         }) as i128
     }
     pub fn u128(&mut self) -> u128 {
-        self.skip_until_whitespace();
+        self.skip_whitespace();
         self.try_refill(40);
         self.noskip_u128()
     }
