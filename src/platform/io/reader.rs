@@ -1,7 +1,8 @@
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::mem::MaybeUninit;
-use crate::platform::services;
 use core::str::FromStr;
+use crate::platform::services;
 
 pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
     buf: [MaybeUninit<u8>; N],
@@ -12,6 +13,21 @@ pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
 impl<const N: usize> Default for Reader<N> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+mod position {
+    #[target_feature(enable = "avx2")]
+    pub unsafe fn white(s: &[u8]) -> Option<usize> {
+        s.iter().position(|&c| c <= b' ')
+    }
+    #[target_feature(enable = "avx2")]
+    pub unsafe fn nonwhite(s: &[u8]) -> Option<usize> {
+        s.iter().position(|&c| c > b' ')
+    }
+    #[target_feature(enable = "avx2,sse4.2")]
+    pub unsafe fn memchr(s: &[u8], delim: u8) -> Option<usize> {
+        s.iter().position(|&b| b == delim)
     }
 }
 
@@ -77,12 +93,8 @@ impl<const N: usize> Reader<N> {
     }
     pub fn skip_whitespace(&mut self) -> usize {
         let mut len = 0;
-        #[target_feature(enable = "avx2")]
-        unsafe fn nonwhite(s: &[u8]) -> Option<usize> {
-            s.iter().position(|&c| c > b' ')
-        }
         loop {
-            let pos = unsafe { nonwhite(self.remain()) };
+            let pos = unsafe { position::nonwhite(self.remain()) };
             if let Some(pos) = pos {
                 len += pos;
                 self.off += pos;
@@ -95,12 +107,8 @@ impl<const N: usize> Reader<N> {
     }
     pub fn skip_until_whitespace(&mut self) -> usize {
         let mut len = 0;
-        #[target_feature(enable = "avx2")]
-        unsafe fn white(s: &[u8]) -> Option<usize> {
-            s.iter().position(|&c| c <= b' ')
-        }
         loop {
-            let pos = unsafe { white(self.remain()) };
+            let pos = unsafe { position::white(self.remain()) };
             if let Some(pos) = pos {
                 len += pos;
                 self.off += pos;
@@ -112,15 +120,11 @@ impl<const N: usize> Reader<N> {
         }
     }
     pub fn until(&mut self, delim: u8, buf: &mut String) -> usize {
-        #[target_feature(enable = "avx2,sse4.2")]
-        unsafe fn memchr(s: &[u8], delim: u8) -> Option<usize> {
-            s.iter().position(|&b| b == delim)
-        }
         let mut total = 0;
         loop {
             let len = self.len - self.off;
             let range = unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.off + len]) };
-            if let Some(i) = unsafe { memchr(range, delim) } {
+            if let Some(i) = unsafe { position::memchr(range, delim) } {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(&range[..i]);
                 self.off += i + 1;
                 break total + i;
@@ -137,12 +141,8 @@ impl<const N: usize> Reader<N> {
     }
     pub fn discard(&mut self, until: u8) -> usize {
         let mut len = 0;
-        #[target_feature(enable = "avx2")]
-        unsafe fn index(s: &[u8], b: u8) -> Option<usize> {
-            s.iter().position(|&c| c == b)
-        }
         loop {
-            let pos = unsafe { index(self.remain(), until) };
+            let pos = unsafe { position::memchr(self.remain(), until) };
             if let Some(pos) = pos {
                 len += pos;
                 self.off += pos + 1;
