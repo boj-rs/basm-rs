@@ -226,9 +226,18 @@ unsafe extern "cdecl" fn _start() -> ! {
     );
 }
 
+/* We prevent inlining solution::main, since if the user allocates
+ * a large amount of stack memory there, it will be zero-initialized
+ * *before* we increase the stack limits if it is inlined into _start_rust.
+ * This will cause stack overflow, thus we prevent it.
+ */
+#[inline(never)]
+fn _call_main() {
+    solution::main();
+}
 fn _start_rust(service_functions: usize) -> ! {
     platform::init(service_functions);
-    solution::main();
+    _call_main();
     platform::services::exit(0)
 }
 
