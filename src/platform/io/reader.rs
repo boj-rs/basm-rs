@@ -20,35 +20,77 @@ impl<const N: usize> Reader<N> {
         0
     };
     pub fn new() -> Self {
-        let mut out = Self {
+        Self {
             buf: MaybeUninit::uninit_array(),
             len: 0,
             off: 0
-        };
-        out.try_refill(N);
-        out
+        }
     }
-    pub fn try_refill(&mut self, readahead: usize) {
+    pub fn try_refill(&mut self, readahead: usize) -> usize {
         /* readahead cannot exceed the buffer size */
         assert!(readahead <= self.buf.len());
         if self.off + readahead <= self.len {
             /* data already available */
-            return;
+            return readahead;
         }
-        if self.off + readahead > self.buf.len() {
-            /* secure space by discarding the already-consumed buffer contents at front */
+        /* secure space by discarding the already-consumed buffer contents at front */
+        let mut end = self.off + readahead;
+        if end > self.buf.len() {
             let rem = self.len - self.off;
-            unsafe { core::ptr::copy(self.buf[self.off].as_ptr(), MaybeUninit::array_assume_init(self.buf).as_mut_ptr(), rem); }
+            unsafe { core::ptr::copy(self.buf[self.off..].as_ptr(), self.buf.as_mut_ptr(), rem); }
             self.len = rem;
             self.off = 0;
+            end = readahead;
         }
-        /* try to read as much as possible at once */
-        self.len += services::read_stdio(0, unsafe {
-            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..])
-        });
+        unsafe {
+            /* Although the buffer currently falls short of what has been requested,
+             * it may still be possible that a full token (which is short)
+             * is available within the remains. Thus, we check if we can return
+             * without invoking read_stdio. This is crucial for cases where
+             * the standard input is a pipe, which includes the local testing
+             * console environment. */
+            let white_pos = MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]).iter().position(|&b| b <= b' ');
+            if white_pos.is_none() {
+                /* No white space has been found. We have to read.
+                 * We try to read as much as possible at once. */
+                self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..]));
+            }
+            /* zero-fill unread portion for SIMD-accelerated unsafe integer read routines */
+            if self.len < end {
+                MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..end]).fill(0u8);
+            }
+        }
+        core::cmp::min(readahead, self.len - self.off)
     }
-    pub fn consume(&mut self, bytes: usize) {
-        self.off += bytes;
+    pub fn try_consume(&mut self, bytes: usize) -> usize {
+        let mut consumed = 0;
+        while consumed < bytes {
+            if self.off == self.len {
+                if self.try_refill(1) == 0 { break; }
+            }
+            let delta = core::cmp::min(self.len - self.off, bytes - consumed);
+            self.off += delta;
+            consumed -= delta;
+        }
+        consumed
+    }
+    pub fn skip_until_whitespace(&mut self) -> usize {
+        let mut len = 0;
+        #[target_feature(enable = "avx2")]
+        unsafe fn nonwhite(s: &[u8]) -> Option<usize> {
+            s.iter().position(|&c| c > b' ')
+        }
+        loop {
+            let pos = unsafe { nonwhite(self.remain()) };
+            if let Some(pos) = pos {
+                len += pos;
+                self.off += pos;
+                break len;
+            }
+            len += self.len - self.off;
+            self.off = self.len;
+            self.try_refill(1);
+        }
     }
     pub fn until(&mut self, delim: u8, buf: &mut String) -> usize {
         #[target_feature(enable = "avx2,sse4.2")]
@@ -93,16 +135,7 @@ impl<const N: usize> Reader<N> {
         }
     }
 
-    pub fn i32(&mut self) -> i32 {
-        let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
-        (if sign {
-            self.off += 1;
-            self.u32().wrapping_neg()
-        } else {
-            self.u32()
-        }) as i32
-    }
-    pub fn u32(&mut self) -> u32 {
+    fn noskip_u32(&mut self) -> u32 {
         let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
         let m = !c & 0x1010101010101010;
         let len = m.trailing_zeros() >> 3;
@@ -126,16 +159,7 @@ impl<const N: usize> Reader<N> {
         self.off += 1;
         c as u32
     }
-    pub fn i64(&mut self) -> i64 {
-        let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
-        (if sign {
-            self.off += 1;
-            self.u64().wrapping_neg()
-        } else {
-            self.u64()
-        }) as i64
-    }
-    pub fn u64(&mut self) -> u64 {
+    fn noskip_u64(&mut self) -> u64 {
         let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
         let m = !c & 0x1010101010101010;
         let len = m.trailing_zeros() >> 3;
@@ -177,5 +201,79 @@ impl<const N: usize> Reader<N> {
         }
         self.off += 1;
         c
+    }
+    fn noskip_u128(&mut self) -> u128 {
+        let mut n = 0;
+        loop {
+            let b = unsafe { self.buf[self.off].assume_init() };
+            if b > 32 {
+                n *= 10;
+                n += b as u128 & 0x0F;
+                self.off += 1;
+            } else {
+                break n;
+            }
+        }
+    }
+
+    pub fn i8(&mut self) -> i8 {
+        self.i32() as i8
+    }
+    pub fn u8(&mut self) -> u8 {
+        self.u32() as u8
+    }
+    pub fn i16(&mut self) -> i16 {
+        self.i32() as i16
+    }
+    pub fn u16(&mut self) -> u16 {
+        self.u32() as u16
+    }
+    pub fn i32(&mut self) -> i32 {
+        self.skip_until_whitespace();
+        self.try_refill(12);
+        let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
+        (if sign {
+            self.off += 1;
+            self.noskip_u32().wrapping_neg()
+        } else {
+            self.noskip_u32()
+        }) as i32
+    }
+    pub fn u32(&mut self) -> u32 {
+        self.skip_until_whitespace();
+        self.try_refill(11);
+        self.noskip_u32()
+    }
+    pub fn i64(&mut self) -> i64 {
+        self.skip_until_whitespace();
+        self.try_refill(22);
+        let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
+        (if sign {
+            self.off += 1;
+            self.noskip_u64().wrapping_neg()
+        } else {
+            self.noskip_u64()
+        }) as i64
+    }
+    pub fn u64(&mut self) -> u64 {
+        self.skip_until_whitespace();
+        self.try_refill(21);
+        self.noskip_u64()
+    }
+    pub fn i128(&mut self) -> i128 {
+        self.skip_until_whitespace();
+        self.try_refill(41);
+        let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
+        (if sign {
+            self.off += 1;
+            self.noskip_u128().wrapping_neg()
+        } else {
+            self.noskip_u128()
+        }) as i128
+    }
+    pub fn u128(&mut self) -> u128 {
+        self.skip_until_whitespace();
+        self.try_refill(40);
+        self.noskip_u128()
     }
 }
