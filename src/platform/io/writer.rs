@@ -1,0 +1,192 @@
+use core::mem::MaybeUninit;
+use crate::platform::services;
+
+pub struct Writer<const N: usize = { super::DEFAULT_BUF_SIZE }> {
+    buf: [MaybeUninit<u8>; N],
+    off: usize,
+}
+
+impl<const N: usize> Default for Writer<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const N: usize> Drop for Writer<N> {
+    fn drop(&mut self) {
+        self.flush();
+    }
+}
+
+#[repr(align(16))]
+struct B128([u8; 16]);
+#[target_feature(enable = "avx2")]
+unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
+    use core::arch::x86_64::*;
+    let x = _mm_cvtsi32_si128(n as i32);
+    let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
+    let mul_10000_merge = _mm_set1_epi32(55536);
+    let div_var = _mm_setr_epi16(
+        8389,
+        5243,
+        13108,
+        0x8000u16 as i16,
+        8389,
+        5243,
+        13108,
+        0x8000u16 as i16,
+    );
+    let shift_var = _mm_setr_epi16(
+        1 << 7,
+        1 << 11,
+        1 << 13,
+        (1 << 15) as i16,
+        1 << 7,
+        1 << 11,
+        1 << 13,
+        (1 << 15) as i16,
+    );
+    let mul_10 = _mm_set1_epi16(10);
+    let ascii0 = _mm_set1_epi8(48);
+    let x_div_10000 = _mm_srli_epi64::<45>(_mm_mul_epu32(x, div_10000));
+    let y = _mm_add_epi32(x, _mm_mul_epu32(x_div_10000, mul_10000_merge));
+    let t0 = _mm_slli_epi16::<2>(_mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y)));
+    let t1 = _mm_mulhi_epu16(t0, div_var);
+    let t2 = _mm_mulhi_epu16(t1, shift_var);
+    let t3 = _mm_slli_epi64::<16>(t2);
+    let t4 = _mm_mullo_epi16(t3, mul_10);
+    let t5 = _mm_sub_epi16(t2, t4);
+    let t6 = _mm_packus_epi16(_mm_setzero_si128(), t5);
+    let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(t6, _mm_setzero_si128()));
+    let offset = (mask & !0x8000).trailing_ones() as usize;
+    let ascii = _mm_add_epi8(t6, ascii0);
+    _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
+    offset
+}
+
+impl<const N: usize> Writer<N> {
+    const _DUMMY: usize = {
+        assert!(N >= super::MIN_BUF_SIZE, "Buffer size for Writer must be at least MIN_BUF_SIZE");
+        0
+    };
+    pub fn new() -> Self {
+        Self {
+            buf: MaybeUninit::uninit_array(),
+            off: 0
+        }
+    }
+    pub fn flush(&mut self) {
+        services::write_stdio(1, unsafe {
+            MaybeUninit::slice_assume_init_ref(&self.buf[..self.off])
+        });
+        self.off = 0;
+    }
+    pub fn try_flush(&mut self, readahead: usize) {
+        if self.off + readahead > self.buf.len() {
+            self.flush();
+        }
+    }
+    pub fn byte(&mut self, b: u8) {
+        self.try_flush(1);
+        self.buf[self.off].write(b);
+        self.off += 1;
+    }
+    pub fn bytes(&mut self, s: &[u8]) {
+        let mut i = 0;
+        while i < s.len() {
+            let rem = s[i..].len().min(self.buf[self.off..].len());
+            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[i..i + rem]); }
+            self.off += rem;
+            i += rem;
+            if self.off == self.buf.len() {
+                self.flush();
+            }
+        }
+    }
+    pub fn i32(&mut self, n: i32) {
+        if n < 0 {
+            self.byte(b'-');
+            self.u32((n as u32).wrapping_neg());
+        } else {
+            self.u32(n as u32);
+        }
+    }
+    pub fn u32(&mut self, n: u32) {
+        let mut b128 = B128([0u8; 16]);
+        let mut off;
+        if n >= 100_000_000 {
+            self.try_flush(10);
+            let mut hi = n / 100_000_000;
+            let lo = n % 100_000_000;
+            unsafe { cvt8(&mut b128, lo) };
+            off = 8;
+            off -= 1;
+            b128.0[off] = (hi % 10) as u8 + b'0';
+            if hi >= 10 {
+                off -= 1;
+                hi /= 10;
+                b128.0[off] = hi as u8 + b'0';
+            }
+        } else {
+            self.try_flush(8);
+            off = unsafe { cvt8(&mut b128, n) };
+        }
+        let len = 16 - off;
+        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&b128.0[off..]); }
+        self.off += len;
+    }
+    pub fn i64(&mut self, n: i64) {
+        if n < 0 {
+            self.byte(b'-');
+            self.u64((n as u64).wrapping_neg());
+        } else {
+            self.u64(n as u64);
+        }
+    }
+    pub fn u64(&mut self, n: u64) {
+        let mut hi128 = B128([0u8; 16]);
+        let mut lo128 = B128([0u8; 16]);
+        let mut hioff;
+        let looff;
+        if n >= 10_000_000_000_000_000 {
+            self.try_flush(19);
+            let mut hi = (n / 10_000_000_000_000_000) as u32;
+            let lo = n % 10_000_000_000_000_000;
+            let lohi = (lo / 100_000_000) as u32;
+            let lolo = (lo % 100_000_000) as u32;
+            unsafe { cvt8(&mut hi128, lohi) };
+            unsafe { cvt8(&mut lo128, lolo) };
+            hioff = 8;
+            looff = 8;
+            hioff -= 1;
+            hi128.0[hioff] = (hi % 10) as u8 + b'0';
+            if hi >= 10 {
+                hioff -= 1;
+                hi /= 10;
+                hi128.0[hioff] = (hi % 10) as u8 + b'0';
+            }
+            if hi >= 10 {
+                hioff -= 1;
+                hi /= 10;
+                hi128.0[hioff] = hi as u8 + b'0';
+            }
+        } else if n >= 100_000_000 {
+            self.try_flush(16);
+            let hi = (n / 100_000_000) as u32;
+            let lo = (n % 100_000_000) as u32;
+            hioff = unsafe { cvt8(&mut hi128, hi) };
+            unsafe { cvt8(&mut lo128, lo) };
+            looff = 8;
+        } else {
+            self.try_flush(8);
+            hioff = 16;
+            looff = unsafe { cvt8(&mut lo128, n as u32) };
+        }
+        let len = 16 - hioff;
+        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&hi128.0[hioff..]); }
+        self.off += len;
+        let len = 16 - looff;
+        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&lo128.0[looff..]); }
+        self.off += len;
+    }
+}
