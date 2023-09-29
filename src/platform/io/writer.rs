@@ -222,12 +222,24 @@ impl<const N: usize> Writer<N> {
         self.bytes(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
     }
     #[cfg(target_pointer_width = "32")]
+    pub fn isize(&mut self, n: isize) {
+        self.i32(n as i32);
+    }
+    #[cfg(target_pointer_width = "32")]
     pub fn usize(&mut self, n: usize) {
         self.u32(n as u32);
     }
     #[cfg(target_pointer_width = "64")]
+    pub fn isize(&mut self, n: isize) {
+        self.i64(n as i64);
+    }
+    #[cfg(target_pointer_width = "64")]
     pub fn usize(&mut self, n: usize) {
         self.u64(n as u64);
+    }
+    #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
+    pub fn isize(&mut self, mut n: isize) {
+        self.i128(n as i128);
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
     pub fn usize(&mut self, mut n: usize) {

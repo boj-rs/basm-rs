@@ -276,4 +276,28 @@ impl<const N: usize> Reader<N> {
         self.try_refill(40);
         self.noskip_u128()
     }
+    #[cfg(target_pointer_width = "32")]
+    pub fn isize(&mut self) -> isize {
+        self.i32() as isize
+    }
+    #[cfg(target_pointer_width = "32")]
+    pub fn usize(&mut self) -> usize {
+        self.u32() as usize
+    }
+    #[cfg(target_pointer_width = "64")]
+    pub fn isize(&mut self) -> isize {
+        self.i64() as isize
+    }
+    #[cfg(target_pointer_width = "64")]
+    pub fn usize(&mut self) -> usize {
+        self.u64() as usize
+    }
+    #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
+    pub fn isize(&mut self) -> isize {
+        self.i128() as isize;
+    }
+    #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
+    pub fn usize(&mut self) -> usize {
+        self.u128() as usize;
+    }
 }
