@@ -156,7 +156,6 @@ impl<const N: usize> Reader<N> {
                 self.off += 1;
             }
         }
-        self.off += 1;
         c as u32
     }
     fn noskip_u64(&mut self) -> u64 {
@@ -199,7 +198,6 @@ impl<const N: usize> Reader<N> {
                 }
             }
         }
-        self.off += 1;
         c
     }
     fn noskip_u128(&mut self) -> u128 {
