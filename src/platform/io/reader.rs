@@ -1,6 +1,7 @@
 use alloc::string::String;
 use core::mem::MaybeUninit;
 use crate::platform::services;
+use core::str::FromStr;
 
 pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
     buf: [MaybeUninit<u8>; N],
@@ -82,6 +83,24 @@ impl<const N: usize> Reader<N> {
         }
         loop {
             let pos = unsafe { nonwhite(self.remain()) };
+            if let Some(pos) = pos {
+                len += pos;
+                self.off += pos;
+                break len;
+            }
+            len += self.len - self.off;
+            self.off = self.len;
+            self.try_refill(1);
+        }
+    }
+    pub fn skip_until_whitespace(&mut self) -> usize {
+        let mut len = 0;
+        #[target_feature(enable = "avx2")]
+        unsafe fn white(s: &[u8]) -> Option<usize> {
+            s.iter().position(|&c| c <= b' ')
+        }
+        loop {
+            let pos = unsafe { white(self.remain()) };
             if let Some(pos) = pos {
                 len += pos;
                 self.off += pos;
@@ -297,5 +316,29 @@ impl<const N: usize> Reader<N> {
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
     pub fn usize(&mut self) -> usize {
         self.u128() as usize;
+    }
+    pub fn f64(&mut self) -> f64 {
+        /* For simplicity, we assume the input string is at most 64 bytes.
+         * Strings longer than this length are either incorrectly parsed
+         * (scientific notations get their exponents truncated) or approximately parsed
+         * (decimal notations get their tails truncated yielding approximately
+         * correct outputs). */
+        self.skip_whitespace();
+        self.try_refill(64);
+        let mut end = self.off;
+        while end < self.len && unsafe { self.buf[end].assume_init() } > b' ' { end += 1; }
+        if end == self.off {
+            f64::NAN
+        } else {
+            let s_u8 = unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..end]) };
+            let s = unsafe { core::str::from_utf8_unchecked(s_u8) };
+            let out = f64::from_str(s);
+            self.skip_until_whitespace();
+            if let Ok(ans) = out {
+                ans
+            } else {
+                f64::NAN
+            }
+        }
     }
 }
