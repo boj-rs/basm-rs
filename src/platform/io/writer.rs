@@ -22,7 +22,10 @@ impl<const N: usize> Drop for Writer<N> {
 struct B128([u8; 16]);
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
+    #[cfg(target_arch = "x86_64")]
     use core::arch::x86_64::*;
+    #[cfg(target_arch = "x86")]
+    use core::arch::x86::*;
     let x = _mm_cvtsi32_si128(n as i32);
     let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
     let mul_10000_merge = _mm_set1_epi32(55536);
