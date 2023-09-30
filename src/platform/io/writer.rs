@@ -326,3 +326,79 @@ impl<const N: usize> Print<f64> for Writer<N> {
         self.byte(b'\n');
     }
 }
+
+/*
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn write_numbers_without_flush() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        assert_eq!(get_stdout_content(), b""); // not flushed yet
+    }
+
+    #[test]
+    fn write_numbers_with_explicit_flush() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1020");
+    }
+
+    #[test]
+    fn write_numbers_implicit_flush() {
+        clear_stdout();
+        let mut writer = Writer::<4>::new();
+
+        writer.write_usize(10);
+        writer.write_usize(20);
+        writer.write_usize(3);
+        assert_eq!(get_stdout_content(), b"1020");
+    }
+
+    #[test]
+    fn write_f64() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+
+        writer.write_f64(1.23);
+        writer.write_f64(-0.001);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"1.23-0.001");
+    }
+
+    #[test]
+    fn print() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+        writer.print(123usize);
+        writer.print(" ");
+        writer.print(45i32);
+        writer.print(b" ");
+        writer.print(78.9_f64);
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"123 45 78.9");
+    }
+
+    #[test]
+    fn println() {
+        clear_stdout();
+        let mut writer = Writer::<100>::new();
+        writer.println(123usize);
+        writer.println(45i32);
+        writer.println(78.9_f64);
+        writer.println("str");
+        writer.println(b"bytes");
+        writer.flush();
+        assert_eq!(get_stdout_content(), b"123\n45\n78.9\nstr\nbytes\n");
+    }
+}
+*/

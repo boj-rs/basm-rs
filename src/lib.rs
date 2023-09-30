@@ -11,7 +11,6 @@ extern crate compiler_builtins;
 
 pub mod collections;
 pub mod graph;
-pub mod io;
 pub mod math;
 pub mod platform;
 pub mod sorts;
