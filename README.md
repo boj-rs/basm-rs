@@ -30,13 +30,13 @@ fn main() {
 
 ```rust
 // src/solution.rs
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = reader.next_usize();
-    let b = reader.next_usize();
-    writer.write_usize(a + b);
+    let a = reader.usize();
+    let b = reader.usize();
+    writer.usize(a + b);
 }
 ```
 
@@ -45,13 +45,13 @@ pub fn main() {
   - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
 ```rust
 // src/solution.rs
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
     let mut writer = Writer::<128>::new();
-    let a = reader.next_usize();
-    let b = reader.next_usize();
-    writer.write_usize(a + b);
+    let a = reader.usize();
+    let b = reader.usize();
+    writer.usize(a + b);
 }
 ```
 
@@ -186,20 +186,19 @@ dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-
 src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
-use basm::io::{Reader, Writer};
-use crate::alloc::string::ToString;
+use basm::platform::io::{Reader, Writer};
+use alloc::string::ToString;
 use core::str::FromStr;
-use dashu::Integer as Int;
+use dashu::Integer;
 
-#[inline(always)]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = Int::from_str(&reader.next_string()).unwrap();
-    let b = Int::from_str(&reader.next_string()).unwrap();
+    let a = Integer::from_str(&reader.word_string()).unwrap();
+    let b = Integer::from_str(&reader.word_string()).unwrap();
     let ans = &a + &b;
-    writer.write(ans.to_string().as_bytes());
-    writer.write(b"\n");
+    writer.bytes(ans.to_string().as_bytes());
+    writer.byte(b'\n');
 }
 ```
 
@@ -266,7 +265,7 @@ src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -314,17 +313,16 @@ fn expr(input: &str) -> IResult<&str, Integer> {
     )(input)
 }
 
-#[inline(always)]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let input = reader.next_string();
+    let input = reader.word_string();
     if let Ok((_, ans)) = all_consuming(expr)(&input) {
-        writer.write(ans.to_string().as_bytes());
+        writer.bytes(ans.to_string().as_bytes());
     } else {
-        writer.write(b"ROCK");
+        writer.bytes(b"ROCK");
     }
-    writer.write(b"\n");
+    writer.byte(b'\n');
 }
 ```
 
