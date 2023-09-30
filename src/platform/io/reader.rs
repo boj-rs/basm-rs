@@ -281,6 +281,11 @@ impl<const N: usize> Reader<N> {
                     c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
                     self.off += 1;
                 }
+                if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
+                    c *= 10;
+                    c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
+                    self.off += 1;
+                }
             }
         }
         c

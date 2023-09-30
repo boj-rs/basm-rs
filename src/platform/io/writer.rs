@@ -161,7 +161,7 @@ impl<const N: usize> Writer<N> {
         }
     }
     pub fn u64(&mut self, n: u64) {
-        self.try_flush(19);
+        self.try_flush(20);
         let mut hi128 = B128([0u8; 16]);
         let mut lo128 = B128([0u8; 16]);
         let mut hioff;
@@ -177,6 +177,11 @@ impl<const N: usize> Writer<N> {
             looff = 8;
             hioff -= 1;
             hi128.0[hioff] = (hi % 10) as u8 + b'0';
+            if hi >= 10 {
+                hioff -= 1;
+                hi /= 10;
+                hi128.0[hioff] = (hi % 10) as u8 + b'0';
+            }
             if hi >= 10 {
                 hioff -= 1;
                 hi /= 10;
