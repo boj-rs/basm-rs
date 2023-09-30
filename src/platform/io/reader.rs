@@ -1,5 +1,4 @@
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 use core::str::FromStr;
 use crate::platform::services;
@@ -20,6 +19,10 @@ mod position {
     #[target_feature(enable = "avx2")]
     pub unsafe fn white(s: &[u8]) -> Option<usize> {
         s.iter().position(|&c| c <= b' ')
+    }
+    #[target_feature(enable = "avx2")]
+    pub unsafe fn newline(s: &[u8]) -> Option<usize> {
+        s.iter().position(|&c| c == b'\n')
     }
     #[target_feature(enable = "avx2")]
     pub unsafe fn nonwhite(s: &[u8]) -> Option<usize> {
@@ -66,7 +69,7 @@ impl<const N: usize> Reader<N> {
              * without invoking read_stdio. This is crucial for cases where
              * the standard input is a pipe, which includes the local testing
              * console environment. */
-            let white_pos = MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]).iter().position(|&b| b <= b' ');
+            let white_pos = position::white(MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]));
             if white_pos.is_none() {
                 /* No whitespace has been found. We have to read.
                  * We try to read as much as possible at once. */
@@ -160,8 +163,7 @@ impl<const N: usize> Reader<N> {
         while self.off < self.len && len < buf.len() {
             let rem = core::cmp::min(self.len - self.off, buf.len() - len);
             let data = &self.remain()[..rem];
-            let pos = unsafe { position::white(data) };
-            if let Some(pos) = pos {
+            if let Some(pos) = unsafe { position::white(data) } {
                 buf[len..len + pos].copy_from_slice(&data[..pos]);
                 len += pos;
                 self.off += pos;
@@ -181,10 +183,27 @@ impl<const N: usize> Reader<N> {
         while self.off < self.len {
             let rem = self.len - self.off;
             let data = &self.remain()[..rem];
-            let pos = unsafe { position::white(data) };
-            if let Some(pos) = pos {
+            if let Some(pos) = unsafe { position::white(data) } {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(&data[..pos]);
                 self.off += pos;
+                break;
+            } else {
+                unsafe { buf.as_mut_vec() }.extend_from_slice(data);
+                self.off += rem;
+                self.try_refill(1);
+            }
+        }
+        buf
+    }
+    pub fn line_string(&mut self) -> String {
+        let mut buf = String::new();
+        while self.off < self.len {
+            let rem = self.len - self.off;
+            let data = &self.remain()[..rem];
+            if let Some(pos) = unsafe { position::newline(data) } {
+                let pos_out = if pos > 0 && data[pos - 1] == b'\r' { pos - 1 } else { pos };
+                unsafe { buf.as_mut_vec() }.extend_from_slice(&data[..pos_out]);
+                self.off += pos + 1;
                 break;
             } else {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(data);
