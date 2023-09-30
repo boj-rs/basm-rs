@@ -295,6 +295,26 @@ impl<const N: usize> Print<&str> for Writer<N> {
     }
 }
 
+impl<const N: usize> Print<i16> for Writer<N> {
+    fn print(&mut self, x: i16) {
+        self.i16(x);
+    }
+    fn println(&mut self, x: i16) {
+        self.i16(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<u16> for Writer<N> {
+    fn print(&mut self, x: u16) {
+        self.u16(x);
+    }
+    fn println(&mut self, x: u16) {
+        self.u16(x);
+        self.byte(b'\n');
+    }
+}
+
 impl<const N: usize> Print<i32> for Writer<N> {
     fn print(&mut self, x: i32) {
         self.i32(x);
@@ -305,12 +325,42 @@ impl<const N: usize> Print<i32> for Writer<N> {
     }
 }
 
+impl<const N: usize> Print<u32> for Writer<N> {
+    fn print(&mut self, x: u32) {
+        self.u32(x);
+    }
+    fn println(&mut self, x: u32) {
+        self.u32(x);
+        self.byte(b'\n');
+    }
+}
+
 impl<const N: usize> Print<i64> for Writer<N> {
     fn print(&mut self, x: i64) {
         self.i64(x);
     }
     fn println(&mut self, x: i64) {
         self.i64(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<u64> for Writer<N> {
+    fn print(&mut self, x: u64) {
+        self.u64(x);
+    }
+    fn println(&mut self, x: u64) {
+        self.u64(x);
+        self.byte(b'\n');
+    }
+}
+
+impl<const N: usize> Print<isize> for Writer<N> {
+    fn print(&mut self, x: isize) {
+        self.isize(x);
+    }
+    fn println(&mut self, x: isize) {
+        self.isize(x);
         self.byte(b'\n');
     }
 }
