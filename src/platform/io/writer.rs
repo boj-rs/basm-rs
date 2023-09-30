@@ -127,10 +127,10 @@ impl<const N: usize> Writer<N> {
         }
     }
     pub fn u32(&mut self, n: u32) {
+        self.try_flush(10);
         let mut b128 = B128([0u8; 16]);
         let mut off;
         if n >= 100_000_000 {
-            self.try_flush(10);
             let mut hi = n / 100_000_000;
             let lo = n % 100_000_000;
             unsafe { cvt8(&mut b128, lo) };
@@ -143,7 +143,6 @@ impl<const N: usize> Writer<N> {
                 b128.0[off] = hi as u8 + b'0';
             }
         } else {
-            self.try_flush(8);
             off = unsafe { cvt8(&mut b128, n) };
         }
         let len = 16 - off;
@@ -159,12 +158,12 @@ impl<const N: usize> Writer<N> {
         }
     }
     pub fn u64(&mut self, n: u64) {
+        self.try_flush(19);
         let mut hi128 = B128([0u8; 16]);
         let mut lo128 = B128([0u8; 16]);
         let mut hioff;
         let looff;
         if n >= 10_000_000_000_000_000 {
-            self.try_flush(19);
             let mut hi = (n / 10_000_000_000_000_000) as u32;
             let lo = n % 10_000_000_000_000_000;
             let lohi = (lo / 100_000_000) as u32;
@@ -186,14 +185,12 @@ impl<const N: usize> Writer<N> {
                 hi128.0[hioff] = hi as u8 + b'0';
             }
         } else if n >= 100_000_000 {
-            self.try_flush(16);
             let hi = (n / 100_000_000) as u32;
             let lo = (n % 100_000_000) as u32;
             hioff = unsafe { cvt8(&mut hi128, hi) };
             unsafe { cvt8(&mut lo128, lo) };
             looff = 8;
         } else {
-            self.try_flush(8);
             hioff = 16;
             looff = unsafe { cvt8(&mut lo128, n as u32) };
         }
