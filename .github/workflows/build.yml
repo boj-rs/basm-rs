@@ -43,3 +43,6 @@ jobs:
           scripts/check.sh \
             "./release-rs.sh | tee /tmp/code.rs" \
             "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
+      - name: Run tests
+        run: |
+          ./test.sh
