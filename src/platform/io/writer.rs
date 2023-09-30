@@ -249,7 +249,7 @@ impl<const N: usize> Writer<N> {
         self.u128(n as u128);
     }
     pub fn f64(&mut self, f: f64) {
-        let mut buffer = dtoa::Buffer::new();
+        let mut buffer = ryu::Buffer::new();
         let printed = buffer.format(f);
         self.bytes(printed.as_bytes());
     }
