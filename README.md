@@ -194,8 +194,8 @@ use dashu::Integer;
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = Integer::from_str(&reader.word_string()).unwrap();
-    let b = Integer::from_str(&reader.word_string()).unwrap();
+    let a = Integer::from_str(&reader.word()).unwrap();
+    let b = Integer::from_str(&reader.word()).unwrap();
     let ans = &a + &b;
     writer.bytes(ans.to_string().as_bytes());
     writer.byte(b'\n');
@@ -316,7 +316,7 @@ fn expr(input: &str) -> IResult<&str, Integer> {
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let input = reader.word_string();
+    let input = reader.word();
     if let Ok((_, ans)) = all_consuming(expr)(&input) {
         writer.bytes(ans.to_string().as_bytes());
     } else {

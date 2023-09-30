@@ -157,7 +157,7 @@ impl<const N: usize> Reader<N> {
         }
     }
 
-    pub fn word(&mut self, buf: &mut [u8]) -> usize {
+    pub fn word_buf(&mut self, buf: &mut [u8]) -> usize {
         self.skip_whitespace();
         let mut len = 0;
         while self.off < self.len && len < buf.len() {
@@ -177,9 +177,8 @@ impl<const N: usize> Reader<N> {
         }
         len
     }
-    pub fn word_string(&mut self) -> String {
+    pub fn word_to_string(&mut self, buf: &mut String) {
         self.skip_whitespace();
-        let mut buf = String::new();
         while self.off < self.len {
             let rem = self.len - self.off;
             let data = &self.remain()[..rem];
@@ -193,10 +192,13 @@ impl<const N: usize> Reader<N> {
                 self.try_refill(1);
             }
         }
+    }
+    pub fn word(&mut self) -> String {
+        let mut buf = String::new();
+        self.word_to_string(&mut buf);
         buf
     }
-    pub fn line_string(&mut self) -> String {
-        let mut buf = String::new();
+    pub fn line_to_string(&mut self, buf: &mut String) {
         while self.off < self.len {
             let rem = self.len - self.off;
             let data = &self.remain()[..rem];
@@ -211,6 +213,10 @@ impl<const N: usize> Reader<N> {
                 self.try_refill(1);
             }
         }
+    }
+    pub fn line(&mut self) -> String {
+        let mut buf = String::new();
+        self.line_to_string(&mut buf);
         buf
     }
 
