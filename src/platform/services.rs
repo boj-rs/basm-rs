@@ -35,7 +35,7 @@ pub struct PlatformData {
     pub pe_image_base: u64,
     pub pe_off_reloc: u64,
     pub pe_size_reloc: u64,
-    pub win_GetModuleHandleW: u64,      // pointer to kernel32::GetModuleHandleA
+    pub win_GetModuleHandleW: u64,      // pointer to kernel32::GetModuleHandleW
     pub win_GetProcAddress: u64,        // pointer to kernel32::GetProcAddress
 }
 
