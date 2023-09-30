@@ -197,7 +197,7 @@ pub fn main() {
     let a = Integer::from_str(&reader.word()).unwrap();
     let b = Integer::from_str(&reader.word()).unwrap();
     let ans = &a + &b;
-    writer.bytes(ans.to_string().as_bytes());
+    writer.str(&ans.to_string());
     writer.byte(b'\n');
 }
 ```
@@ -318,9 +318,9 @@ pub fn main() {
     let mut writer: Writer = Default::default();
     let input = reader.word();
     if let Ok((_, ans)) = all_consuming(expr)(&input) {
-        writer.bytes(ans.to_string().as_bytes());
+        writer.str(&ans.to_string());
     } else {
-        writer.bytes(b"ROCK");
+        writer.str("ROCK");
     }
     writer.byte(b'\n');
 }

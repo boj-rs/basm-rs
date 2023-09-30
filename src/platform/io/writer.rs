@@ -106,6 +106,9 @@ impl<const N: usize> Writer<N> {
             }
         }
     }
+    pub fn str(&mut self, s: &str) {
+        self.bytes(s.as_bytes());
+    }
     pub fn i8(&mut self, n: i8) {
         self.i32(n as i32);
     }
