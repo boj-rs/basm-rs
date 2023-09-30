@@ -154,6 +154,47 @@ impl<const N: usize> Reader<N> {
         }
     }
 
+    pub fn word(&mut self, buf: &mut [u8]) -> usize {
+        self.skip_whitespace();
+        let mut len = 0;
+        while self.off < self.len && len < buf.len() {
+            let rem = core::cmp::min(self.len - self.off, buf.len() - len);
+            let data = &self.remain()[..rem];
+            let pos = unsafe { position::white(data) };
+            if let Some(pos) = pos {
+                buf[len..len + pos].copy_from_slice(&data[..pos]);
+                len += pos;
+                self.off += pos;
+                break;
+            } else {
+                buf[len..len + rem].copy_from_slice(data);
+                len += rem;
+                self.off += rem;
+                self.try_refill(1);
+            }
+        }
+        len
+    }
+    pub fn word_string(&mut self) -> String {
+        self.skip_whitespace();
+        let mut buf = String::new();
+        while self.off < self.len {
+            let rem = self.len - self.off;
+            let data = &self.remain()[..rem];
+            let pos = unsafe { position::white(data) };
+            if let Some(pos) = pos {
+                unsafe { buf.as_mut_vec() }.extend_from_slice(&data[..pos]);
+                self.off += pos;
+                break;
+            } else {
+                unsafe { buf.as_mut_vec() }.extend_from_slice(data);
+                self.off += rem;
+                self.try_refill(1);
+            }
+        }
+        buf
+    }
+
     fn noskip_u32(&mut self) -> u32 {
         let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
         let m = !c & 0x1010101010101010;
