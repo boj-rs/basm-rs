@@ -102,7 +102,7 @@ impl<const N: usize> Reader<N> {
             }
             len += self.len - self.off;
             self.off = self.len;
-            self.try_refill(1);
+            if self.try_refill(1) == 0 { break len; }
         }
     }
     pub fn skip_until_whitespace(&mut self) -> usize {
@@ -116,7 +116,7 @@ impl<const N: usize> Reader<N> {
             }
             len += self.len - self.off;
             self.off = self.len;
-            self.try_refill(1);
+            if self.try_refill(1) == 0 { break len; }
         }
     }
     pub fn until(&mut self, delim: u8, buf: &mut String) -> usize {
@@ -131,8 +131,8 @@ impl<const N: usize> Reader<N> {
             } else {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(&range);
                 self.off = self.len;
-                self.try_refill(1);
                 total += len;
+                if self.try_refill(1) == 0 { break total; }
             }
         }
     }
@@ -150,7 +150,7 @@ impl<const N: usize> Reader<N> {
             }
             len += self.len - self.off;
             self.off = self.len;
-            self.try_refill(1);
+            if self.try_refill(1) == 0 { break len; }
         }
     }
 
@@ -341,5 +341,14 @@ impl<const N: usize> Reader<N> {
                 f64::NAN
             }
         }
+    }
+
+    pub fn is_eof(&mut self) -> bool {
+        if self.off == self.len { self.try_refill(1); }
+        self.off == self.len
+    }
+    pub fn is_eof_skip_whitespace(&mut self) -> bool {
+        self.skip_whitespace();
+        self.off == self.len
     }
 }
