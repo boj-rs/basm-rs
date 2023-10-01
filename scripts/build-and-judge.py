@@ -14,6 +14,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import zipfile
 
 def try_remove(filename):
     try:
@@ -44,8 +45,18 @@ if __name__ == '__main__':
     try_remove(bin_path)
 
     # Read the input and output data in advance
+    if indata_path.endswith(".zip"):
+        d = os.path.dirname(indata_path)
+        with zipfile.ZipFile(indata_path, 'r') as zip_ref:
+            zip_ref.extractall(d)
+        indata_path = indata_path[:-4]
     with open(indata_path, mode="r", encoding="utf8") as f:
         indata = f.read()
+    if outdata_path.endswith(".zip"):
+        d = os.path.dirname(outdata_path)
+        with zipfile.ZipFile(outdata_path, 'r') as zip_ref:
+            zip_ref.extractall(d)
+        outdata_path = outdata_path[:-4]
     with open(outdata_path, mode="r", encoding="utf8") as f:
         outdata = f.read()
 
