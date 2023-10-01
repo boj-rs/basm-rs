@@ -81,9 +81,9 @@ with open(stub_path, "rb") as f:
     stub = f.read()
 
 stub = bytearray(stub)
-stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 while len(stub) % 4 != 0:
     stub.append(0)
+stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 stub_b85 = base64.b85encode(stub, pad=False).decode('ascii') + ']'
 stub_b85_len = len(stub_b85)
 if lang_name == "C":

@@ -30,9 +30,10 @@ if __name__ == '__main__':
     tmp_dir = sys.argv[1]
     build_cmd = sys.argv[2]
     language = sys.argv[3]
-    sol_path = sys.argv[4]
-    indata_path = sys.argv[5]
-    outdata_path = sys.argv[6]
+    bits = int(sys.argv[4])
+    sol_path = sys.argv[5]
+    indata_path = sys.argv[6]
+    outdata_path = sys.argv[7]
     src_ext = {"C": "c", "Rust": "rs"}[language]
 
     # Prepare environment
@@ -72,7 +73,7 @@ if __name__ == '__main__':
         if platform.system() == "Windows":
             os.system("cl {0} /F268435456 /Fe{1} /link /SUBSYSTEM:CONSOLE".format(src_path, bin_path))
         else:
-            os.system("gcc -o {1} -O3 {0}".format(src_path, bin_path))
+            os.system("gcc -o {1} {2} {0}".format(src_path, bin_path, "-O3 -m32" if bits == 32 else "-O3"))
     else: # language == "Rust"
         if platform.system() == "Windows":
             os.system("rustc -C opt-level=3 -o {1} --crate-type=bin {0}".format(src_path, bin_path))
