@@ -2,9 +2,9 @@
 This script builds and tests a solution for a problem.
 Developed for use in CI.
 Usage:
-    python .\scripts\build-and-judge.py [tmp-dir] [build-cmd] [sol-path] [indata-path] [outdata-path]
+    python .\scripts\build-and-judge.py [tmp-dir] [build-cmd] [language] [bits] [sol-path] [indata-path] [outdata-path]
 Example:
-    python .\scripts\build-and-judge.py .\scripts\tmp .\release-64bit-windows-rs.cmd Rust .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out
+    python .\scripts\build-and-judge.py .\tmp\test\ .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out
 
 Limitations: special judges are not yet supported.
 """
