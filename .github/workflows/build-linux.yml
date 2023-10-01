@@ -47,19 +47,19 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
-          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751_in.bin ./tests/boj_2751_out.bin
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751.in.bin ./tests/boj_2751.out.bin
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
       - name: Check C (x86)
         if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
-          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2751.rs ./tests/boj_2751_in.bin ./tests/boj_2751_out.bin
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2751.rs ./tests/boj_2751.in.bin ./tests/boj_2751.out.bin
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
       - name: Check Rust (x86_64)
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
-          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751_in.bin ./tests/boj_2751_out.bin
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751.in.bin ./tests/boj_2751.out.bin
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
