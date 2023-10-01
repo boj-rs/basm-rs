@@ -11,21 +11,27 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    name: CI (Windows)
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc
+    env:
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          target: ${{ matrix.target }}
           profile: minimal
           override: true
           components: clippy
       - name: Install System packages
         run: |
-          sudo apt update
-          sudo apt install nasm
+          python -m pip install pefile
       - name: Clippy
         run: cargo clippy
         env:

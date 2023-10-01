@@ -1,0 +1,54 @@
+name: Check
+
+on:
+  - push
+  - pull_request
+
+env:
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  build:
+    name: CI (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+    env:
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+          components: clippy
+      - name: Install System packages
+        run: |
+          sudo apt update
+          sudo apt install gcc-multilib nasm
+      - name: Clippy
+        run: cargo clippy
+        env:
+          RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+      - name: Test
+        run: cargo test --lib -- --test-threads 1
+        env:
+          RUSTFLAGS: ""
+      - name: Check C
+        run: |
+          scripts/check.sh \
+            "./release.sh | tee /tmp/code.c" \
+            "cc -w /tmp/code.c -o /tmp/bin"
+      - name: Check Rust
+        run: |
+          scripts/check.sh \
+            "./release-rs.sh | tee /tmp/code.rs" \
+            "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
