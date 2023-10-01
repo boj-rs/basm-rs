@@ -21,6 +21,10 @@ jobs:
       CARGO_BUILD_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v3
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+          vsversion: 2022
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -42,11 +46,13 @@ jobs:
           RUSTFLAGS: ""
       - name: Check C
         run: |
-          scripts/check.sh \
-            "./release.sh | tee /tmp/code.c" \
-            "cc -w /tmp/code.c -o /tmp/bin"
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C .\src\solution.rs .\tests\boj_1000.in .\tests\boj_1000.out
       - name: Check Rust
         run: |
-          scripts/check.sh \
-            "./release-rs.sh | tee /tmp/code.rs" \
-            "rustc +stable -O -A dead-code /tmp/code.rs -o /tmp/bin"
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust .\src\solution.rs .\tests\boj_1000.in .\tests\boj_1000.out
+      - name: Check Rust (BOJ 1001)
+        run: |
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust .\tests\boj_1001.rs .\tests\boj_1001.in .\tests\boj_1001.out
+      - name: Check Rust (BOJ 3745)
+        run: |
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out
