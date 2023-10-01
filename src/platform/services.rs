@@ -97,6 +97,6 @@ pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
 #[inline(always)]
 pub fn platform_data() -> *const PlatformData {
     unsafe {
-        core::mem::transmute(addr(9))
+        addr(9) as *const PlatformData
     }
 }

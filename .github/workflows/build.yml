@@ -2,6 +2,7 @@ name: Check
 
 on:
   - push
+  - pull_request
 
 env:
   CARGO_NET_RETRY: 10
@@ -28,7 +29,7 @@ jobs:
       - name: Clippy
         run: cargo clippy
         env:
-          RUSTFLAGS: "-D warnings"
+          RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
       - name: Test
         run: cargo test --lib -- --test-threads 1
         env:

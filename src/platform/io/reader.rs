@@ -85,9 +85,7 @@ impl<const N: usize> Reader<N> {
     pub fn try_consume(&mut self, bytes: usize) -> usize {
         let mut consumed = 0;
         while consumed < bytes {
-            if self.off == self.len {
-                if self.try_refill(1) == 0 { break; }
-            }
+            if self.off == self.len && self.try_refill(1) == 0 { break; }
             let delta = core::cmp::min(self.len - self.off, bytes - consumed);
             self.off += delta;
             consumed -= delta;
@@ -132,7 +130,7 @@ impl<const N: usize> Reader<N> {
                 self.off += i + 1;
                 break total + i;
             } else {
-                unsafe { buf.as_mut_vec() }.extend_from_slice(&range);
+                unsafe { buf.as_mut_vec() }.extend_from_slice(range);
                 self.off = self.len;
                 total += len;
                 if self.try_refill(1) == 0 { break total; }

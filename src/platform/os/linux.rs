@@ -9,7 +9,7 @@ pub mod syscall {
     pub const MAP_PRIVATE: i32 = 0x02;
     pub const MAP_ANON: i32 = 0x20;
     pub const MREMAP_MAYMOVE: i32 = 0x01;
-    pub const MAP_FAILED: *mut u8 = unsafe { core::mem::transmute(usize::MAX) };
+    pub const MAP_FAILED: *mut u8 = usize::MAX as *mut u8;
     pub const RLIMIT_STACK: usize = 3;
 
     #[cfg(target_arch = "x86_64")]
