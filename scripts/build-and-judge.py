@@ -88,5 +88,5 @@ if __name__ == '__main__':
         print("Program succeeded for input {0} and output {1}".format(indata_path, outdata_path))
     else:
         err_msg = "Program fails to print the correct output for input {0} and output {1}\n".format(indata_path, outdata_path)
-        err_msg += "Input:\n{0}\nOutput (expected):\n{1}\nOutput (actual):\n{2}\n".format(indata, outdata, stdout)
+        err_msg += "Input:\n{0}\nOutput (expected):\n{1}\nOutput (actual):\n{2}\n".format(indata[:1000], outdata[:1000], stdout[:1000])
         raise Exception(err_msg)
