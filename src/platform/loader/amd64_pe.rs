@@ -58,7 +58,7 @@ pub unsafe extern "sysv64" fn relocate(
                     ptr::write(patch_addr as *mut u16, (tmp >> 16) as u16);
                 },
                 IMAGE_REL_BASED_DIR64 => {
-                    ptr::write(patch_addr as *mut u64, ptr::read(patch_addr as *const u64) + reloc_delta as u64);
+                    ptr::write(patch_addr as *mut u64, ptr::read(patch_addr as *const u64) + reloc_delta);
                 },
                 IMAGE_REL_BASED_ABSOLUTE => (),
                 _ => { unreachable!() }

@@ -8,6 +8,7 @@ pub mod os;
 pub mod allocator;
 #[cfg_attr(test, path = "services_std.rs")]
 pub mod services;
+pub mod io;
 
 #[cfg(not(test))]
 pub fn init(service_functions_by_loader: usize) {

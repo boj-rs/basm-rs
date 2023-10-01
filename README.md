@@ -30,13 +30,13 @@ fn main() {
 
 ```rust
 // src/solution.rs
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = reader.next_usize();
-    let b = reader.next_usize();
-    writer.write_usize(a + b);
+    let a = reader.usize();
+    let b = reader.usize();
+    writer.usize(a + b);
 }
 ```
 
@@ -45,13 +45,13 @@ pub fn main() {
   - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
 ```rust
 // src/solution.rs
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
     let mut writer = Writer::<128>::new();
-    let a = reader.next_usize();
-    let b = reader.next_usize();
-    writer.write_usize(a + b);
+    let a = reader.usize();
+    let b = reader.usize();
+    writer.usize(a + b);
 }
 ```
 
@@ -186,20 +186,19 @@ dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-
 src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
-use basm::io::{Reader, Writer};
-use crate::alloc::string::ToString;
+use basm::platform::io::{Reader, Writer};
+use alloc::string::ToString;
 use core::str::FromStr;
-use dashu::Integer as Int;
+use dashu::Integer;
 
-#[inline(always)]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = Int::from_str(&reader.next_string()).unwrap();
-    let b = Int::from_str(&reader.next_string()).unwrap();
+    let a = Integer::from_str(&reader.word()).unwrap();
+    let b = Integer::from_str(&reader.word()).unwrap();
     let ans = &a + &b;
-    writer.write(ans.to_string().as_bytes());
-    writer.write(b"\n");
+    writer.str(&ans.to_string());
+    writer.byte(b'\n');
 }
 ```
 
@@ -266,7 +265,7 @@ src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -314,17 +313,54 @@ fn expr(input: &str) -> IResult<&str, Integer> {
     )(input)
 }
 
-#[inline(always)]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let input = reader.next_string();
+    let input = reader.word();
     if let Ok((_, ans)) = all_consuming(expr)(&input) {
-        writer.write(ans.to_string().as_bytes());
+        writer.str(&ans.to_string());
     } else {
-        writer.write(b"ROCK");
+        writer.str("ROCK");
     }
-    writer.write(b"\n");
+    writer.byte(b'\n');
+}
+```
+
+이후 실행 과정은 위의 "큰 수 A+B"와 동일하게 진행하면 됩니다.
+
+## 예제: 오름세([BOJ 3745](https://www.acmicpc.net/problem/3745))
+
+이 예제는 하나의 입력 파일에 여러 개의 테스트 케이스가 있지만 개수가 따로 주어지지 않을 때 파일의 끝(end-of-file; EOF)을 검출하여 프로그램을 적절히 종료하는 방법을 보여줍니다.
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+src/solution.rs를 다음과 같이 수정합니다.
+
+```rust
+use basm::platform::io::{Reader, Writer, Print};
+use core::cmp::max;
+pub fn main() {
+    let mut reader: Reader = Default::default();
+    let mut writer: Writer = Default::default();
+    let mut x = [usize::MAX; 100_001]; // x[i] = minimum end-value of "len >= i" increasing seq.
+    while !reader.is_eof_skip_whitespace() {
+        let n = reader.usize();
+        let mut ans = 0;
+        x[0] = 0;
+        for i in 0..n {
+            x[i + 1] = usize::MAX;
+            let v = reader.usize();
+            let (mut lo, mut hi) = (0, i);
+            while lo < hi {
+                let mid = (lo + hi + 1) / 2;
+                if x[mid] < v { lo = mid; } else { hi = mid - 1; }
+            }
+            let ans_new = lo + 1;
+            x[ans_new] = v;
+            ans = max(ans, ans_new);
+        }
+        writer.println(ans);
+    }
 }
 ```
 

@@ -14,6 +14,7 @@ fn main() {
             link_args_basm.push("/ENTRY:_start");
             link_args_basm.push("/BASE:0x0");
             link_args_basm.push("/NXCOMPAT:NO");
+            link_args_basm.push("/STACK:268435456");
             link_args_basm.push("/EMITTOOLVERSIONINFO:NO");
             link_args_basm.push("/EMITPOGOPHASEINFO");
             link_args_basm_submit.push("/ALIGN:128");

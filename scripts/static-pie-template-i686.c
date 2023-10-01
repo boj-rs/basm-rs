@@ -1,5 +1,5 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
-// Learn rust and get high performance out of the box ☆ https://doc.rust-lang.org/book/
+// Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
 
 //==============================================================================
 // SOLUTION BEGIN

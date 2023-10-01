@@ -1,3 +1,5 @@
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 use super::dlmalloc_interface::DlmallocAllocator;
 use super::super::os::linux::syscall;
 
@@ -16,7 +18,7 @@ unsafe impl DlmallocAllocator for System {
     fn alloc(&self, size: usize) -> (*mut u8, usize, u32) {
         let addr = unsafe {
             syscall::mmap(
-                0 as *mut _,
+                core::ptr::null_mut(),
                 size,
                 syscall::PROT_WRITE | syscall::PROT_READ,
                 syscall::MAP_ANON | syscall::MAP_PRIVATE,
@@ -27,7 +29,7 @@ unsafe impl DlmallocAllocator for System {
         if core::ptr::eq(addr, syscall::MAP_FAILED) {
             (core::ptr::null_mut(), 0, 0)
         } else {
-            (addr as *mut u8, size, 0)
+            (addr, size, 0)
         }
     }
 
@@ -37,7 +39,7 @@ unsafe impl DlmallocAllocator for System {
         if core::ptr::eq(ptr, syscall::MAP_FAILED) {
             core::ptr::null_mut()
         } else {
-            ptr as *mut u8
+            ptr
         }
     }
 
@@ -47,7 +49,7 @@ unsafe impl DlmallocAllocator for System {
             if !core::ptr::eq(rc, syscall::MAP_FAILED) {
                 return true;
             }
-            syscall::munmap(ptr.offset(newsize as isize) as *mut _, oldsize - newsize).is_null()
+            syscall::munmap(ptr.add(newsize) as *mut _, oldsize - newsize).is_null()
         }
     }
 
