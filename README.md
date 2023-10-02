@@ -30,13 +30,13 @@ fn main() {
 
 ```rust
 // src/solution.rs
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = reader.next_usize();
-    let b = reader.next_usize();
-    writer.write_usize(a + b);
+    let a = reader.usize();
+    let b = reader.usize();
+    writer.usize(a + b);
 }
 ```
 
@@ -45,13 +45,13 @@ pub fn main() {
   - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
 ```rust
 // src/solution.rs
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
     let mut writer = Writer::<128>::new();
-    let a = reader.next_usize();
-    let b = reader.next_usize();
-    writer.write_usize(a + b);
+    let a = reader.usize();
+    let b = reader.usize();
+    writer.usize(a + b);
 }
 ```
 
@@ -81,9 +81,9 @@ pub fn main() {
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
 
-`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 아래 전용 빌드 스크립트 중 하나를 사용하여 빌드하셔야 합니다.
+`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
 
-> cargo build 명령을 직접 사용하는 것은 권장되지 않습니다. 빌드 스크립트를 실행하시면 내부적으로 환경설정을 거쳐 cargo build를 호출합니다.
+> cargo run 및 cargo run --release로 프로그램을 실행할 수 있고 cargo test나 cargo bench를 이용하여 테스트 및 성능 측정을 할 수 있습니다. 다만 로컬 환경에서 개발이 끝난 후 온라인 저지에 제출할 수 있는 형태로 빌드하기 위해서는 반드시 아래에 설명된 전용 스크립트를 사용해야 합니다.
 
 Windows 환경에서 빌드하는 방법입니다.
 
@@ -141,7 +141,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
   - https://learn.microsoft.com/ko-kr/windows/dev-environment/rust/setup
   - https://rust-lang.github.io/rustup/installation/windows-msvc.html
 
-- `std`를 사용할 수 없습니다.
+- `std`를 사용할 수 없습니다. 단, `cargo test` 시에는 `std`를 사용할 수 있습니다.
 
 - `libc`를 사용할 수 없습니다.
 
@@ -186,20 +186,19 @@ dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-
 src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
-use basm::io::{Reader, Writer};
-use crate::alloc::string::ToString;
+use basm::platform::io::{Reader, Writer};
+use alloc::string::ToString;
 use core::str::FromStr;
-use dashu::Integer as Int;
+use dashu::Integer;
 
-#[inline(always)]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = Int::from_str(&reader.next_string()).unwrap();
-    let b = Int::from_str(&reader.next_string()).unwrap();
+    let a = Integer::from_str(&reader.word()).unwrap();
+    let b = Integer::from_str(&reader.word()).unwrap();
     let ans = &a + &b;
-    writer.write(ans.to_string().as_bytes());
-    writer.write(b"\n");
+    writer.str(&ans.to_string());
+    writer.byte(b'\n');
 }
 ```
 
@@ -266,7 +265,7 @@ src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
-use basm::io::{Reader, Writer};
+use basm::platform::io::{Reader, Writer};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -314,17 +313,54 @@ fn expr(input: &str) -> IResult<&str, Integer> {
     )(input)
 }
 
-#[inline(always)]
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let input = reader.next_string();
+    let input = reader.word();
     if let Ok((_, ans)) = all_consuming(expr)(&input) {
-        writer.write(ans.to_string().as_bytes());
+        writer.str(&ans.to_string());
     } else {
-        writer.write(b"ROCK");
+        writer.str("ROCK");
     }
-    writer.write(b"\n");
+    writer.byte(b'\n');
+}
+```
+
+이후 실행 과정은 위의 "큰 수 A+B"와 동일하게 진행하면 됩니다.
+
+## 예제: 오름세([BOJ 3745](https://www.acmicpc.net/problem/3745))
+
+이 예제는 하나의 입력 파일에 여러 개의 테스트 케이스가 있지만 개수가 따로 주어지지 않을 때 파일의 끝(end-of-file; EOF)을 검출하여 프로그램을 적절히 종료하는 방법을 보여줍니다.
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+src/solution.rs를 다음과 같이 수정합니다.
+
+```rust
+use basm::platform::io::{Reader, Writer, Print};
+use core::cmp::max;
+pub fn main() {
+    let mut reader: Reader = Default::default();
+    let mut writer: Writer = Default::default();
+    let mut x = [usize::MAX; 100_001]; // x[i] = minimum end-value of "len >= i" increasing seq.
+    while !reader.is_eof_skip_whitespace() {
+        let n = reader.usize();
+        let mut ans = 0;
+        x[0] = 0;
+        for i in 0..n {
+            x[i + 1] = usize::MAX;
+            let v = reader.usize();
+            let (mut lo, mut hi) = (0, i);
+            while lo < hi {
+                let mid = (lo + hi + 1) / 2;
+                if x[mid] < v { lo = mid; } else { hi = mid - 1; }
+            }
+            let ans_new = lo + 1;
+            x[ans_new] = v;
+            ans = max(ans, ans_new);
+        }
+        writer.println(ans);
+    }
 }
 ```
 

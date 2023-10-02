@@ -47,6 +47,8 @@ There are currently three files licensed under GPLv2+:
     src/platform/loader/i686_elf.rs
 */
 
+#![allow(clippy::cmp_null)]
+
 // Dynamic section entry types
 const DT_RELA:      u64 = 7;
 const DT_RELASZ:    u64 = 8;
@@ -84,11 +86,12 @@ pub unsafe extern "sysv64" fn relocate(
     addr_image_base: u64,
     addr_dynamic_section: u64
     ) {
-    let ptr_dyn: *const Elf64Dyn = core::mem::transmute(addr_dynamic_section);
+    let ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
     let ptr_rela = find_tag(ptr_dyn, DT_RELA);
     let ptr_relasz = find_tag(ptr_dyn, DT_RELASZ);
     let ptr_relaent = find_tag(ptr_dyn, DT_RELAENT);
 
+    /* do not use .is_null() since the method itself requires relocations, at least in debug mode */
     if ptr_rela == core::ptr::null() ||
         ptr_relasz == core::ptr::null() ||
         ptr_relaent == core::ptr::null() {
@@ -97,21 +100,19 @@ pub unsafe extern "sysv64" fn relocate(
 
     let mut j = 0;
     while j < (*ptr_relasz).d_val_or_ptr {
-        let pst_rela: *mut Elf64Rela = core::mem::transmute(
-            addr_image_base + (*ptr_rela).d_val_or_ptr + j);
+        let pst_rela = (addr_image_base + (*ptr_rela).d_val_or_ptr + j) as *mut Elf64Rela;
         let ul_offset = (*pst_rela).r_offset;
         let ul_info = (*pst_rela).r_info;
         let l_addend = (*pst_rela).r_addend;
         if ul_info as u32 == R_X86_64_RELATIVE {
             let l_result: u64 = addr_image_base + l_addend;
-            let ptr_target: *mut u64 = core::mem::transmute(
-                addr_image_base + ul_offset);
+            let ptr_target = (addr_image_base + ul_offset) as *mut u64;
             *ptr_target = l_result;
         } else if ul_info as u32 == R_X86_64_NONE {
             /* do nothing */
         } else {
             /* not implemented */
-            loop {}
+            panic!();
         }
         j += (*ptr_relaent).d_val_or_ptr;
     }

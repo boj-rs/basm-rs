@@ -1,0 +1,58 @@
+name: Check
+
+on:
+  - push
+  - pull_request
+
+env:
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  build:
+    name: CI (Windows)
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc
+    env:
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+          vsversion: 2022
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+          components: clippy
+      - name: Install System packages
+        run: |
+          python -m pip install pefile
+      - name: Clippy
+        run: cargo clippy
+        env:
+          RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+      - name: Test
+        run: cargo test --lib -- --test-threads 1
+        env:
+          RUSTFLAGS: ""
+      - name: Check C (x86_64)
+        run: |
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\src\solution.rs .\tests\boj_1000.in .\tests\boj_1000.out
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_1001.rs .\tests\boj_1001.in .\tests\boj_1001.out
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_2751.rs .\tests\boj_2751.in.zip .\tests\boj_2751.out.zip
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out
+      - name: Check Rust (x86_64)
+        run: |
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\src\solution.rs .\tests\boj_1000.in .\tests\boj_1000.out
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_1001.rs .\tests\boj_1001.in .\tests\boj_1001.out
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_2751.rs .\tests\boj_2751.in.zip .\tests\boj_2751.out.zip
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out

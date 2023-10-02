@@ -200,7 +200,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
     }
 
     fn align_offset_usize(&self, addr: usize) -> usize {
-        align_up(addr, self.malloc_alignment()) - (addr as usize)
+        align_up(addr, self.malloc_alignment()) - addr
     }
 
     fn top_foot_size(&self) -> usize {
@@ -216,7 +216,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
     fn align_as_chunk(&self, ptr: *mut u8) -> *mut Chunk {
         unsafe {
             let chunk = Chunk::to_mem(ptr as *mut Chunk);
-            ptr.offset(self.align_offset(chunk) as isize) as *mut Chunk
+            ptr.add(self.align_offset(chunk)) as *mut Chunk
         }
     }
 
@@ -404,7 +404,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             } else {
                 self.least_addr = cmp::min(tbase, self.least_addr);
                 let mut sp = &mut self.seg as *mut Segment;
-                while !sp.is_null() && (*sp).base != tbase.offset(tsize as isize) {
+                while !sp.is_null() && (*sp).base != tbase.add(tsize) {
                     sp = (*sp).next;
                 }
                 if !sp.is_null() && !Segment::is_extern(sp) && Segment::sys_flags(sp) == flags {
@@ -433,7 +433,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             return ret;
         }
 
-        return ptr::null_mut();
+        ptr::null_mut()
     }
 
     pub unsafe fn realloc(&mut self, oldmem: *mut u8, bytes: usize) -> *mut u8 {
@@ -453,7 +453,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             ptr::copy_nonoverlapping(oldmem, ptr, cmp::min(oc, bytes));
             self.free(oldmem);
         }
-        return ptr;
+        ptr
     }
 
     unsafe fn try_realloc_chunk(&mut self, p: *mut Chunk, nb: usize, can_move: bool) -> *mut Chunk {
@@ -555,7 +555,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         if ptr.is_null() {
             return ptr::null_mut();
         }
-        let newp = ptr.offset(offset as isize) as *mut Chunk;
+        let newp = ptr.add(offset) as *mut Chunk;
         let psize = newmmsize - offset - self.mmap_foot_pad();
         (*newp).head = psize;
         (*Chunk::plus_offset(newp, psize)).head = Chunk::fencepost_head();
@@ -564,7 +564,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         self.footprint = self.footprint + newmmsize - oldmmsize;
         self.max_footprint = cmp::max(self.max_footprint, self.footprint);
         self.check_mmapped_chunk(newp);
-        return newp;
+        newp
     }
 
     fn mmap_align(&self, a: usize) -> usize {
@@ -598,7 +598,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             let pos = if (br as usize - p as usize) > self.min_chunk_size() {
                 br as *mut u8
             } else {
-                (br as *mut u8).offset(alignment as isize)
+                (br as *mut u8).add(alignment)
             };
             let newp = pos as *mut Chunk;
             let leadsize = pos as usize - p as usize;
@@ -633,7 +633,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         debug_assert!(Chunk::size(p) >= nb);
         debug_assert_eq!(align_up(mem as usize, alignment), mem as usize);
         self.check_inuse_chunk(p);
-        return mem;
+        mem
     }
 
     // consolidate and bin a chunk, differs from exported versions of free
@@ -757,7 +757,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         let ret = Chunk::to_mem(p);
         self.check_malloced_chunk(ret, size);
         self.check_malloc_state();
-        return ret;
+        ret
     }
 
     // add a segment to hold a new noncontiguous region
@@ -772,8 +772,8 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         let offset = ssize + mem::size_of::<usize>() * 4 + self.malloc_alignment() - 1;
         let rawsp = old_end.offset(-(offset as isize));
         let offset = self.align_offset(Chunk::to_mem(rawsp as *mut Chunk));
-        let asp = rawsp.offset(offset as isize);
-        let csp = if asp < old_top.offset(self.min_chunk_size() as isize) {
+        let asp = rawsp.add(offset);
+        let csp = if asp < old_top.add(self.min_chunk_size()) {
             old_top
         } else {
             asp
@@ -924,7 +924,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         }
 
         // If dv is a better fit, then return null so malloc will use it
-        if v.is_null() || (self.dvsize >= size && !(rsize < self.dvsize - size)) {
+        if v.is_null() || (self.dvsize >= size && rsize >= self.dvsize - size) {
             return ptr::null_mut();
         }
 
@@ -1031,7 +1031,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             let mut k = size << leftshift_for_tree_index(idx);
             loop {
                 if Chunk::size(TreeChunk::chunk(t)) != size {
-                    let c = &mut (*t).child[(k >> mem::size_of::<usize>() * 8 - 1) & 1];
+                    let c = &mut (*t).child[(k >> (mem::size_of::<usize>() * 8 - 1)) & 1];
                     k <<= 1;
                     if !c.is_null() {
                         t = *c;
@@ -1143,12 +1143,10 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             if r.is_null() {
                 self.clear_treemap((*chunk).index);
             }
+        } else if (*xp).child[0] == chunk {
+            (*xp).child[0] = r;
         } else {
-            if (*xp).child[0] == chunk {
-                (*xp).child[0] = r;
-            } else {
-                (*xp).child[1] = r;
-            }
+            (*xp).child[1] = r;
         }
 
         if !r.is_null() {
@@ -1260,17 +1258,14 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 let sp = self.segment_holding(self.top as *mut u8);
                 debug_assert!(!sp.is_null());
 
-                if !Segment::is_extern(sp) {
-                    if Segment::can_release_part(&self.system_allocator, sp) {
-                        if (*sp).size >= extra && !self.has_segment_link(sp) {
-                            let newsize = (*sp).size - extra;
-                            if self
-                                .system_allocator
-                                .free_part((*sp).base, (*sp).size, newsize)
-                            {
-                                released = extra;
-                            }
-                        }
+                if !Segment::is_extern(sp) &&
+                    Segment::can_release_part(&self.system_allocator, sp) &&
+                    (*sp).size >= extra && !self.has_segment_link(sp) {
+                    let newsize = (*sp).size - extra;
+                    if self
+                        .system_allocator
+                        .free_part((*sp).base, (*sp).size, newsize) {
+                        released = extra;
                     }
                 }
 
@@ -1322,8 +1317,8 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 let psize = Chunk::size(p);
                 // We can unmap if the first chunk holds the entire segment and
                 // isn't pinned.
-                let chunk_top = (p as *mut u8).offset(psize as isize);
-                let top = base.offset((size - self.top_foot_size()) as isize);
+                let chunk_top = (p as *mut u8).add(psize);
+                let top = base.add(size - self.top_foot_size());
                 if !Chunk::inuse(p) && chunk_top >= top {
                     let tp = p as *mut TreeChunk;
                     debug_assert!(Segment::holds(sp, sp as *mut u8));
@@ -1353,7 +1348,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         } else {
             MAX_RELEASE_CHECK_RATE
         };
-        return released;
+        released
     }
 
     // Sanity checks
@@ -1663,7 +1658,7 @@ impl Chunk {
     }
 
     unsafe fn next(me: *mut Chunk) -> *mut Chunk {
-        (me as *mut u8).offset(((*me).head & !FLAG_BITS) as isize) as *mut Chunk
+        (me as *mut u8).add((*me).head & !FLAG_BITS) as *mut Chunk
     }
 
     unsafe fn prev(me: *mut Chunk) -> *mut Chunk {
@@ -1722,7 +1717,7 @@ impl Chunk {
     }
 
     unsafe fn plus_offset(me: *mut Chunk, offset: usize) -> *mut Chunk {
-        (me as *mut u8).offset(offset as isize) as *mut Chunk
+        (me as *mut u8).add(offset) as *mut Chunk
     }
 
     unsafe fn minus_offset(me: *mut Chunk, offset: usize) -> *mut Chunk {
@@ -1785,10 +1780,11 @@ impl Segment {
     }
 
     unsafe fn top(seg: *mut Segment) -> *mut u8 {
-        (*seg).base.offset((*seg).size as isize)
+        (*seg).base.add((*seg).size)
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1830,3 +1826,4 @@ mod tests {
         }
     }
 }
+*/

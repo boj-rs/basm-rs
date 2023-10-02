@@ -9,7 +9,8 @@ pub mod syscall {
     pub const MAP_PRIVATE: i32 = 0x02;
     pub const MAP_ANON: i32 = 0x20;
     pub const MREMAP_MAYMOVE: i32 = 0x01;
-    pub const MAP_FAILED: *mut u8 = unsafe { core::mem::transmute(usize::MAX) };
+    pub const MAP_FAILED: *mut u8 = usize::MAX as *mut u8;
+    pub const RLIMIT_STACK: usize = 3;
 
     #[cfg(target_arch = "x86_64")]
     mod id_list {
@@ -19,6 +20,8 @@ pub mod syscall {
         pub const MREMAP: usize = 25;
         pub const MUNMAP: usize = 11;
         pub const EXIT_GROUP: usize = 231;
+        pub const GETRLIMIT: usize = 97;
+        pub const SETRLIMIT: usize = 160;
     }
     #[cfg(target_arch = "x86")]
     mod id_list {
@@ -28,6 +31,15 @@ pub mod syscall {
         pub const MREMAP: usize = 163;
         pub const MUNMAP: usize = 91;
         pub const EXIT_GROUP: usize = 252;
+        pub const GETRLIMIT: usize = 76;
+        pub const SETRLIMIT: usize = 75;
+    }
+
+    #[derive(Default)]
+    #[repr(packed)]
+    pub struct RLimit {
+        pub rlim_cur: usize,
+        pub rlim_max: usize,
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -154,6 +166,20 @@ pub mod syscall {
         syscall(id_list::EXIT_GROUP, status, 0, 0, 0, 0, 0);
         unreachable!()
     }
+    #[inline(always)]
+    pub unsafe fn getrlimit(
+        resource: usize,
+        rlim: &mut RLimit
+    ) -> usize {
+        syscall(id_list::GETRLIMIT, resource, rlim as *mut RLimit as usize, 0, 0, 0, 0)
+    }
+    #[inline(always)]
+    pub unsafe fn setrlimit(
+        resource: usize,
+        rlim: &RLimit
+    ) -> usize {
+        syscall(id_list::SETRLIMIT, resource, rlim as *const RLimit as usize, 0, 0, 0, 0)
+    }
 }
 
 static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_linux::System> = dlmalloc::Dlmalloc::new(dlmalloc_linux::System::new());
@@ -215,6 +241,24 @@ mod services_override {
 }
 
 pub unsafe fn init() {
+    /* Ensure stack size is at least 256 MiB, when running locally
+     * (online judges usually have their stack sizes set large).
+     * For Windows, this is set as a linker option in the build script.
+     * However, on Linux, the linker option only marks this value
+     * in an ELF section, which must be interpreted and applied
+     * by the runtime startup code (e.g., glibc).
+     * Thus, instead of parsing the ELF section, we just invoke
+     * the kernel APIs directly. */
+    let pd = &*services::platform_data();
+    if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
+        let mut rlim: syscall::RLimit = Default::default();
+        let ret = syscall::getrlimit(syscall::RLIMIT_STACK, &mut rlim);
+        if ret == 0 && rlim.rlim_cur < 256 * 1024 * 1024 {
+            rlim.rlim_cur = 256 * 1024 * 1024;
+            syscall::setrlimit(syscall::RLIMIT_STACK, &rlim);
+        }
+    }
+
     allocator::install_malloc_impl(
         dlmalloc_alloc,
         dlmalloc_alloc_zeroed,

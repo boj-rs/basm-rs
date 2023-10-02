@@ -115,9 +115,10 @@ _e: sub     rsp, rcx
     mov     rcx, qword [rsp + 64]
     add     rax, rcx
     mov     rdx, qword [rsp + 72]
+    mov     dword [rax], 0x9058016A ; push 0x1 -> pop rax -> nop
     bt      rdx, 0
     jnc     _f
-    mov     byte [rax], 0xcc    ; int 3
+    mov     dword [rax], 0xCC58016A ; push 0x1 -> pop rax -> int 3
 _f: mov     rcx, rbx        ; the SERVICE_FUNCTIONS table
     call    rax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached

@@ -140,9 +140,10 @@ _start:
     mov     ecx, dword [ebp + 12]
     add     eax, ecx
     mov     edx, dword [ebp + 16]
+    mov     dword [eax], 0x9058016A ; push 0x1 -> pop eax -> nop
     bt      edx, 0
     jnc     _f
-    mov     byte [eax], 0xcc    ; int 3
+    mov     dword [eax], 0xCC58016A ; push 0x1 -> pop eax -> int 3
 _f: mov     dword [esp + 0], ebx    ; the SERVICE_FUNCTIONS table
     call    eax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached

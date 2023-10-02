@@ -23,6 +23,8 @@ pub mod native_func {
 pub const ENV_ID_UNKNOWN: u64 = 0;
 pub const ENV_ID_WINDOWS: u64 = 1;
 pub const ENV_ID_LINUX: u64 = 2;
+pub const ENV_FLAGS_LINUX_STYLE_CHKSTK: u64 = 0x0001;   // disables __chkstk in binaries compiled with Windows target
+pub const ENV_FLAGS_NATIVE: u64 = 0x0002;               // indicates the binary is running without the loader
 
 #[repr(packed)]
 #[allow(non_snake_case)]
@@ -33,7 +35,7 @@ pub struct PlatformData {
     pub pe_image_base: u64,
     pub pe_off_reloc: u64,
     pub pe_size_reloc: u64,
-    pub win_GetModuleHandleW: u64,      // pointer to kernel32::GetModuleHandleA
+    pub win_GetModuleHandleW: u64,      // pointer to kernel32::GetModuleHandleW
     pub win_GetProcAddress: u64,        // pointer to kernel32::GetProcAddress
 }
 
@@ -95,6 +97,6 @@ pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
 #[inline(always)]
 pub fn platform_data() -> *const PlatformData {
     unsafe {
-        core::mem::transmute(addr(9))
+        addr(9) as *const PlatformData
     }
 }
