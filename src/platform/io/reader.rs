@@ -155,6 +155,15 @@ impl<const N: usize> Reader<N> {
         }
     }
 
+    pub fn ascii(&mut self) -> u8 {
+        self.try_refill(1);
+        let mut out = 0u8;
+        if self.off < self.len {
+            out = unsafe { self.buf[self.off].assume_init() };
+            self.off += 1;
+        }
+        out
+    }
     pub fn word_buf(&mut self, buf: &mut [u8]) -> usize {
         self.skip_whitespace();
         let mut len = 0;
@@ -381,11 +390,11 @@ impl<const N: usize> Reader<N> {
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
     pub fn isize(&mut self) -> isize {
-        self.i128() as isize;
+        self.i128() as isize
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
     pub fn usize(&mut self) -> usize {
-        self.u128() as usize;
+        self.u128() as usize
     }
     pub fn f64(&mut self) -> f64 {
         /* For simplicity, we assume the input string is at most 64 bytes.
