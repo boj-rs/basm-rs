@@ -381,11 +381,11 @@ impl<const N: usize> Reader<N> {
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
     pub fn isize(&mut self) -> isize {
-        self.i128() as isize;
+        self.i128() as isize
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
     pub fn usize(&mut self) -> usize {
-        self.u128() as usize;
+        self.u128() as usize
     }
     pub fn f64(&mut self) -> f64 {
         /* For simplicity, we assume the input string is at most 64 bytes.
