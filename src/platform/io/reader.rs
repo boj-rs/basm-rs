@@ -155,6 +155,15 @@ impl<const N: usize> Reader<N> {
         }
     }
 
+    pub fn ascii(&mut self) -> u8 {
+        self.try_refill(1);
+        let mut out = 0u8;
+        if self.off < self.len {
+            out = unsafe { self.buf[self.off].assume_init() };
+            self.off += 1;
+        }
+        out
+    }
     pub fn word_buf(&mut self, buf: &mut [u8]) -> usize {
         self.skip_whitespace();
         let mut len = 0;
