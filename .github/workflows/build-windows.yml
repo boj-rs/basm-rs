@@ -50,9 +50,11 @@ jobs:
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_1001.rs .\tests\boj_1001.in .\tests\boj_1001.out
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_2751.rs .\tests\boj_2751.in.zip .\tests\boj_2751.out.zip
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows.cmd C 64 .\tests\boj_14939.rs .\tests\boj_14939.in .\tests\boj_14939.out
       - name: Check Rust (x86_64)
         run: |
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\src\solution.rs .\tests\boj_1000.in .\tests\boj_1000.out
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_1001.rs .\tests\boj_1001.in .\tests\boj_1001.out
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_2751.rs .\tests\boj_2751.in.zip .\tests\boj_2751.out.zip
           python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_3745.rs .\tests\boj_3745.in .\tests\boj_3745.out
+          python .\scripts\build-and-judge.py ${{ runner.temp }} .\release-64bit-windows-rs.cmd Rust 64 .\tests\boj_14939.rs .\tests\boj_14939.in .\tests\boj_14939.out
