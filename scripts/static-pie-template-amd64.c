@@ -46,7 +46,8 @@ typedef unsigned long long uint64_t;
 #else
 #define BASMCALL __attribute__((ms_abi))
 #endif
-#else // 32-bit machine, Windows or Linux or OS X
+#else // 32-bit machine, Windows or Linux or OS X -> forbid compilation
+#error "The current file can only be compiled for amd64."
 #define BASMCALL
 #endif
 
@@ -207,9 +208,7 @@ int main(int argc, char *argv[]) {
     PLATFORM_DATA pd;
     SERVICE_FUNCTIONS sf;
     if (sizeof(size_t) != 8) {
-#ifdef DEBUG
-        printf("Error: sizeof(size_t) = %zu for amd64\n", sizeof(size_t));
-#endif
+        // Cannot run amd64 binaries on non-64bit environment
         return 1;
     }
     if (argc >= 2 &&
