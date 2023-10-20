@@ -42,10 +42,7 @@ mod win_api {
     pub fn VirtualAlloc(_lpAddress: usize, _dwSize: usize, _flAllocationType: u32, _flProtect: u32) -> usize { 0 }
 }
 
-unsafe extern "win64" fn svc_alloc_rwx(mut size: usize) -> *mut u8 {
-    let off = $$$$leading_unused_bytes$$$$usize;
-    size += off;
-    size &= (1usize << 63) - 1;
+unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> *mut u8 {
     let ret;
     if cfg!(windows) {
         ret = win_api::VirtualAlloc(0, size,
@@ -56,7 +53,7 @@ unsafe extern "win64" fn svc_alloc_rwx(mut size: usize) -> *mut u8 {
             in("r8") -1 /* fd */, in("r9") 0 /* offset */,
             lateout("rax") ret, out("rcx") _, out("r11") _);
     }
-    (if ret == 0 || ret == usize::MAX { 0 } else { ret + off }) as *mut u8
+    (if ret == 0 || ret == usize::MAX { 0 } else { ret }) as *mut u8
 }
 
 static STUB_BASE85: [u8; $$$$stub_base85_len$$$$] = *b$$$$stub_base85$$$$;
@@ -69,15 +66,15 @@ pub unsafe fn _start() -> ! {
         ".quad 0x481049894c084189,0x4820798948185189,0x4c3051894c287189,0x2024848d48385989",
         ".quad 0xc748000001,0x840c7480000,0x1040c7480000,0x1840c7480000",
         ".quad 0x2040c7480000,0x2840c7480000,0x3040c7480000,0x3840c7480000",
-        ".quad 0x89484060894c0000,0xb1058d484848,0xdb3120244c8d4800,0xff111c881814b60f",
-        ".quad 0xb948f27255fb83c3,0x8000000000001000,0x8d48c48949d4ff41,0x894cee894c20244c",
-        ".quad 0x894c00000029e8e7,0x1ee8f78948f6,0x120248c8d4800,0x41f8894df2894c00",
-        ".quad 0xc4814800000000b9,0xbbd4ff4100000100,0x8306b60f00000055,0xf16b60f45745df8",
-        ".quad 0x56b60fe3f71104b6,0xf7d0011114b60f01,0x14b60f0256b60fe3,0x56b60fe3f7d00111",
-        ".quad 0xf7d0011114b60f03,0x14b60f0456b60fe3,0x480789c80fd00111,0xeb04c7834805c683",
-        ".quad 0x353433323130c3b3,0x4443424139383736,0x4c4b4a4948474645,0x54535251504f4e4d",
-        ".quad 0x62615a5958575655,0x6a69686766656463,0x7271706f6e6d6c6b,0x7a79787776757473",
-        ".quad 0x2a29282625242321,0x403f3e3d3c3b2d2b,0x7e7d7c7b605f5e",
+        ".quad 0x89484060894c0000,0xac058d484848,0xdb3120244c8d4800,0xff111c881814b60f",
+        ".quad 0xb9f27255fb83c3,0x8949d4ff41000010,0x894c20244c8d48c4,0x29e8e7894cee",
+        ".quad 0xe8f78948f6894c00,0x248c8d480000001e,0x4df2894c00000120,0xb941f889",
+        ".quad 0x4100000100c48148,0xf00000055bbd4ff,0xf45745df88306b6,0xe3f71104b60f16b6",
+        ".quad 0x1114b60f0156b60f,0x256b60fe3f7d001,0xe3f7d0011114b60f,0x1114b60f0356b60f",
+        ".quad 0x456b60fe3f7d001,0xc80fd0011114b60f,0x834805c683480789,0x323130c3b3eb04c7",
+        ".quad 0x4139383736353433,0x4948474645444342,0x51504f4e4d4c4b4a,0x5958575655545352",
+        ".quad 0x676665646362615a,0x6f6e6d6c6b6a6968,0x7776757473727170,0x26252423217a7978",
+        ".quad 0x3d3c3b2d2b2a2928,0x7c7b605f5e403f3e,32381",
         in("r9") $$$$leading_unused_bytes$$$$,
         in("rdx") $$$$pe_image_base$$$$,
         in("rdi") $$$$pe_off_reloc$$$$,

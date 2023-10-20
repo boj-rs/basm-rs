@@ -58,7 +58,7 @@ _2:
     jb      _2
 
 ; Allocate memory for stub
-    mov     rcx, 0x8000000000001000
+    mov     rcx, 0x1000
     call    r12
     mov     r12, rax                ; r12 = stub memory
 
