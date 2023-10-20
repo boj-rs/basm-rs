@@ -2,8 +2,8 @@
 // Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
 
 // IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
-#![allow(non_snake_case, non_upper_case_globals)]
 #![crate_type="cdylib"]
+#![allow(non_snake_case, non_upper_case_globals)]
 #![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as std2;
 
 //==============================================================================
