@@ -2,6 +2,7 @@
 // Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
 
 // IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
+#![allow(non_snake_case, non_upper_case_globals)]
 #![crate_type="cdylib"]
 #![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as std2;
 
@@ -25,7 +26,6 @@ compile_error!("The target architecture is not supported.");
 compile_error!("The target operating system is not supported.");
 
 #[cfg(target_os = "windows")]
-#[allow(non_snake_case)]
 mod win_api {
     #[link(name = "kernel32")]
     extern "win64" {
@@ -35,7 +35,6 @@ mod win_api {
     }
 }
 #[cfg(not(target_os = "windows"))]
-#[allow(non_snake_case, non_upper_case_globals)]
 mod win_api {
     pub const GetModuleHandleW: usize = 0;
     pub const GetProcAddress: usize = 0;
