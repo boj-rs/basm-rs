@@ -75,16 +75,6 @@ pub unsafe fn _start() -> ! {
         // [rsp+ 32, rsp+288]: digittobin
         // [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
         "sub    rsp, 432",
-        // Initialize base85 decoder buffer
-        "lea    rax, [rip + 6f]",               // rax = b85
-        "lea    rcx, QWORD PTR [rsp+ 32]",      // rcx = digittobin
-        "xor    ebx, ebx",
-        "2:",
-        "movzx  edx, BYTE PTR [rax+rbx]",       // Upper 32bit of rdx automatically gets zeroed
-        "mov    BYTE PTR [rcx+rdx], bl",
-        "inc    ebx",
-        "cmp    ebx, 85",
-        "jb     2b",
         // PLATFORM_DATA
         "lea    rcx, QWORD PTR [rsp+368]",      // rcx = PLATFORM_DATA table
         "mov    QWORD PTR [rcx+  0], r8",       // env_id
@@ -110,6 +100,16 @@ pub unsafe fn _start() -> ! {
         "mov    QWORD PTR [rax+ 56], 0",        // ptr_write_stdio
         "mov    QWORD PTR [rax+ 64], r12",      // ptr_alloc_rwx
         "mov    QWORD PTR [rax+ 72], rcx",      // ptr_platform
+        // Initialize base85 decoder buffer
+        "lea    rax, [rip + 6f]",               // rax = b85
+        "lea    rcx, QWORD PTR [rsp+ 32]",      // rcx = digittobin
+        "xor    ebx, ebx",
+        "2:",
+        "movzx  edx, BYTE PTR [rax+rbx]",       // Upper 32bit of rdx automatically gets zeroed
+        "mov    BYTE PTR [rcx+rdx], bl",
+        "inc    ebx",
+        "cmp    ebx, 85",
+        "jb     2b",
         // Allocate memory for stub
         "movabs rcx, 0x8000000000001000",
         "call   r12",
