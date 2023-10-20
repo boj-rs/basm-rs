@@ -39,21 +39,19 @@ mod win_api {
 mod win_api {
     pub const GetModuleHandleW: usize = 0;
     pub const GetProcAddress: usize = 0;
-    pub fn VirtualAlloc(_lpAddress: usize, _dwSize: usize, _flAllocationType: u32, _flProtect: u32) -> usize { 0 }
 }
-
-unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> *mut u8 {
+#[cfg(target_os = "windows")]
+unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
+    win_api::VirtualAlloc(0, size, 0x00003000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */)
+}
+#[cfg(not(target_os = "windows"))]
+unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
     let ret;
-    if cfg!(windows) {
-        ret = win_api::VirtualAlloc(0, size,
-            0x00003000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */);
-    } else {
-        core::arch::asm!("syscall", in("rax") 9, in("rdi") 0, in("rsi") size,
-            in("rdx") 0x7 /* protect */, in("r10") 0x22 /* flags */,
-            in("r8") -1 /* fd */, in("r9") 0 /* offset */,
-            lateout("rax") ret, out("rcx") _, out("r11") _);
-    }
-    (if ret == 0 || ret == usize::MAX { 0 } else { ret }) as *mut u8
+    core::arch::asm!("syscall", in("rax") 9, in("rdi") 0, in("rsi") size,
+        in("rdx") 0x7 /* protect */, in("r10") 0x22 /* flags */,
+        in("r8") -1 /* fd */, in("r9") 0 /* offset */,
+        lateout("rax") ret, out("rcx") _, out("r11") _);
+    if ret == usize::MAX { 0 } else { ret }
 }
 
 static STUB_BASE85: [u8; $$$$stub_base85_len$$$$] = *b$$$$stub_base85$$$$;
