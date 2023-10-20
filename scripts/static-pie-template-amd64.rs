@@ -41,7 +41,7 @@ mod win_api {
 }
 #[cfg(target_os = "windows")]
 unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
-    win_api::VirtualAlloc(0, size, 0x00003000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */)
+    win_api::VirtualAlloc(0, size, 0x3000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */)
 }
 #[cfg(not(target_os = "windows"))]
 unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
@@ -50,7 +50,7 @@ unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
         in("rdx") 0x7 /* protect */, in("r10") 0x22 /* flags */,
         in("r8") -1 /* fd */, in("r9") 0 /* offset */,
         lateout("rax") ret, out("rcx") _, out("r11") _);
-    if ret == usize::MAX { 0 } else { ret }
+    ret
 }
 
 static STUB_BASE85: [u8; $$$$stub_base85_len$$$$] = *b$$$$stub_base85$$$$;
