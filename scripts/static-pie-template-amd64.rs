@@ -70,11 +70,7 @@ pub unsafe fn _start() -> ! {
         ".quad 0x3938373635343332,0x4847464544434241,0x504f4e4d4c4b4a49,0x5857565554535251",
         ".quad 0x6665646362615a59,0x6e6d6c6b6a696867,0x767574737271706f,0x252423217a797877",
         ".quad 0x3c3b2d2b2a292826,0x7b605f5e403f3e3d,8289660",
-        in("r9") $$$$leading_unused_bytes$$$$,
-        in("rdx") $$$$pe_image_base$$$$,
-        in("rdi") $$$$pe_off_reloc$$$$,
-        in("rsi") $$$$pe_size_reloc$$$$,
-        in("r15") $$$$entrypoint_offset$$$$,
+        in("r9") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
         in("r10") win_api::GetModuleHandleW,
         in("r11") win_api::GetProcAddress,
