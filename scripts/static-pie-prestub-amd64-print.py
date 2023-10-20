@@ -24,7 +24,7 @@ for i in range(0, len(prestub), 8):
     if i + 8 == len(prestub):
         out.append("\",\n")
     elif i % 32 == 24:
-        out.append(", \\\n")
+        out.append(",\\\n")
     else:
         out.append(",")
 
