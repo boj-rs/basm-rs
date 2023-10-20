@@ -35,14 +35,14 @@ section .text
 
 ; SERVICE_FUNCTIONS
     lea     rax, qword [rsp+288]    ; rax = SERVICE_FUNCTIONS table
-    mov     qword [rax+  0], 0      ; ptr_imagebase
-    mov     qword [rax+  8], 0      ; ptr_alloc
-    mov     qword [rax+ 16], 0      ; ptr_alloc_zeroed
-    mov     qword [rax+ 24], 0      ; ptr_dealloc
-    mov     qword [rax+ 32], 0      ; ptr_realloc
-    mov     qword [rax+ 40], 0      ; ptr_exit
-    mov     qword [rax+ 48], 0      ; ptr_read_stdio
-    mov     qword [rax+ 56], 0      ; ptr_write_stdio
+;   mov     qword [rax+  0], 0      ; ptr_imagebase
+;   mov     qword [rax+  8], 0      ; ptr_alloc
+;   mov     qword [rax+ 16], 0      ; ptr_alloc_zeroed
+;   mov     qword [rax+ 24], 0      ; ptr_dealloc
+;   mov     qword [rax+ 32], 0      ; ptr_realloc
+;   mov     qword [rax+ 40], 0      ; ptr_exit
+;   mov     qword [rax+ 48], 0      ; ptr_read_stdio
+;   mov     qword [rax+ 56], 0      ; ptr_write_stdio
     mov     qword [rax+ 64], r12    ; ptr_alloc_rwx
     mov     qword [rax+ 72], rcx    ; ptr_platform
 
