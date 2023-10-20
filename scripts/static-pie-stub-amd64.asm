@@ -52,11 +52,12 @@ LOC _state, 8
 
 
 _start:
-    sub     rsp, 40          ; for alignment and shadow space
-    mov     qword [rsp + 72], r9
-    mov     qword [rsp + 64], r8
-    mov     qword [rsp + 56], rdx
-    mov     qword [rsp + 48], rcx
+    add     rsp, 40
+    push    r9
+    push    r8
+    push    rdx
+    push    rcx
+    sub     rsp, 48          ; for alignment and shadow space
 
     movzx   eax, byte [rdx + 0]
     xor     edx, edx
