@@ -47,7 +47,7 @@ section .text
     mov     qword [rax+ 72], rcx    ; ptr_platform
 
 ; Initialize base85 decoder buffer
-    lea     rax, [rel _6]           ; rax = b85
+    lea     rax, [rel _7]           ; rax = b85
     lea     rcx, qword [rsp+ 32]    ; rcx = digittobin
     xor     ebx, ebx
 _2:
@@ -87,35 +87,27 @@ _3:
 _4:         
     movzx   eax, byte [rsi]
     cmp     eax, 93                 ; 93 = 0x5D = b']' denotes end of base85 stream
-    je      _5
-    movzx   edx, byte [rsi+  0]
-    movzx   eax, byte [rcx+rdx]
+    je      _6
+    xor     ebp, ebp
+    xor     eax, eax
+_5:
     mul     ebx
-    movzx   edx, byte [rsi+  1]
+    movzx   edx, byte [rsi+rbp]
     movzx   edx, byte [rcx+rdx]
     add     eax, edx
-    mul     ebx
-    movzx   edx, byte [rsi+  2]
-    movzx   edx, byte [rcx+rdx]
-    add     eax, edx
-    mul     ebx
-    movzx   edx, byte [rsi+  3]
-    movzx   edx, byte [rcx+rdx]
-    add     eax, edx
-    mul     ebx
-    movzx   edx, byte [rsi+  4]
-    movzx   edx, byte [rcx+rdx]
-    add     eax, edx
+    inc     ebp
+    cmp     ebp, 5
+    jl      _5
     bswap   eax
     mov     dword [rdi], eax
     add     rsi, 5
     add     rdi, 4
     jmp     _4
-_5:
+_6:
     ret
 
 ; b85 table
-_6:
+_7:
     dq      0x3736353433323130
     dq      0x4645444342413938
     dq      0x4E4D4C4B4A494847
