@@ -82,10 +82,10 @@ pub unsafe fn _start() -> ! {
         "cmp    r8, 1",
         "setne  al",                            // Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
         "mov    QWORD PTR [rcx+  8], rax",      // env_flags
-        "mov    QWORD PTR [rcx+ 16], $$$$leading_unused_bytes$$$$", // leading_unused_bytes
-        "mov    QWORD PTR [rcx+ 24], $$$$pe_image_base$$$$",        // pe_image_base
-        "mov    QWORD PTR [rcx+ 32], $$$$pe_off_reloc$$$$",         // pe_off_reloc
-        "mov    QWORD PTR [rcx+ 40], $$$$pe_size_reloc$$$$",        // pe_size_reloc
+        "mov    QWORD PTR [rcx+ 16], r9",       // leading_unused_bytes
+        "mov    QWORD PTR [rcx+ 24], rdx",      // pe_image_base
+        "mov    QWORD PTR [rcx+ 32], rdi",      // pe_off_reloc
+        "mov    QWORD PTR [rcx+ 40], rsi",      // pe_size_reloc
         "mov    QWORD PTR [rcx+ 48], r10",      // win_GetModuleHandleW
         "mov    QWORD PTR [rcx+ 56], r11",      // win_GetProcAddress
         // SERVICE_FUNCTIONS
@@ -113,11 +113,11 @@ pub unsafe fn _start() -> ! {
         // Allocate memory for stub
         "movabs rcx, 0x8000000000001000",
         "call   r12",
-        "mov    r15, rax",                      // r15 = stub memory
+        "mov    r12, rax",                      // r12 = stub memory
         // Decode stub (rsi -> rdi; rcx = digittobin)
         "lea    rcx, QWORD PTR [rsp+ 32]",      // rcx = digittobin
         "mov    rsi, r13",                      // rsi = STUB_BASE85
-        "mov    rdi, r15",                      // rdi = stub memory
+        "mov    rdi, r12",                      // rdi = stub memory
         "call   3f",
         // Decode binary (rsi -> rdi; rcx = digittobin)
         "mov    rsi, r14",                      // rsi = BINARY_BASE85
@@ -126,10 +126,10 @@ pub unsafe fn _start() -> ! {
         // Call stub
         "lea    rcx, QWORD PTR [rsp+288]",      // rcx = SERVICE_FUNCTIONS table
         "mov    rdx, r14",                      // rdx = LZMA-compressed binary
-        "mov    r8, $$$$entrypoint_offset$$$$", // r8  = Entrypoint offset
+        "mov    r8, r15",                       // r8  = Entrypoint offset
         "mov    r9, 0",                         // r9  = 1 if debugging is enabled, otherwise 0
         "add    rsp, 256",                      // Discard digittobin
-        "call   r15",
+        "call   r12",
         // Base85 decoder
         "3:",
         "mov    ebx, 85",
@@ -175,6 +175,11 @@ pub unsafe fn _start() -> ! {
         ".quad  0x2D2B2A2928262524",
         ".quad  0x5F5E403F3E3D3C3B",
         ".quad  0x0000007E7D7C7B60",
+        in("r9") $$$$leading_unused_bytes$$$$,
+        in("rdx") $$$$pe_image_base$$$$,
+        in("rdi") $$$$pe_off_reloc$$$$,
+        in("rsi") $$$$pe_size_reloc$$$$,
+        in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
         in("r10") win_api::GetModuleHandleW,
         in("r11") win_api::GetProcAddress,
