@@ -43,19 +43,15 @@ mod win_api {
 }
 
 unsafe extern "win64" fn svc_alloc_rwx(mut size: usize) -> *mut u8 {
-    let (mut preferred_addr, mut off) = (0, 0);
-    if cfg!(debug_assertions) && (size >> 63) == 0 {
-        preferred_addr = if cfg!(windows) { 0x9_2000_0000usize } else { 0x2000_0000usize };
-        off = $$$$leading_unused_bytes$$$$usize;
-        size += off;
-    }
+    let off = $$$$leading_unused_bytes$$$$usize;
+    size += off;
     size &= (1usize << 63) - 1;
     let ret;
     if cfg!(windows) {
-        ret = win_api::VirtualAlloc(preferred_addr, size,
+        ret = win_api::VirtualAlloc(0, size,
             0x00003000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */);
     } else {
-        core::arch::asm!("syscall", in("rax") 9, in("rdi") preferred_addr, in("rsi") size,
+        core::arch::asm!("syscall", in("rax") 9, in("rdi") 0, in("rsi") size,
             in("rdx") 0x7 /* protect */, in("r10") 0x22 /* flags */,
             in("r8") -1 /* fd */, in("r9") 0 /* offset */,
             lateout("rax") ret, out("rcx") _, out("r11") _);
