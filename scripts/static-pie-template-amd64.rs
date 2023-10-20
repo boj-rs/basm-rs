@@ -53,7 +53,6 @@ unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
     ret
 }
 
-static STUB_BASE85: [u8; $$$$stub_base85_len$$$$] = *b$$$$stub_base85$$$$;
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
@@ -70,7 +69,7 @@ pub unsafe fn _start() -> ! {
         in("r10") win_api::GetModuleHandleW,
         in("r11") win_api::GetProcAddress,
         in("r12") svc_alloc_rwx,
-        in("r13") STUB_BASE85.as_ptr(),
+        in("r13") b$$$$stub_base85$$$$.as_ptr(),
         in("r14") BINARY_BASE85.as_mut_ptr(),
         options(noreturn)
     )
