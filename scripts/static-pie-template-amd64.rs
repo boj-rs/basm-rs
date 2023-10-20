@@ -59,13 +59,11 @@ static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$
 #[no_mangle]
 pub unsafe fn _start() -> ! {
     core::arch::asm!(
-        ".quad 0xb0ec8148f0e48348,0x70248c8d48000001,0xc03101894c000001,0x48c0950f01f88349,\
-        0x481049894c084189,0x4820798948185189,0x4c3051894c287189,0x2024848d48385989,\
-        0x484060894c000001,0x8c058d48484889,0x3120244c8d480000,0x111c881814b60fdb,\
-        0xb9f27255fb83c3ff,0x49d4ff4100001000,0x4c20244c8d48c489,0x29e8e7894cee89,\
-        0xf78948f6894c0000,0x8c8d480000001ee8,0xf2894c0000012024,0xb941f8894d,\
-        0x100c4814800,0x55bbd4ff41,0x25745df88306b60f,0xb60fe3f7c031ed31,\
-        0xd0011114b60f2e14,0xfed7c05fd83c5ff,0x4805c683480789c8,0x3130c3d3eb04c783",
+        ".quad 0x52415341f0e48348,0x49c0315141525756,0x4150c0950f01f883,0xc0ec814854415450,\
+        0x74058d48000000,0x814b60fc9310000,0x55f983c1ff140c88,0x4100001000b9f272,\
+        0xee894cc48949d4ff,0x21e8e7894c,0x16e8f78948f6894c,0x4860c48348000000,\
+        0x4df2894c20244c8d,0xff415941006af889,0xc031ed3159556ad4,0x5dfa8316b60fe1f7,\
+        0x1081454b60f1b74,0xfd83c5ffc6ff48d0,0x480789c80fe57c05,0x3130c3d7eb04c783",
         ".ascii \"23456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
         in("r9") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
