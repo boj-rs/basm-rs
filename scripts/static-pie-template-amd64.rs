@@ -88,7 +88,10 @@ pub unsafe fn _start() -> ! {
         // PLATFORM_DATA
         "lea    rcx, QWORD PTR [rsp+368]",      // rcx = PLATFORM_DATA table
         "mov    QWORD PTR [rcx+  0], r8",       // env_id
-        "mov    QWORD PTR [rcx+  8], r9",       // env_flags
+        "xor    eax, eax",
+        "cmp    r8, 1",
+        "setne  al",                            // Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+        "mov    QWORD PTR [rcx+  8], rax",      // env_flags
         "mov    QWORD PTR [rcx+ 16], $$$$leading_unused_bytes$$$$", // leading_unused_bytes
         "mov    QWORD PTR [rcx+ 24], $$$$pe_image_base$$$$",        // pe_image_base
         "mov    QWORD PTR [rcx+ 32], $$$$pe_off_reloc$$$$",         // pe_off_reloc
@@ -173,7 +176,6 @@ pub unsafe fn _start() -> ! {
         ".quad  0x5F5E403F3E3D3C3B",
         ".quad  0x0000007E7D7C7B60",
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
-        in("r9") if cfg!(windows) { 0 } else { 1 }, // Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
         in("r10") win_api::GetModuleHandleW,
         in("r11") win_api::GetProcAddress,
         in("r12") svc_alloc_rwx,
