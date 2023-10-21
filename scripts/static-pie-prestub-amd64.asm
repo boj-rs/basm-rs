@@ -17,6 +17,7 @@ section .text
 ; [rsp+  0, rsp+128]: digittobin
 ; [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
     and     rsp, 0xFFFFFFFFFFFFFFF0
+    mov     rbp, r8
 
 ; PLATFORM_DATA
     push    r11                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
@@ -26,18 +27,16 @@ section .text
     push    rdx                     ; PLATFORM_DATA[24..31] = pe_image_base
     push    r9                      ; PLATFORM_DATA[16..23] = leading_unused_bytes
     xor     eax, eax
-    cmp     r8, 1
+    cmp     rbp, 1
     je      _1
     inc     eax                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    lea     r12, [rel _svc_alloc_rwx_linux] ; Override svc_alloc_rwx on Linux
 _1:
     push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags
-    push    r8                      ; PLATFORM_DATA[ 0.. 7] = env_id
+    push    rbp                     ; PLATFORM_DATA[ 0.. 7] = env_id
 
 ; SERVICE_FUNCTIONS
     push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
-    push    r12                     ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
-    sub     rsp, 192                ; 64 + 128
+    sub     rsp, 200                ; 72 + 128
 
 ; Initialize base85 decoder buffer
     lea     rax, [rel _7]           ; rax = b85
@@ -50,9 +49,33 @@ _2:
     jb      _2
 
 ; Allocate memory for stub
+    lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
+    cmp     rbp, 1
+    jne     _u
+    lea     rbx, [rel _svc_alloc_rwx_windows_pre]   ; Register svc_alloc_rwx on Windows
+    mov     rdx, r12                ; pointer to VirtualAlloc
+_u:
     mov     rcx, 0x1000
-    call    r12
-    mov     r12, rax                ; r12 = stub memory
+    call    rbx
+
+; Windows: copy svc_alloc_rwx to the new buffer
+    cmp     rbp, 1
+    jne     _x
+    mov     rbx, rax                ; rbx = new svc_alloc_rwx
+    lea     rcx, [rel _svc_alloc_rwx_windows]
+_v:
+    mov     dl, byte [rcx]
+    mov     byte [rax], dl
+    inc     rcx                     ; src
+    inc     rax                     ; dst
+    cmp     dl, 0xc3                ; 'ret' instruction
+    jne      _v
+    mov     qword [rbx+3], r12      ; pointer to VirtualAlloc
+_x:
+    mov     r12, rax
+
+; Register svc_alloc_rwx
+    mov     qword [rsp+192], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
 
 ; Decode stub (rsi -> rdi; rsp = digittobin (rsp+8 after call instruction))
     mov     rsi, r13                ; rsi = STUB_BASE85
@@ -98,7 +121,28 @@ _5:
 _6:
     ret
 
+; svc_alloc_rwx for Windows
+; rcx = size
+; rdx = pointer to VirtualAlloc ('pre' only)
+_svc_alloc_rwx_windows_pre:
+    stc                             ; set the carry flag
+    jmp     _y
+_svc_alloc_rwx_windows:
+    clc
+_y:
+    mov     rax, 0x0123456789ABCDEF
+    cmovb   rax, rdx
+    sub     rsp, 40                 ; shadow space
+    mov     rdx, rcx                ; size
+    xor     ecx, ecx
+    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
+    mov     r9d, 0x40               ; PAGE_EXECUTE_READWRITE
+    call    rax                     ; kernel32!VirtualAlloc
+    add     rsp, 40
+    ret
+
 ; svc_alloc_rwx for Linux
+; rcx = size
 _svc_alloc_rwx_linux:
     push    9
     pop     rax                     ; syscall id of x64 mmap

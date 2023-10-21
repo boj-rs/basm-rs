@@ -38,31 +38,29 @@ mod win_api {
 mod win_api {
     pub const GetModuleHandleW: usize = 0;
     pub const GetProcAddress: usize = 0;
+    pub const VirtualAlloc: usize = 0;
 }
-#[cfg(target_os = "windows")]
-unsafe extern "win64" fn svc_alloc_rwx(size: usize) -> usize {
-    win_api::VirtualAlloc(0, size, 0x3000 /* MEM_COMMIT | MEM_RESERVE */, 0x40 /* PAGE_EXECUTE_READWRITE */)
-}
-#[cfg(not(target_os = "windows"))]
-const svc_alloc_rwx: usize = 0;
-
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
 pub unsafe fn _start() -> ! {
     core::arch::asm!(
-        ".quad 0x52415341f0e48348,0x49c0315141525756,0x4cc0ff097401f883,0x415000000088258d,\
-        0xc0ec814854415450,0x8c058d48000000,0x814b60fc9310000,0x55f983c1ff140c88,\
-        0x4100001000b9f272,0xee894cc48949d4ff,0x21e8e7894c,0x16e8f78948f6894c,\
-        0x4860c48348000000,0x4df2894c20244c8d,0xff415941006af889,0xc031ed3159556ad4,\
-        0x5dfa8316b60fe1f7,0x1081454b60f1b74,0xfd83c5ffc6ff48d0,0x480789c80fe57c05,\
-        0x96ac3d7eb04c783,0x5a076ace89ff3158,0x5841ff6a5a41226a,0x3130c3050fc93145",
+        ".quad 0x41c5894cf0e48348,0x5141525756524153,0x27401fd8348c031,0xec8148545550c0ff,\
+        0xfb058d48000000c8,0x14b60fc931000000,0xf983c1ff140c8808,0xcc1d8d48f27255,\
+        0xa7501fd83480000,0x4c000000911d8d48,0xff00001000b9e289,0x481d7501fd8348d3,\
+        0x7a0d8d48c389,0xc1ff481088118a00,0xf175c3fa80c0ff48,0x48c489490363894c,\
+        0x4c000000c0249c89,0x21e8e7894cee89,0xf78948f6894c0000,0xc4834800000016e8,\
+        0x894c20244c8d4860,0x5941006af8894df2,0xed3159556ad4ff41,0x8316b60fe1f7c031,\
+        0x1454b60f1b745dfa,0xc5ffc6ff48d00108,0x89c80fe57c05fd83,0xc3d7eb04c7834807,\
+        0xcdefb848f801ebf9,0xf480123456789ab,0x894828ec8348c242,0x3000b841c931ca,\
+        0xff00000040b94100,0x96ac328c48348d0,0x5a076ace89ff3158,0x5841ff6a5a41226a,\
+        0x3130c3050fc93145",
         ".ascii \"23456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
         in("r9") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
         in("r10") win_api::GetModuleHandleW,
         in("r11") win_api::GetProcAddress,
-        in("r12") svc_alloc_rwx,
+        in("r12") win_api::VirtualAlloc,
         in("r13") b$$$$stub_base85$$$$.as_ptr(),
         in("r14") BINARY_BASE85.as_mut_ptr(),
         options(noreturn)
