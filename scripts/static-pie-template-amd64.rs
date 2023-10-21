@@ -43,18 +43,18 @@ static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$
 #[no_mangle]
 pub unsafe fn _start() -> ! {
     core::arch::asm!(
-        ".quad 0x41c5894cf0e48348,0x5141525756534154,0x27401fd8348c031,0xec8148545550c0ff,\
-        0x30058d48000000c8,0x14b60fc931000001,0xf983c1ff140c8808,0xe21d8d48f27255,\
-        0x257501fd83480000,0x48000000ad1d8d48,0xff41000000e60d8d,0xeb158d48c18948d3,\
-        0x8949d4ff41000000,0x1000b9f9c28948c4,0x1fd8348d3ff0000,0xd8d48c389481d75,\
-        0x1088118a00000077,0xfa80c0ff48c1ff48,0x490363894cf175c3,0xc0249c8948c489,\
-        0xe7894cee894c0000,0xf6894c00000021e8,98397817160,0x244c8d4860c48348,\
-        0x6af8894df2894c20,0x556ad4ff41594100,0xfe1f7c031ed3159,0xf1b745dfa8316b6,\
-        0xff48d001081454b6,0xe57c05fd83c5ffc6,0x4c783480789c80f,0xcdefb848f8c3d7eb,\
-        0xf480123456789ab,0x894828ec8348c242,0x3000b841c931ca,0x48d0ff5941406a00,\
-        0x3158096ac328c483,0x226a5a076ace89ff,0x31455841ff6a5a41,0x65006bc3050fc9,\
-        0x6c0065006e0072,0x6956000000320033,0x6c6c416c61757472,0x343332313000636f",
-        ".ascii \"56789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
+        ".quad 0x41c5894cf0e48348,0x5141525756534154,0xff027401fd83c031,0xc8ec8148545550c0,\
+        0xf61d8d48000000,0x48257501fd830000,0x8d48000000c21d8d,0xd3ff41000000fb0d,\
+        0x100158d48c18948,0xc48949d4ff410000,0x1000b9f9c28948,0x1d7501fd83d3ff00,\
+        0x8d0d8d48c38948,0xff481088118a0000,0x75c3fa80c0ff48c1,0xc489490363894cf1,\
+        0xc0249c8948,0x31000000c8058d48,0x140c880814b60fc9,0x4cf27255f983c1ff,\
+        0x20e8e7894cee89,0xf78948f6894c0000,0xc4834800000015e8,0x894c20244c8d4860,\
+        0x41c93145f8894df2,0x31ed3159556ad4ff,0xfa8316b60fe1f7c0,0x81454b60f1b745d,\
+        0x83c5ffc6ff48d001,0x789c80fe57c05fd,0xf8c3d7eb04c78348,0x456789abcdefb848,\
+        0x8348c2420f480123,0x41c931ca894828ec,0x41406a00003000b8,0xc328c48348d0ff59,\
+        0x6ace89ff3158096a,0xff6a5a41226a5a07,0xc3050fc931455841,0x6e00720065006b,\
+        0x320033006c0065,0x6175747269560000,0x3000636f6c6c416c",
+        ".ascii \"123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
         in("r9") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
         in("r11") win_api::GetModuleHandleW,
