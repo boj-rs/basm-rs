@@ -111,17 +111,16 @@ _e: sub     rsp, rcx
     call    _lzma_dec
     mov     rsp, r11                ; Restore rsp
 
-    mov     rbx, qword [rsp + 48]   ; _lzma_dec does not preserve rbx
-    mov     rax, qword [rbx + 0]
-    mov     rcx, qword [rsp + 64]
-    add     rax, rcx
+    mov     rcx, qword [rsp + 48]   ; the SERVICE_FUNCTIONS table
+    mov     rax, qword [rcx + 0]
+    mov     rbx, qword [rsp + 64]
+    add     rax, rbx
     mov     rdx, qword [rsp + 72]
     mov     dword [rax], 0x9058016A ; push 0x1 -> pop rax -> nop
     bt      rdx, 0
     jnc     _f
     mov     dword [rax], 0xCC58016A ; push 0x1 -> pop rax -> int 3
-_f: mov     rcx, rbx        ; the SERVICE_FUNCTIONS table
-    call    rax             ; call the entrypoint of the binary
+_f: call    rax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 
 _lzma_dec:
