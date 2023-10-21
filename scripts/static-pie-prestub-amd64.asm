@@ -17,7 +17,7 @@ section .text
 ; [rsp+  0, rsp+128]: digittobin
 ; [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
     and     rsp, 0xFFFFFFFFFFFFFFF0
-    mov     rbp, r8
+    mov     rbp, r12
 
 ; PLATFORM_DATA
     push    r12                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
@@ -27,12 +27,13 @@ section .text
     push    rdx                     ; PLATFORM_DATA[24..31] = pe_image_base
     push    r9                      ; PLATFORM_DATA[16..23] = leading_unused_bytes
     xor     eax, eax
-    cmp     ebp, 1
-    je      _1
+    test    ebp, ebp
+    jnz      _1
     inc     eax                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
 _1:
-    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags
-    push    rbp                     ; PLATFORM_DATA[ 0.. 7] = env_id
+    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=Enable debug breakpoint)
+    inc     eax
+    push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
 
 ; SERVICE_FUNCTIONS
     push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
@@ -40,8 +41,8 @@ _1:
 
 ; Allocate memory for stub
     lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
-    cmp     ebp, 1
-    jne     _u
+    test    ebp, ebp
+    jz      _u
     lea     rbx, [rel _svc_alloc_rwx_windows_pre]   ; Register svc_alloc_rwx on Windows
     lea     rcx, [rel _kernel32]
     call    r11
@@ -56,8 +57,8 @@ _u:
     call    rbx
 
 ; Windows: copy svc_alloc_rwx to the new buffer
-    cmp     ebp, 1
-    jne     _x
+    test    ebp, ebp
+    jz      _x
     mov     rbx, rax                ; rbx = new svc_alloc_rwx
     lea     rcx, [rel _svc_alloc_rwx_windows]
 _v:
