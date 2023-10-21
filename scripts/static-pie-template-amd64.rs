@@ -31,36 +31,34 @@ mod win_api {
     extern "win64" {
         pub fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
         pub fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
-        pub fn VirtualAlloc(lpAddress: usize, dwSize: usize, flAllocationType: u32, flProtect: u32) -> usize;
     }
 }
 #[cfg(not(target_os = "windows"))]
 mod win_api {
     pub const GetModuleHandleW: usize = 0;
     pub const GetProcAddress: usize = 0;
-    pub const VirtualAlloc: usize = 0;
 }
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
 pub unsafe fn _start() -> ! {
     core::arch::asm!(
-        ".quad 0x41c5894cf0e48348,0x5141525756524153,0x27401fd8348c031,0xec8148545550c0ff,\
-        0xfb058d48000000c8,0x14b60fc931000000,0xf983c1ff140c8808,0xcc1d8d48f27255,\
-        0xa7501fd83480000,0x4c000000911d8d48,0xff00001000b9e289,0x481d7501fd8348d3,\
-        0x7a0d8d48c389,0xc1ff481088118a00,0xf175c3fa80c0ff48,0x48c489490363894c,\
-        0x4c000000c0249c89,0x21e8e7894cee89,0xf78948f6894c0000,0xc4834800000016e8,\
-        0x894c20244c8d4860,0x5941006af8894df2,0xed3159556ad4ff41,0x8316b60fe1f7c031,\
-        0x1454b60f1b745dfa,0xc5ffc6ff48d00108,0x89c80fe57c05fd83,0xc3d7eb04c7834807,\
-        0xcdefb848f801ebf9,0xf480123456789ab,0x894828ec8348c242,0x3000b841c931ca,\
-        0xff00000040b94100,0x96ac328c48348d0,0x5a076ace89ff3158,0x5841ff6a5a41226a,\
-        0x3130c3050fc93145",
-        ".ascii \"23456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
+        ".quad 0x41c5894cf0e48348,0x5141525756534154,0x27401fd8348c031,0xec8148545550c0ff,\
+        0x30058d48000000c8,0x14b60fc931000001,0xf983c1ff140c8808,0xe21d8d48f27255,\
+        0x257501fd83480000,0x48000000ad1d8d48,0xff41000000e60d8d,0xeb158d48c18948d3,\
+        0x8949d4ff41000000,0x1000b9f9c28948c4,0x1fd8348d3ff0000,0xd8d48c389481d75,\
+        0x1088118a00000077,0xfa80c0ff48c1ff48,0x490363894cf175c3,0xc0249c8948c489,\
+        0xe7894cee894c0000,0xf6894c00000021e8,98397817160,0x244c8d4860c48348,\
+        0x6af8894df2894c20,0x556ad4ff41594100,0xfe1f7c031ed3159,0xf1b745dfa8316b6,\
+        0xff48d001081454b6,0xe57c05fd83c5ffc6,0x4c783480789c80f,0xcdefb848f8c3d7eb,\
+        0xf480123456789ab,0x894828ec8348c242,0x3000b841c931ca,0x48d0ff5941406a00,\
+        0x3158096ac328c483,0x226a5a076ace89ff,0x31455841ff6a5a41,0x65006bc3050fc9,\
+        0x6c0065006e0072,0x6956000000320033,0x6c6c416c61757472,0x343332313000636f",
+        ".ascii \"56789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
         in("r9") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
-        in("r10") win_api::GetModuleHandleW,
-        in("r11") win_api::GetProcAddress,
-        in("r12") win_api::VirtualAlloc,
+        in("r11") win_api::GetModuleHandleW,
+        in("r12") win_api::GetProcAddress,
         in("r13") b$$$$stub_base85$$$$.as_ptr(),
         in("r14") BINARY_BASE85.as_mut_ptr(),
         options(noreturn)

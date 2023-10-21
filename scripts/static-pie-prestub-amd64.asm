@@ -20,8 +20,8 @@ section .text
     mov     rbp, r8
 
 ; PLATFORM_DATA
-    push    r11                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
-    push    r10                     ; PLATFORM_DATA[48..55] = win_GetModuleHandleW
+    push    r12                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
+    push    r11                     ; PLATFORM_DATA[48..55] = win_GetModuleHandleW
     push    rsi                     ; PLATFORM_DATA[40..47] = pe_size_reloc
     push    rdi                     ; PLATFORM_DATA[32..39] = pe_off_reloc
     push    rdx                     ; PLATFORM_DATA[24..31] = pe_image_base
@@ -53,7 +53,14 @@ _2:
     cmp     rbp, 1
     jne     _u
     lea     rbx, [rel _svc_alloc_rwx_windows_pre]   ; Register svc_alloc_rwx on Windows
-    mov     rdx, r12                ; pointer to VirtualAlloc
+    lea     rcx, [rel _kernel32]
+    call    r11
+    mov     rcx, rax
+    lea     rdx, [rel _VirtualAlloc]
+    call    r12
+    mov     r12, rax
+    mov     rdx, rax                ; pointer to VirtualAlloc
+    stc
 _u:
     mov     rcx, 0x1000
     call    rbx
@@ -124,19 +131,17 @@ _6:
 ; svc_alloc_rwx for Windows
 ; rcx = size
 ; rdx = pointer to VirtualAlloc ('pre' only)
-_svc_alloc_rwx_windows_pre:
-    stc                             ; set the carry flag
-    jmp     _y
 _svc_alloc_rwx_windows:
     clc
-_y:
+_svc_alloc_rwx_windows_pre:
     mov     rax, 0x0123456789ABCDEF
     cmovb   rax, rdx
     sub     rsp, 40                 ; shadow space
     mov     rdx, rcx                ; size
     xor     ecx, ecx
     mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
-    mov     r9d, 0x40               ; PAGE_EXECUTE_READWRITE
+    push    0x40
+    pop     r9                      ; PAGE_EXECUTE_READWRITE
     call    rax                     ; kernel32!VirtualAlloc
     add     rsp, 40
     ret
@@ -157,6 +162,13 @@ _svc_alloc_rwx_linux:
     xor     r9d, r9d                ; offset
     syscall
     ret
+
+_kernel32:
+    dw      'k','e','r','n','e','l','3','2',0
+
+_VirtualAlloc:
+    db      "VirtualAlloc"
+    db      0
 
 ; b85 table
 _7:
