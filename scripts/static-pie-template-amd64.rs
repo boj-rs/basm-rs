@@ -4,29 +4,23 @@
 // IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
 #![crate_type="cdylib"]
 #![allow(non_snake_case, non_upper_case_globals)]
-#![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as std2;
+#![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as _;
 
-//==============================================================================
 // SOLUTION BEGIN
-//==============================================================================
 #[cfg(any())]
 mod solution {
 $$$$solution_src$$$$
 }
-//==============================================================================
 // SOLUTION END
-//==============================================================================
 
-//==============================================================================
 // LOADER BEGIN
-//==============================================================================
 #[cfg(not(target_arch = "x86_64"))]
 compile_error!("The target architecture is not supported.");
 #[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]
 compile_error!("The target operating system is not supported.");
 
 #[cfg(target_os = "windows")]
-mod win_api {
+mod win {
     #[link(name = "kernel32")]
     extern "win64" {
         pub fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
@@ -34,14 +28,14 @@ mod win_api {
     }
 }
 #[cfg(not(target_os = "windows"))]
-mod win_api {
+mod win {
     pub const GetModuleHandleW: usize = 0;
     pub const GetProcAddress: usize = 0;
 }
 static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
-pub unsafe fn _start() -> ! {
+unsafe fn _start() -> ! {
     core::arch::asm!(
         ".quad 41c5894cf0e48348h,5141525756534154h,0ff027401fd83c031h,0c8ec8148545550c0h,\
         0f61d8d48000000h,48257501fd830000h,8d48000000c21d8dh,0d3ff41000000fb0dh,\
@@ -57,15 +51,12 @@ pub unsafe fn _start() -> ! {
         ".ascii \"123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
         in("r9") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r8") if cfg!(windows) { 1 } else { 2 }, // Operating system ID
-        in("r11") win_api::GetModuleHandleW,
-        in("r12") win_api::GetProcAddress,
+        in("r11") win::GetModuleHandleW,
+        in("r12") win::GetProcAddress,
         in("r13") b$$$$stub_base85$$$$.as_ptr(),
         in("r14") BINARY_BASE85.as_mut_ptr(),
         options(noreturn)
     )
 }
-#[allow(dead_code)]
-fn main() { unsafe { _start() } }
-//==============================================================================
+#[allow(dead_code)] fn main() { unsafe { _start() } }
 // LOADER END
-//==============================================================================
