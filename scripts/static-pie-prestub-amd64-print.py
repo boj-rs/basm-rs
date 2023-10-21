@@ -25,7 +25,9 @@ for i in range(0, len(prestub), 8):
     elif i % 32 == 0:
         out.append("        ")
     x = int.from_bytes(prestub[i:i+8], "little")
-    qword1 = str(hex(x))
+    qword1 = str(hex(x))[2:] + "h"
+    if ord(qword1[0]) >= ord('a'):
+        qword1 = "0" + qword1
     qword2 = str(x)
     if len(qword1) <= len(qword2):
         out.append(qword1)
