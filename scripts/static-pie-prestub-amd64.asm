@@ -27,7 +27,10 @@ section .text
     push    r9                      ; PLATFORM_DATA[16..23] = leading_unused_bytes
     xor     eax, eax
     cmp     r8, 1
-    setne   al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+    je      _1
+    inc     eax                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+    lea     r12, [rel _svc_alloc_rwx_linux] ; Override svc_alloc_rwx on Linux
+_1:
     push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags
     push    r8                      ; PLATFORM_DATA[ 0.. 7] = env_id
 
@@ -93,6 +96,22 @@ _5:
     add     rdi, 4
     jmp     _4
 _6:
+    ret
+
+; svc_alloc_rwx for Linux
+_svc_alloc_rwx_linux:
+    push    9
+    pop     rax                     ; syscall id of x64 mmap
+    xor     edi, edi
+    mov     esi, ecx                ; size
+    push    7
+    pop     rdx                     ; protect
+    push    0x22
+    pop     r10                     ; flags
+    push    -1
+    pop     r8                      ; fd
+    xor     r9d, r9d                ; offset
+    syscall
     ret
 
 ; b85 table
