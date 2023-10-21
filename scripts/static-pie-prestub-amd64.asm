@@ -17,7 +17,7 @@ section .text
 ; [rsp+  0, rsp+128]: digittobin
 ; [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
     and     rsp, 0xFFFFFFFFFFFFFFF0
-    mov     rbp, r8
+    mov     rbp, r12
 
 ; PLATFORM_DATA
     push    r12                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
@@ -27,31 +27,22 @@ section .text
     push    rdx                     ; PLATFORM_DATA[24..31] = pe_image_base
     push    r9                      ; PLATFORM_DATA[16..23] = leading_unused_bytes
     xor     eax, eax
-    cmp     rbp, 1
-    je      _1
+    test    ebp, ebp
+    jnz      _1
     inc     eax                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
 _1:
-    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags
-    push    rbp                     ; PLATFORM_DATA[ 0.. 7] = env_id
+    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=Enable debug breakpoint)
+    inc     eax
+    push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
 
 ; SERVICE_FUNCTIONS
     push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
     sub     rsp, 200                ; 72 + 128
 
-; Initialize base85 decoder buffer
-    lea     rax, [rel _7]           ; rax = b85
-    xor     ecx, ecx
-_2:
-    movzx   edx, byte [rax+rcx]     ; Upper 32bit of rdx automatically gets zeroed
-    mov     byte [rsp+rdx], cl
-    inc     ecx
-    cmp     ecx, 85
-    jb      _2
-
 ; Allocate memory for stub
     lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
-    cmp     rbp, 1
-    jne     _u
+    test    ebp, ebp
+    jz      _u
     lea     rbx, [rel _svc_alloc_rwx_windows_pre]   ; Register svc_alloc_rwx on Windows
     lea     rcx, [rel _kernel32]
     call    r11
@@ -66,8 +57,8 @@ _u:
     call    rbx
 
 ; Windows: copy svc_alloc_rwx to the new buffer
-    cmp     rbp, 1
-    jne     _x
+    test    ebp, ebp
+    jz      _x
     mov     rbx, rax                ; rbx = new svc_alloc_rwx
     lea     rcx, [rel _svc_alloc_rwx_windows]
 _v:
@@ -84,6 +75,16 @@ _x:
 ; Register svc_alloc_rwx
     mov     qword [rsp+192], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
 
+; Initialize base85 decoder buffer
+    lea     rax, [rel _7]           ; rax = b85
+    xor     ecx, ecx
+_2:
+    movzx   edx, byte [rax+rcx]     ; Upper 32bit of rdx automatically gets zeroed
+    mov     byte [rsp+rdx], cl
+    inc     ecx
+    cmp     ecx, 85
+    jb      _2
+
 ; Decode stub (rsi -> rdi; rsp = digittobin (rsp+8 after call instruction))
     mov     rsi, r13                ; rsi = STUB_BASE85
     mov     rdi, r12                ; rdi = stub memory
@@ -99,8 +100,7 @@ _x:
     lea     rcx, qword [rsp+ 32]    ; rcx = SERVICE_FUNCTIONS table
     mov     rdx, r14                ; rdx = LZMA-compressed binary
     mov     r8, r15                 ; r8  = Entrypoint offset
-    push    0
-    pop     r9                      ; r9  = 1 if debugging is enabled, otherwise 0
+    xor     r9d, r9d                ; r9  = 1 if debugging is enabled, otherwise 0
     call    r12
 
 ; Base85 decoder
