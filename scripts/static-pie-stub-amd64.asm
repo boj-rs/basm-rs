@@ -52,11 +52,12 @@ LOC _state, 8
 
 
 _start:
-    sub     rsp, 40          ; for alignment and shadow space
-    mov     qword [rsp + 72], r9
-    mov     qword [rsp + 64], r8
-    mov     qword [rsp + 56], rdx
-    mov     qword [rsp + 48], rcx
+    add     rsp, 40
+    push    r9
+    push    r8
+    push    rdx
+    push    rcx
+    sub     rsp, 48          ; for alignment and shadow space
 
     movzx   eax, byte [rdx + 0]
     xor     edx, edx
@@ -110,17 +111,16 @@ _e: sub     rsp, rcx
     call    _lzma_dec
     mov     rsp, r11                ; Restore rsp
 
-    mov     rbx, qword [rsp + 48]   ; _lzma_dec does not preserve rbx
-    mov     rax, qword [rbx + 0]
-    mov     rcx, qword [rsp + 64]
-    add     rax, rcx
+    mov     rcx, qword [rsp + 48]   ; the SERVICE_FUNCTIONS table
+    mov     rax, qword [rcx + 0]
+    mov     rbx, qword [rsp + 64]
+    add     rax, rbx
     mov     rdx, qword [rsp + 72]
     mov     dword [rax], 0x9058016A ; push 0x1 -> pop rax -> nop
     bt      rdx, 0
     jnc     _f
     mov     dword [rax], 0xCC58016A ; push 0x1 -> pop rax -> int 3
-_f: mov     rcx, rbx        ; the SERVICE_FUNCTIONS table
-    call    rax             ; call the entrypoint of the binary
+_f: call    rax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 
 _lzma_dec:
