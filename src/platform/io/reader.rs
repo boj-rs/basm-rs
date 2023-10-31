@@ -74,10 +74,10 @@ impl<const N: usize> Reader<N> {
                 /* No whitespace has been found. We have to read.
                  * We try to read as much as possible at once. */
                 self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..]));
-            }
-            /* zero-fill unread portion for SIMD-accelerated unsafe integer read routines */
-            if self.len < end {
-                MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..end]).fill(0u8);
+                /* Add a null-terminator if the read was nonsaturating (for SIMD-accelerated unsafe integer read routines) */
+                if self.len < end {
+                    *self.buf[self.len].assume_init_mut() = 0u8;
+                }
             }
         }
         core::cmp::min(readahead, self.len - self.off)
