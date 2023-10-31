@@ -227,75 +227,22 @@ impl<const N: usize> Reader<N> {
         buf
     }
 
-    fn noskip_u32(&mut self) -> u32 {
-        let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
-        let m = !c & 0x1010101010101010;
-        let len = m.trailing_zeros() >> 3;
-        c <<= (8 - len) << 3;
-        c = (c & 0x0F0F0F0F0F0F0F0F).wrapping_mul(2561) >> 8;
-        c = (c & 0x00FF00FF00FF00FF).wrapping_mul(6553601) >> 16;
-        c = (c & 0x0000FFFF0000FFFF).wrapping_mul(42949672960001) >> 32;
-        self.off += len as usize;
-        if len == 8 {
-            if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
-                c *= 10;
-                c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
-                self.off += 1;
-            }
-            if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
-                c *= 10;
-                c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
-                self.off += 1;
-            }
-        }
-        c as u32
-    }
     fn noskip_u64(&mut self) -> u64 {
-        let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
-        let m = !c & 0x1010101010101010;
-        let len = m.trailing_zeros() >> 3;
-        c <<= (8 - len) << 3;
-        c = (c & 0x0F0F0F0F0F0F0F0F).wrapping_mul(2561) >> 8;
-        c = (c & 0x00FF00FF00FF00FF).wrapping_mul(6553601) >> 16;
-        c = (c & 0x0000FFFF0000FFFF).wrapping_mul(42949672960001) >> 32;
-        self.off += len as usize;
-        if len == 8 && unsafe { self.buf[self.off].assume_init() } & 16 != 0 {
-            let mut d = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
-            let m = !d & 0x1010101010101010;
+        const POW10: [u32; 9] = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000];
+        let mut out = 0;
+        loop {
+            let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
+            let m = !c & 0x1010101010101010;
             let len = m.trailing_zeros() >> 3;
-            for _ in 0..len {
-                c *= 10;
-            }
-            d <<= (8 - len) << 3;
-            d = (d & 0x0F0F0F0F0F0F0F0F).wrapping_mul(2561) >> 8;
-            d = (d & 0x00FF00FF00FF00FF).wrapping_mul(6553601) >> 16;
-            d = (d & 0x0000FFFF0000FFFF).wrapping_mul(42949672960001) >> 32;
-            c += d;
+            if len == 0 { break out; }
             self.off += len as usize;
-            if len == 8 {
-                if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
-                    c *= 10;
-                    c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
-                    self.off += 1;
-                }
-                if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
-                    c *= 10;
-                    c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
-                    self.off += 1;
-                }
-                if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
-                    c *= 10;
-                    c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
-                    self.off += 1;
-                }
-                if unsafe { self.buf[self.off].assume_init() } & 0x10 != 0 {
-                    c *= 10;
-                    c += (unsafe { self.buf[self.off].assume_init() } - b'0') as u64;
-                    self.off += 1;
-                }
-            }
+            out *= POW10[len as usize] as u64;
+            c <<= (8 - len) << 3;
+            c = (c & 0x0F0F0F0F0F0F0F0F).wrapping_mul(2561) >> 8;
+            c = (c & 0x00FF00FF00FF00FF).wrapping_mul(6553601) >> 16;
+            c = (c & 0x0000FFFF0000FFFF).wrapping_mul(42949672960001) >> 32;
+            out += c;
         }
-        c
     }
     fn noskip_u128(&mut self) -> u128 {
         let mut n = 0;
@@ -326,23 +273,23 @@ impl<const N: usize> Reader<N> {
     }
     pub fn i32(&mut self) -> i32 {
         self.skip_whitespace();
-        self.try_refill(12);
+        self.try_refill(17);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
         (if sign {
             self.off += 1;
-            self.noskip_u32().wrapping_neg()
+            self.noskip_u64().wrapping_neg()
         } else {
-            self.noskip_u32()
+            self.noskip_u64()
         }) as i32
     }
     pub fn u32(&mut self) -> u32 {
         self.skip_whitespace();
-        self.try_refill(11);
-        self.noskip_u32()
+        self.try_refill(16);
+        self.noskip_u64() as u32
     }
     pub fn i64(&mut self) -> i64 {
         self.skip_whitespace();
-        self.try_refill(22);
+        self.try_refill(25);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
         (if sign {
             self.off += 1;
@@ -353,7 +300,7 @@ impl<const N: usize> Reader<N> {
     }
     pub fn u64(&mut self) -> u64 {
         self.skip_whitespace();
-        self.try_refill(21);
+        self.try_refill(24);
         self.noskip_u64()
     }
     pub fn i128(&mut self) -> i128 {
