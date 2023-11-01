@@ -73,7 +73,7 @@ _v:
 _x:
     push    rax
     pop     rdi
-    mov     r12, rax
+    push    rdi
 
 ; Initialize base85 decoder buffer
     lea     rax, [rel _b85]         ; rax = _b85
@@ -104,13 +104,14 @@ _2a:
     call    _3
 
 ; Call stub
+    pop     rax
     add     rsp, 16                 ; Discard digittobin
     mov     qword [rsp+ 96], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
     lea     rcx, qword [rsp+ 32]    ; rcx = SERVICE_FUNCTIONS table
     mov     rdx, r14                ; rdx = LZMA-compressed binary
     mov     r8, r15                 ; r8  = Entrypoint offset
     xor     r9d, r9d                ; r9  = 1 if debugging is enabled, otherwise 0
-    call    r12
+    call    rax
 
 ; Base85 decoder
 _3:
