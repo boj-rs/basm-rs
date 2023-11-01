@@ -56,25 +56,27 @@ _start:
     push    r9
     push    r8
     push    rdx
+    pop     rbp
+    push    rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
     push    rcx
-    sub     rsp, 48          ; for alignment and shadow space
+    pop     rbx
+    push    rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
+    sub     rsp, 48         ; for alignment and shadow space
 
     movzx   eax, byte [rdx + 0]
-    xor     edx, edx
-    xor     ecx, ecx
+    cdq                     ; sets edx = 0
     mov     cl, 45
-    div     ecx
-    xor     ebx, ebx
-    bts     ebx, eax
-    lea     r13, [rbx-1]    ; r13 = (1 << pb) - 1
+    div     cl
+    xor     edi, edi
+    bts     edi, eax
+    lea     r13, [rdi-1]    ; r13 = (1 << pb) - 1
     mov     eax, edx
-    xor     edx, edx
+    cdq                     ; sets edx = 0
     mov     cl, 9
-    div     ecx             ; eax = lp, edx = lc
-    lea     ecx, [eax + edx + 8]
-    xor     ebx, ebx
-    bts     ebx, eax
-    lea     r14, [rbx-1]    ; r14 = (1 << lp) - 1
+    div     cl              ; eax = lp, edx = lc
+    xor     edi, edi
+    bts     edi, eax
+    lea     r14, [rdi-1]    ; r14 = (1 << lp) - 1
     mov     r15, rdx        ; r15 = lc
 
     mov     al, 3
@@ -82,28 +84,27 @@ _start:
     add     eax, 2048
     mov     r12, rax        ; r12 = tsize
 
-    mov     rbx, qword [rsp + 48]   ; rbx is preserved upon function calls
-    mov     rsi, qword [rsp + 56]   ; rsi is preserved upon function calls
-    mov     rcx, qword [rsi + 5]    ; svc_alloc_rwx: size of memory
-    mov     rax, qword [rbx + 64]
-    call    rax             ; allocate the Dest memory
+    mov     rcx, qword [rbp + 5]    ; svc_alloc_rwx: size of memory
+    call    qword [rbx + 64]        ; allocate the Dest memory
     mov     qword [rbx + 0], rax    ; save the image base address in the SERVICE_FUNCTIONS table
     mov     r9, rax                 ; r9 = Dst
 
-    mov     r8, qword [rsp + 56]    ; r8 = Src
-    mov     esi, dword [r8 + 14]
+    lea     r8, [rbp + 18]          ; r8 = Src + 18
+    mov     esi, dword [rbp + 14]
     bswap   esi                     ; esi = initial 32 bits of the stream
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
-    add     r8, 18                  ; r8 = Src + 18
 
     lea     rcx, [r12 + r12 + 0]
+    push    rax                     ; Save rax = Dst
+    push    rbx                     ; Save rbx
     mov     r11, rsp                ; Save rsp
-    mov     eax, 2048               ; __chkstk: Touch QWORD every 2K bytes (not 4K for safety)
-_c: cmp     rcx, rax
+    push    64
+    pop     rax                     ; __chkstk: Touch QWORD every 64 bytes (not 4K for safety and short coding)
+_c: cmp     ecx, eax                ; equivalent to "cmp rcx, rax" since the upper 32bits are zero for both
     jle     _e
     sub     rsp, rax
-    sub     rcx, rax
-    test    qword [rsp], rsp
+    sub     ecx, eax
+    test    dword [rsp], esp
     jmp     _c
 _e: sub     rsp, rcx
     and     rsp, 0xFFFFFFFFFFFFFFF8 ; Align stack to 8-byte boundary
@@ -111,15 +112,14 @@ _e: sub     rsp, rcx
     call    _lzma_dec
     mov     rsp, r11                ; Restore rsp
 
-    mov     rcx, qword [rsp + 48]   ; the SERVICE_FUNCTIONS table
-    mov     rax, qword [rcx + 0]
-    mov     rbx, qword [rsp + 64]
-    add     rax, rbx
-    mov     rdx, qword [rsp + 72]
+    pop     rcx                     ; Restore rbx = qword [rsp + 48] (the SERVICE_FUNCTIONS table) to rcx
+    pop     rax                     ; Restore rax = Dst
+    add     rax, qword [rsp + 64]
+    mov     edx, dword [rsp + 72]
     mov     dword [rax], 0x9058016A ; push 0x1 -> pop rax -> nop
-    bt      rdx, 0
-    jnc     _f
-    mov     dword [rax], 0xCC58016A ; push 0x1 -> pop rax -> int 3
+    test    dl, 1                   ; Test if rbx has the lowest bit (bit 0) set
+    jz      _f
+    mov     byte [rax+3], 0xCC      ; replace nop -> int 3
 _f: call    rax             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 

@@ -138,12 +138,10 @@ impl<const N: usize> Writer<N> {
             let lo = n % 100_000_000;
             unsafe { cvt8(&mut b128, lo) };
             off = 8;
-            off -= 1;
-            b128.0[off] = (hi % 10) as u8 + b'0';
-            if hi >= 10 {
+            while hi > 0 {
                 off -= 1;
+                b128.0[off] = (hi % 10) as u8 + b'0';
                 hi /= 10;
-                b128.0[off] = hi as u8 + b'0';
             }
         } else {
             off = unsafe { cvt8(&mut b128, n) };
@@ -175,22 +173,10 @@ impl<const N: usize> Writer<N> {
             unsafe { cvt8(&mut lo128, lolo) };
             hioff = 8;
             looff = 8;
-            hioff -= 1;
-            hi128.0[hioff] = (hi % 10) as u8 + b'0';
-            if hi >= 10 {
+            while hi > 0 {
                 hioff -= 1;
-                hi /= 10;
                 hi128.0[hioff] = (hi % 10) as u8 + b'0';
-            }
-            if hi >= 10 {
-                hioff -= 1;
                 hi /= 10;
-                hi128.0[hioff] = (hi % 10) as u8 + b'0';
-            }
-            if hi >= 10 {
-                hioff -= 1;
-                hi /= 10;
-                hi128.0[hioff] = hi as u8 + b'0';
             }
         } else if n >= 100_000_000 {
             let hi = (n / 100_000_000) as u32;

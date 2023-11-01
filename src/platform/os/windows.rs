@@ -50,7 +50,6 @@ impl Overlapped {
 #[allow(non_snake_case)]
 #[derive(Default)]
 pub struct WinApi {
-    kernel32: usize,
     ptr_GetModuleHandleW: Option<ms_abi!{fn(*const u16) -> usize}>,
     ptr_GetProcAddress: Option<ms_abi!{fn(usize, *const u8) -> usize}>,
     ptr_VirtualAlloc: Option<ms_abi!{fn(*mut u8, usize, u32, u32) -> *mut u8}>,
@@ -118,7 +117,6 @@ impl WinApi {
     }
 }
 pub static mut WINAPI: WinApi = WinApi {
-    kernel32: 0,
     ptr_GetModuleHandleW: None,
     ptr_GetProcAddress: None,
     ptr_VirtualAlloc: None,
@@ -211,15 +209,15 @@ pub unsafe fn init() {
     let pd = services::platform_data();
     WINAPI.ptr_GetModuleHandleW = Some(core::mem::transmute((*pd).win_GetModuleHandleW as usize));
     WINAPI.ptr_GetProcAddress = Some(core::mem::transmute((*pd).win_GetProcAddress as usize));
-    WINAPI.kernel32 = WINAPI.GetModuleHandleW(WinApi::KERNEL32.as_ptr());
-    WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"VirtualAlloc\0".as_ptr())));
-    WINAPI.ptr_VirtualFree = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"VirtualFree\0".as_ptr())));
-    WINAPI.ptr_ExitProcess = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"ExitProcess\0".as_ptr())));
-    WINAPI.ptr_GetStdHandle = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"GetStdHandle\0".as_ptr())));
-    WINAPI.ptr_ReadFile = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"ReadFile\0".as_ptr())));
-    WINAPI.ptr_WriteFile = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"WriteFile\0".as_ptr())));
-    WINAPI.ptr_GetOverlappedResult = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"GetOverlappedResult\0".as_ptr())));
-    WINAPI.ptr_GetLastError = Some(core::mem::transmute(WINAPI.GetProcAddress(WINAPI.kernel32, b"GetLastError\0".as_ptr())));
+    let kernel32 = WINAPI.GetModuleHandleW(WinApi::KERNEL32.as_ptr());
+    WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"VirtualAlloc\0".as_ptr())));
+    WINAPI.ptr_VirtualFree = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"VirtualFree\0".as_ptr())));
+    WINAPI.ptr_ExitProcess = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"ExitProcess\0".as_ptr())));
+    WINAPI.ptr_GetStdHandle = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"GetStdHandle\0".as_ptr())));
+    WINAPI.ptr_ReadFile = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"ReadFile\0".as_ptr())));
+    WINAPI.ptr_WriteFile = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"WriteFile\0".as_ptr())));
+    WINAPI.ptr_GetOverlappedResult = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"GetOverlappedResult\0".as_ptr())));
+    WINAPI.ptr_GetLastError = Some(core::mem::transmute(WINAPI.GetProcAddress(kernel32, b"GetLastError\0".as_ptr())));
 
     allocator::install_malloc_impl(
         dlmalloc_alloc,
