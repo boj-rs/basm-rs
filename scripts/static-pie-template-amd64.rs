@@ -7,8 +7,7 @@
 #![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as _;
 
 // SOLUTION BEGIN
-#[cfg(any())]
-mod solution {
+#[cfg(any())] mod solution {
 $$$$solution_src$$$$
 }
 // SOLUTION END
@@ -16,13 +15,12 @@ $$$$solution_src$$$$
 // LOADER BEGIN
 #[cfg(not(target_arch = "x86_64"))]
 compile_error!("The target architecture is not supported.");
-#[cfg(all(not(target_os = "windows"), not(target_os = "linux")))]
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 compile_error!("The target operating system is not supported.");
 
 #[cfg(target_os = "windows")]
 mod win {
-    #[link(name = "kernel32")]
-    extern "win64" {
+    #[link(name = "kernel32")] extern "C" {
         pub fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
         pub fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
     }
