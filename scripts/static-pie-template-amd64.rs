@@ -35,16 +35,16 @@ static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$
 #[no_mangle]
 unsafe fn _start() -> ! {
     core::arch::asm!(
-        ".quad 555d5441f0e48348h,0c031515257565341h,0ff50c0ff0275ed85h,0c8ec81485450c0h,\
-        0c21d8d480000h,0c383481974ed8500h,0d3ff41274b8d4819h,0ff4150538d485950h,\
-        0b9f95a505f50d4h,74ed85d3ff000010h,8a5b50ff4b8d4819h,0ff48c1ff48108811h,\
-        8948f175c3fa80c0h,58d48c48949037bh,0b60fc931000000cch,4830b60fc0ff4810h,\
-        0ffc1ff140c88c0ffh,55f983f576f239c2h,0e7894cee894ce472h,0f6894c00000024e8h,\
-        480000001ae85f56h,60245c894860c483h,0f2894c20244c8d48h,0ff41c93145f8894dh,\
-        0fe1f7c031ed31d4h,0f1b745dfa8316b6h,0ff48d001081454b6h,0e57c05fd83c5ffc6h,\
-        4c783480789c80fh,0ff3158096ac3d7ebh,41226a5a076ace89h,0c931455841ff6a5ah,\
-        0cdefb848f8c3050fh,0f480123456789abh,5a5128ec8348c242h,3000b841c931h,\
-        8348d0ff5941406ah,720065006bc328c4h,33006c0065006e00h,3200h",
+        ".quad 555d5441f0e48348h,0c031515257565341h,0c0ff50c0940fed85h,8d4878ec83485450h,\
+        74ed85000000be1dh,4b8d4822c3834816h,8d485950d3ff4119h,0b95f50d4ff413f53h,\
+        0ed85d3ff00001000h,5b50f64b8d481974h,48c1ff481088118ah,48f175c3fa80c0ffh,\
+        0c489495f50027b89h,31000000c1058d48h,0fc0ff4810b60fc9h,144c88c0ff4830b6h,\
+        76f239c2ffc1fff8h,894ce37255f983f4h,894c00000024e8eeh,1ae85f56f6h,\
+        245c894810c48348h,894c20244c8d4860h,41c93145f8894df2h,0e1f7c031ed31d4ffh,\
+        1a745dfa8316b60fh,0ff48d0011414b60fh,0e67c05fd83c5ffc6h,4c783480789c80fh,\
+        0ff3158096ac3d8ebh,41226a5a076ace89h,0c931455841ff6a5ah,0abcdefb848c3050fh,\
+        0ec83480123456789h,0b841c9315a5128h,0ff5941406a000030h,6bc328c48348d0h,\
+        65006e00720065h,320033006ch",
         ".asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
         in("rcx") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r11") win::GetModuleHandleW,
