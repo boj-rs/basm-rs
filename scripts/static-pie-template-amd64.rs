@@ -30,7 +30,7 @@ mod win {
     pub const GetModuleHandleW: usize = 0;
     pub const GetProcAddress: usize = 0;
 }
-static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
+static mut PAYLOAD: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
 unsafe fn _start() -> ! {
@@ -48,7 +48,7 @@ unsafe fn _start() -> ! {
         in("rcx") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r11") win::GetModuleHandleW, in("r12") win::GetProcAddress,
         in("r13") b$$$$stub_base85$$$$.as_ptr(),
-        in("r14") BINARY_BASE85.as_mut_ptr(),
+        in("r14") PAYLOAD.as_mut_ptr(),
         options(noreturn)
     )
 }

@@ -165,7 +165,7 @@ stub_ptr get_stub() {
     return (stub_ptr) stub;
 }
 #endif
-char binary_base85[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
+char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 
 #if defined(__linux__)
 int main() {}
@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
     sf.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
     sf.ptr_platform         = (void *) &pd;
 
-    b85tobin(binary_base85, (char const *)binary_base85);
+    b85tobin(payload, (char const *)payload);
 
     stub_ptr stub = get_stub();
 #if defined(__linux__)
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
         stub = (stub_ptr) stubbuf;
     }
 #endif
-    stub(&sf, binary_base85, $$$$entrypoint_offset$$$$, (size_t) g_debug);
+    stub(&sf, payload, $$$$entrypoint_offset$$$$, (size_t) g_debug);
     return 0; // never reached
 }
 // LOADER END
