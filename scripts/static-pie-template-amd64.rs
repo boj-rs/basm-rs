@@ -44,8 +44,7 @@ unsafe fn _start() -> ! {
         1a745dfa8316b60fh,0ff48d0011414b60fh,0e67c05fd83c5ffc6h,4c783480789c80fh,\
         0ff3158096ac3d8ebh,41226a5a076ace89h,0c931455841ff6a5ah,0abcdefb848c3050fh,\
         0ec83480123456789h,0b841c9315a5128h,0ff5941406a000030h,6bc328c48348d0h,\
-        65006e00720065h,320033006ch",
-        ".asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
+        65006e00720065h,320033006ch\n.asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
         in("rcx") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r11") win::GetModuleHandleW,
         in("r12") win::GetProcAddress,
