@@ -2,6 +2,11 @@
 with open("static-pie-prestub-amd64.bin", "rb") as f:
     prestub = f.read()
 prestub = bytearray(prestub)
+if len(prestub) > 0 and prestub[-1] == 0:
+    prestub = prestub[:-1]
+    asciz = True
+else:
+    asciz = False
 
 # special handling for trailing ASCII characters
 j = len(prestub)
@@ -43,7 +48,7 @@ for i in range(0, len(prestub), 8):
 # convert the table part
 table_part = table_part.decode('ascii')
 table_part = table_part.replace('{', '{{').replace('}', '}}').replace('$', '\\\\x24')
-out.append("        \".ascii \\\"{0}\\\"\",\n".format(table_part))
+out.append("        \"{0} \\\"{1}\\\"\",\n".format(".asciz" if asciz else ".ascii", table_part))
 
 # print the result
 print("".join(out))

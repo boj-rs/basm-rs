@@ -38,16 +38,16 @@ static mut BINARY_BASE85: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$
 unsafe fn _start() -> ! {
     core::arch::asm!(
         ".quad 555d5441f0e48348h,0c031515257565341h,0ff50c0ff0275ed85h,0c8ec81485450c0h,\
-        0b71d8d480000h,0c383481974ed8500h,0d3ff41274b8d4819h,0ff4139538d485950h,\
+        0c21d8d480000h,0c383481974ed8500h,0d3ff41274b8d4819h,0ff4150538d485950h,\
         0b9f95a505f50d4h,74ed85d3ff000010h,8a5b50ff4b8d4819h,0ff48c1ff48108811h,\
-        8948f175c3fa80c0h,58d48c48949037bh,0b60fc931000000cbh,83c1ff140c880814h,\
-        4cee894cf27255f9h,4c00000024e8e789h,1ae85f56f689h,5c894860c4834800h,\
-        4c20244c8d486024h,0c93145f8894df289h,0ed3159556ad4ff41h,8316b60fe1f7c031h,\
-        1454b60f1b745dfah,0c5ffc6ff48d00108h,89c80fe57c05fd83h,0c3d7eb04c7834807h,\
-        6ace89ff3158096ah,0ff6a5a41226a5a07h,0c3050fc931455841h,6789abcdefb848f8h,\
-        48c2420f48012345h,41c9315a5128ec83h,41406a00003000b8h,0c328c48348d0ff59h,\
-        6e00720065006bh,320033006c0065h,6175747269560000h,3000636f6c6c416ch",
-        ".ascii \"123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#\\x24%&()*+-;<=>?@^_`{{|}}~\"",
+        8948f175c3fa80c0h,58d48c48949037bh,0b60fc931000000cch,4830b60fc0ff4810h,\
+        0ffc1ff140c88c0ffh,55f983f576f239c2h,0e7894cee894ce472h,0f6894c00000024e8h,\
+        480000001ae85f56h,60245c894860c483h,0f2894c20244c8d48h,0ff41c93145f8894dh,\
+        0fe1f7c031ed31d4h,0f1b745dfa8316b6h,0ff48d001081454b6h,0e57c05fd83c5ffc6h,\
+        4c783480789c80fh,0ff3158096ac3d7ebh,41226a5a076ace89h,0c931455841ff6a5ah,\
+        0cdefb848f8c3050fh,0f480123456789abh,5a5128ec8348c242h,3000b841c931h,\
+        8348d0ff5941406ah,720065006bc328c4h,33006c0065006e00h,3200h",
+        ".asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
         in("rcx") $$$$leading_unused_bytes$$$$, in("rdx") $$$$pe_image_base$$$$, in("rdi") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("r11") win::GetModuleHandleW,
         in("r12") win::GetProcAddress,

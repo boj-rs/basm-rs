@@ -78,12 +78,19 @@ _x:
     mov     r12, rax
 
 ; Initialize base85 decoder buffer
-    lea     rax, [rel _7]           ; rax = b85
+    lea     rax, [rel _b85]         ; rax = _b85
     xor     ecx, ecx
 _2:
-    movzx   edx, byte [rax+rcx]     ; Upper 32bit of rdx automatically gets zeroed
+    movzx   edx, byte [rax]         ; edx = start
+    inc     rax
+    movzx   esi, byte [rax]         ; esi = end
+    inc     rax
+_2a:
     mov     byte [rsp+rdx], cl
     inc     ecx
+    inc     edx
+    cmp     edx, esi
+    jbe     _2a
     cmp     ecx, 85
     jb      _2
 
@@ -109,8 +116,8 @@ _2:
 
 ; Base85 decoder
 _3:
-    push    85
-    pop     rcx
+;   push    85                      ; ecx is already set to 85 just before calling the decoder
+;   pop     rcx
 _4:
     xor     ebp, ebp
     xor     eax, eax
@@ -171,21 +178,13 @@ _svc_alloc_rwx_windows_pre:
 _kernel32:
     dw      'k','e','r','n','e','l','3','2',0
 
+; b85 table ([start, end] encoding)
+    align 8, db 0
+_b85:
+    dq 0x21217A615A413930
+    dq 0x403B2D2D2B282623
+    dd 0x7E7B605E
+
 _VirtualAlloc:
     db      "VirtualAlloc"
     db      0
-
-; b85 table
-_7:
-    dq      0x3736353433323130
-    dq      0x4645444342413938
-    dq      0x4E4D4C4B4A494847
-    dq      0x565554535251504F
-    dq      0x646362615A595857
-    dq      0x6C6B6A6968676665
-    dq      0x74737271706F6E6D
-    dq      0x23217A7978777675
-    dq      0x2D2B2A2928262524
-    dq      0x5F5E403F3E3D3C3B
-    dd      0x7D7C7B60
-    db      0x7E
