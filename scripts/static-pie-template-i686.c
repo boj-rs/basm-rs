@@ -137,7 +137,7 @@ void *svc_alloc_rwx(size_t size) {
 typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
-char binary_base85[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
+char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 int main(int argc, char *argv[]) {
@@ -179,8 +179,8 @@ int main(int argc, char *argv[]) {
 
     stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x80001000);
     b85tobin((void *) stub, stub_base85);
-    b85tobin(binary_base85, (char const *)binary_base85);
-    stub(&sf, binary_base85, entrypoint_offset, (size_t) g_debug);
+    b85tobin(payload, (char const *)payload);
+    stub(&sf, payload, entrypoint_offset, (size_t) g_debug);
     return 0; // never reached
 }
 //==============================================================================
