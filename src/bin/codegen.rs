@@ -250,13 +250,13 @@ unsafe extern "win64" fn __chkstk() -> ! {
         "jb     1f",
         "2:",
         "sub    rcx, 4096",
-        "test   QWORD PTR [rcx], rcx", // just touches the memory address; no meaning in itself
+        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
         "sub    rax, 4096",
         "cmp    rax, 4096",
         "ja     2b",
         "1:",
         "sub    rcx, rax",
-        "test   QWORD PTR [rcx], rcx", // just touches the memory address; no meaning in itself
+        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
         "pop    rax",
         "pop    rcx",
         "ret",
