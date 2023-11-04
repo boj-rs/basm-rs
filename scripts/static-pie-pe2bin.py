@@ -50,6 +50,6 @@ if __name__ == '__main__':
     fdict['leading_unused_bytes'] = pos_begin
     fdict['entrypoint_offset'] = pe.OPTIONAL_HEADER.AddressOfEntryPoint - pos_begin
     fdict['pe_image_base'] = pe.OPTIONAL_HEADER.ImageBase
-    fdict['pe_off_reloc'] = reloc_off
+    fdict['pe_off_reloc'] = pos_begin + reloc_off
     fdict['pe_size_reloc'] = reloc_sz
     print(json.dumps(fdict))    # callers of this script can capture stdout to get this value

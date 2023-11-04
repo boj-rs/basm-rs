@@ -59,19 +59,18 @@ unsafe extern "win64" fn _start() -> ! {
         "nop",                              // padding to reserve space so that loader can patch prologue
         "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "lea    rdi, [rip + __ehdr_start]",
         "test   rax, rax",
         "jnz    1f",
         "sub    rsp, 144",                  // 144 = 16*9 -> stack alignment preserved
         "lea    rcx, [rsp]",                // rcx = SERVICE_FUNCTIONS table
         "lea    rdx, [rsp+80]",             // rdx = PLATFORM_DATA table
-        "lea    rdi, [rip + __ehdr_start]",
         "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
         "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
         "mov    QWORD PTR [rdx], 2",        // env_id = 2 (ENV_ID_LINUX)
         "mov    QWORD PTR [rdx+8], 3",      // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "1:",
         "mov    rbx, rcx", // Save SERVICE_FUNCTIONS table
-        "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
         "mov    rdi, rbx",
@@ -100,13 +99,13 @@ unsafe extern "win64" fn _start() -> ! {
         "nop",                              // padding to reserve space so that loader can patch prologue
         "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "lea    rsi, [rip + __ImageBase]",
         "test   rax, rax",
         "jnz    1f",
         "sub    rsp, 176",                  // 176 = 144 (tables) + 32 (shadow space) : preserves stack alignment
         "lea    rcx, [rsp+32]",             // rcx = SERVICE_FUNCTIONS table
         "lea    rdx, [rsp+112]",            // rdx = PLATFORM_DATA table
-        "lea    rdi, [rip + __ImageBase]",
-        "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
+        "mov    QWORD PTR [rcx], rsi",      // ptr_imagebase
         "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
         "mov    QWORD PTR [rdx], 1",        // env_id = 1 (ENV_ID_WINDOWS)
         "mov    QWORD PTR [rdx+8], 2",      // env_flags = 2 (ENV_FLAGS_NATIVE)
@@ -120,12 +119,9 @@ unsafe extern "win64" fn _start() -> ! {
         "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
         "mov    rax, QWORD PTR [rbx + 72]", // PLATFORM_DATA
         "mov    rdi, QWORD PTR [rax + 24]", // ImageBase
-        "mov    rsi, QWORD PTR [rbx + 0]",  // Base address of current program in memory
-        "mov    rdx, QWORD PTR [rax + 32]", // Offset of relocation table
-        "mov    rcx, QWORD PTR [rax + 40]", // Size of relocation table
-        "mov    r8, QWORD PTR [rax + 16]", // Leading unused bytes
-        "sub    rsi, r8",
-        "add    rdx, r8",
+        // rsi is already set as the in-memory ImageBase
+        "mov    rdx, QWORD PTR [rax + 32]", // Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    rcx, QWORD PTR [rax + 40]", // Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
         "mov    rax, QWORD PTR [rbx + 72]",
