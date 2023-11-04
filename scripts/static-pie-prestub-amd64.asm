@@ -12,51 +12,51 @@ ORG 0
 section .text
 
 ; Align stack to 16 byte boundary
-; [rsp+120, rsp+176): PLATFORM_DATA
-; [rsp+ 40, rsp+120): SERVICE_FUNCTIONS
+; [rsp+136, rsp+192): PLATFORM_DATA
+; [rsp+ 56, rsp+136): SERVICE_FUNCTIONS
 ; [rsp- 16, rsp+112): digittobin
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
-    push    r12                     ; PLATFORM_DATA[48..55] = win_GetProcAddress
-    pop     rbp
-    push    rbp                     ; Perform mov rbp, r12
-    push    r11                     ; PLATFORM_DATA[40..47] = win_GetModuleHandleW
+    push    rdi                     ; PLATFORM_DATA[48..55] = win_GetProcAddress
+    push    rax                     ; PLATFORM_DATA[40..47] = win_GetModuleHandleW
     push    rsi                     ; PLATFORM_DATA[32..39] = pe_size_reloc
-    push    rdi                     ; PLATFORM_DATA[24..31] = pe_off_reloc
-    push    rdx                     ; PLATFORM_DATA[16..23] = pe_image_base
-    xor     eax, eax
-    test    ebp, ebp
-    sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=Enable debug breakpoint)
-    inc     eax
-    push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+    push    rdx                     ; PLATFORM_DATA[24..31] = pe_off_reloc
+    push    rcx                     ; PLATFORM_DATA[16..23] = pe_image_base
+    xor     ecx, ecx
+    test    rdi, rdi
+    sete    cl                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+    mov     ebp, ecx
+    push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    inc     ecx
+    push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
 
 ; SERVICE_FUNCTIONS
     push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
-    sub     rsp, 112                ; digittobin
+    add     rsp, -128               ; digittobin
 
 ; Allocate memory for stub
     lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
     test    ebp, ebp
-    jz      _u
+    jnz     _u
     add     rbx, _svc_alloc_rwx_windows_pre - _svc_alloc_rwx_linux  ; Register svc_alloc_rwx on Windows
     lea     rcx, [rbx + _kernel32 - _svc_alloc_rwx_windows_pre]
-    call    r11
+    call    rax
     push    rax
     pop     rcx
     lea     rdx, [rbx + _VirtualAlloc - _svc_alloc_rwx_windows_pre]
-    call    r12
+    call    rdi
     push    rax
     pop     rdi                     ; pointer to VirtualAlloc
 _u:
-    mov     rcx, 0x1000
+    xor     ecx, ecx
+    mov     ch, 0x10                ; rcx = 0x1000 (4K)
     call    rbx
 
 ; Windows: copy svc_alloc_rwx to the new buffer
     test    ebp, ebp
-    jz      _x
+    jnz     _x
     lea     rcx, [rbx + _svc_alloc_rwx_windows - _svc_alloc_rwx_windows_pre]
     push    rax
     pop     rbx                     ; rbx = new svc_alloc_rwx
@@ -69,12 +69,14 @@ _v:
     jne      _v
     mov     qword [rbx+2], rdi      ; pointer to VirtualAlloc
 _x:
+    mov     qword [rsp+120], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
     push    rax
     pop     rdi
     push    rdi
 
 ; Initialize base85 decoder buffer
     lea     rax, [rel _b85]         ; rax = _b85
+    lea     rbx, [rax + _3 - _b85]
     xor     ecx, ecx
 _2:
     movzx   edx, byte [rax]         ; edx = start
@@ -90,21 +92,20 @@ _2a:
     cmp     ecx, 85
     jb      _2
 
-; Decode stub (rsi -> rdi; rsp = digittobin (rsp+8 after call instruction))
+; Decode stub (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
     mov     rsi, r13                ; rsi = STUB_BASE85
 ;   mov     rdi, r12                ; rdi = stub memory (already saved)
-    call    _3
+    call    rbx
 
-; Decode binary (rsi -> rdi; rsp = digittobin (rsp+8 after call instruction))
+; Decode binary (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
     mov     rsi, r14                ; rsi = BINARY_BASE85
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE85 (in-place decoding)
-    call    _3
+    call    rbx
 
 ; Call stub
     pop     rax
-    mov     qword [rsp+104], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
-    lea     rcx, qword [rsp+ 40]    ; rcx = SERVICE_FUNCTIONS table
+    lea     rcx, qword [rsp+ 56]    ; rcx = SERVICE_FUNCTIONS table
     mov     rdx, r14                ; rdx = LZMA-compressed binary
     mov     r8, r15                 ; r8  = Entrypoint offset
     xor     r9d, r9d                ; r9  = 1 if debugging is enabled, otherwise 0
