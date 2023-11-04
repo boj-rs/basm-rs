@@ -33,7 +33,7 @@ mod win {
 static mut PAYLOAD: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
-unsafe fn _start() -> ! {
+unsafe fn _start() {
     core::arch::asm!(
         ".quad 52565057f0e48348h,940fff8548c93151h,5451c1ff51cd89c1h,0b31d8d4880c48348h,\
         481475ed85000000h,0ff194b8d4822c383h,0ff44538d485950d0h,0ff10b5c9315f50d7h,\
@@ -48,8 +48,7 @@ unsafe fn _start() -> ! {
         in("rcx") $$$$pe_image_base$$$$, in("rdx") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
         in("rax") win::GetModuleHandleW, in("rdi") win::GetProcAddress,
         in("r13") b$$$$stub_base85$$$$.as_ptr(),
-        in("r14") PAYLOAD.as_mut_ptr(),
-        options(noreturn)
+        in("r14") PAYLOAD.as_mut_ptr()
     )
 }
 #[allow(dead_code)] fn main() { unsafe { _start() } }
