@@ -68,7 +68,6 @@ void b85tobin(void *dest, char const *src) {
 typedef struct {
     uint64_t    env_id;
     uint64_t    env_flags;
-    uint64_t    leading_unused_bytes;
     uint64_t    pe_image_base;
     uint64_t    pe_off_reloc;
     uint64_t    pe_size_reloc;
@@ -205,7 +204,6 @@ int main(int argc, char *argv[]) {
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
-    pd.leading_unused_bytes = $$$$leading_unused_bytes$$$$ULL;
     pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;

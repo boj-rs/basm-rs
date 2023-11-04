@@ -12,22 +12,20 @@ ORG 0
 section .text
 
 ; Align stack to 16 byte boundary
-; [rsp+128, rsp+192]: PLATFORM_DATA
-; [rsp+ 48, rsp+128]: SERVICE_FUNCTIONS
-; [rsp-  8, rsp+120]: digittobin
-; [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
-; [rsp+ 16, rsp+ 48]: (shadow space for win64 calling convention, only for next stage stub)
+; [rsp+120, rsp+176): PLATFORM_DATA
+; [rsp+ 40, rsp+120): SERVICE_FUNCTIONS
+; [rsp- 16, rsp+112): digittobin
+; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
-    push    r12                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
+    push    r12                     ; PLATFORM_DATA[48..55] = win_GetProcAddress
     pop     rbp
     push    rbp                     ; Perform mov rbp, r12
-    push    r11                     ; PLATFORM_DATA[48..55] = win_GetModuleHandleW
-    push    rsi                     ; PLATFORM_DATA[40..47] = pe_size_reloc
-    push    rdi                     ; PLATFORM_DATA[32..39] = pe_off_reloc
-    push    rdx                     ; PLATFORM_DATA[24..31] = pe_image_base
-    push    rcx                     ; PLATFORM_DATA[16..23] = leading_unused_bytes
+    push    r11                     ; PLATFORM_DATA[40..47] = win_GetModuleHandleW
+    push    rsi                     ; PLATFORM_DATA[32..39] = pe_size_reloc
+    push    rdi                     ; PLATFORM_DATA[24..31] = pe_off_reloc
+    push    rdx                     ; PLATFORM_DATA[16..23] = pe_image_base
     xor     eax, eax
     test    ebp, ebp
     sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
@@ -37,7 +35,7 @@ section .text
 
 ; SERVICE_FUNCTIONS
     push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
-    sub     rsp, 120                ; digittobin
+    sub     rsp, 112                ; digittobin
 
 ; Allocate memory for stub
     lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
@@ -105,9 +103,8 @@ _2a:
 
 ; Call stub
     pop     rax
-    add     rsp, 16                 ; Discard digittobin
-    mov     qword [rsp+ 96], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
-    lea     rcx, qword [rsp+ 32]    ; rcx = SERVICE_FUNCTIONS table
+    mov     qword [rsp+104], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
+    lea     rcx, qword [rsp+ 40]    ; rcx = SERVICE_FUNCTIONS table
     mov     rdx, r14                ; rdx = LZMA-compressed binary
     mov     r8, r15                 ; r8  = Entrypoint offset
     xor     r9d, r9d                ; r9  = 1 if debugging is enabled, otherwise 0

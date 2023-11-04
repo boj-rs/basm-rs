@@ -110,18 +110,18 @@ unsafe extern "win64" fn _start() -> ! {
         "mov    QWORD PTR [rdx], 1",        // env_id = 1 (ENV_ID_WINDOWS)
         "mov    QWORD PTR [rdx+8], 2",      // env_flags = 2 (ENV_FLAGS_NATIVE)
         "lea    rax, [rip+{3}]",
-        "mov    QWORD PTR [rdx+48], rax",   // GetModuleHandleW
+        "mov    QWORD PTR [rdx+40], rax",   // GetModuleHandleW
         "lea    rax, [rip+{4}]",
-        "mov    QWORD PTR [rdx+56], rax",   // GetProcAddress
+        "mov    QWORD PTR [rdx+48], rax",   // GetProcAddress
         "mov    rbx, rcx",
         "jmp    2f",
         "1:",
         "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
         "mov    rax, QWORD PTR [rbx + 72]", // PLATFORM_DATA
-        "mov    rdi, QWORD PTR [rax + 24]", // ImageBase
+        "mov    rdi, QWORD PTR [rax + 16]", // ImageBase
         // rsi is already set as the in-memory ImageBase
-        "mov    rdx, QWORD PTR [rax + 32]", // Offset of relocation table (relative to the in-memory ImageBase)
-        "mov    rcx, QWORD PTR [rax + 40]", // Size of relocation table (relative to the in-memory ImageBase)
+        "mov    rdx, QWORD PTR [rax + 24]", // Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    rcx, QWORD PTR [rax + 32]", // Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
         "mov    rax, QWORD PTR [rbx + 72]",
