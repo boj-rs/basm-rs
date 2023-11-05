@@ -4,7 +4,7 @@
 // IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
 #![crate_type = "cdylib"]
 #![allow(dead_code, non_upper_case_globals)]
-#![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as _;
+#![cfg_attr(not(windows), no_std)]#[no_link]extern crate std as _;
 
 // SOLUTION BEGIN
 #[cfg(any())] mod solution {
@@ -15,23 +15,19 @@ $$$$solution_src$$$$
 // LOADER BEGIN
 #[cfg(not(target_arch = "x86_64"))]
 compile_error!("The target architecture is not supported.");
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+#[cfg(not(any(windows, target_os = "linux")))]
 compile_error!("The target operating system is not supported.");
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 extern "C" {
     fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
     fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
 }
-#[cfg(not(target_os = "windows"))]
-const GetModuleHandleW: usize = 0;
-#[cfg(not(target_os = "windows"))]
-const GetProcAddress: usize = 0;
-
 static mut PAYLOAD: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
 unsafe fn _start() {
+    let _p = (0, 0); #[cfg(windows)] let _p = (GetModuleHandleW, GetProcAddress);
     core::arch::asm!(
         ".quad 52565057f0e48348h,940fff8548c93151h,5451c1ff51cd89c1h,971d8d4880c48348h,\
         481475ed85000000h,0ff194b8d4822c383h,0ff40538d485950d0h,0ff10b5c9315f50d7h,\
@@ -43,9 +39,8 @@ unsafe fn _start() {
         3000b841c9315a51h,0d0ff5941406a0000h,65006bc328c48348h,6c0065006e007200h,\
         32003300h\n.asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
         in("rcx") $$$$pe_image_base$$$$, in("rdx") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
-        in("rax") GetModuleHandleW, in("rdi") GetProcAddress,
-        in("r13") b$$$$stub_base85$$$$.as_ptr(),
-        in("r14") PAYLOAD.as_mut_ptr()
+        in("rax") _p.0, in("rdi") _p.1, in("r14") PAYLOAD.as_mut_ptr(),
+        in("r13") b$$$$stub_base85$$$$.as_ptr()
     )
 }
 fn main() { unsafe { _start() } }
