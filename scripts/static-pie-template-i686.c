@@ -67,7 +67,7 @@ typedef struct {
     uint64_t    pe_image_base;
     uint64_t    pe_off_reloc;
     uint64_t    pe_size_reloc;
-    uint64_t    win_GetModuleHandleW;   // pointer to kernel32::GetModuleHandleW
+    uint64_t    win_kernel32;           // handle of kernel32.dll
     uint64_t    win_GetProcAddress;     // pointer to kernel32::GetProcAddress
 } PLATFORM_DATA;
 
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
 #if defined(_WIN32)
-    pd.win_GetModuleHandleW = (uint64_t) GetModuleHandleW;
+    pd.win_kernel32         = (uint64_t) GetModuleHandleW(L"kernel32");
     pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
 #endif
     sf.ptr_imagebase        = NULL;

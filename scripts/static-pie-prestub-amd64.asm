@@ -20,17 +20,17 @@ section .text
 
 ; PLATFORM_DATA
     push    rdi                     ; PLATFORM_DATA[48..55] = win_GetProcAddress
-    push    rax                     ; PLATFORM_DATA[40..47] = win_GetModuleHandleW
+    push    rcx                     ; PLATFORM_DATA[40..47] = win_kernel32
     push    rsi                     ; PLATFORM_DATA[32..39] = pe_size_reloc
     push    rdx                     ; PLATFORM_DATA[24..31] = pe_off_reloc
-    push    rcx                     ; PLATFORM_DATA[16..23] = pe_image_base
-    xor     ecx, ecx
+    push    rax                     ; PLATFORM_DATA[16..23] = pe_image_base
+    xor     eax, eax
     test    rdi, rdi
-    sete    cl                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    mov     ebp, ecx
-    push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
-    inc     ecx
-    push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+    sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+    mov     ebp, eax
+    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    inc     eax
+    push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
 
 ; SERVICE_FUNCTIONS
     push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
@@ -41,10 +41,6 @@ section .text
     test    ebp, ebp
     jnz     _u
     add     rbx, _svc_alloc_rwx_windows_pre - _svc_alloc_rwx_linux  ; Register svc_alloc_rwx on Windows
-    lea     rcx, [rbx + _kernel32 - _svc_alloc_rwx_windows_pre]
-    call    rax
-    push    rax
-    pop     rcx
     lea     rdx, [rbx + _VirtualAlloc - _svc_alloc_rwx_windows_pre]
     call    rdi
     push    rax
@@ -162,9 +158,6 @@ _svc_alloc_rwx_windows_pre:
     add     rsp, 64
     ret
 _svc_alloc_rwx_windows_end:
-
-_kernel32:
-    dw      'k','e','r','n','e','l','3','2',0
 
 ; b85 table ([start, end] encoding)
     align 8, db 0

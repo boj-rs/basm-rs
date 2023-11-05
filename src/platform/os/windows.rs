@@ -195,9 +195,8 @@ mod services_override {
 
 pub unsafe fn init() {
     let pd = services::platform_data();
-    let GetModuleHandleW: ms_abi!{fn(*const u16) -> usize} = core::mem::transmute((*pd).win_GetModuleHandleW as usize);
+    let kernel32 = (*pd).win_kernel32 as usize;
     let GetProcAddress: ms_abi!{fn(usize, *const u8) -> usize} = core::mem::transmute((*pd).win_GetProcAddress as usize);
-    let kernel32 = GetModuleHandleW(WinApi::KERNEL32.as_ptr());
     WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(GetProcAddress(kernel32, b"VirtualAlloc\0".as_ptr())));
     WINAPI.ptr_VirtualFree = Some(core::mem::transmute(GetProcAddress(kernel32, b"VirtualFree\0".as_ptr())));
     WINAPI.ptr_ExitProcess = Some(core::mem::transmute(GetProcAddress(kernel32, b"ExitProcess\0".as_ptr())));

@@ -83,8 +83,13 @@ unsafe extern "win64" fn _start() -> ! {
 #[allow(non_snake_case)]
 #[link(name = "kernel32")]
 extern "win64" {
-    fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
+    fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
     fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
+}
+
+#[cfg(target_os = "windows")]
+unsafe extern "sysv64" fn get_kernel32() -> usize {
+    LoadLibraryA(b"kernel32\0".as_ptr())
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
@@ -100,20 +105,20 @@ unsafe extern "win64" fn _start() -> ! {
         "nop",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
         "lea    rsi, [rip + __ImageBase]",
-        "test   rax, rax",
+        "test   eax, eax",
         "jnz    1f",
         "sub    rsp, 176",                  // 176 = 144 (tables) + 32 (shadow space) : preserves stack alignment
+        "call   {3}",
         "lea    rcx, [rsp+32]",             // rcx = SERVICE_FUNCTIONS table
+        "mov    rbx, rcx",
         "lea    rdx, [rsp+112]",            // rdx = PLATFORM_DATA table
         "mov    QWORD PTR [rcx], rsi",      // ptr_imagebase
         "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
         "mov    QWORD PTR [rdx], 1",        // env_id = 1 (ENV_ID_WINDOWS)
         "mov    QWORD PTR [rdx+8], 2",      // env_flags = 2 (ENV_FLAGS_NATIVE)
-        "lea    rax, [rip+{3}]",
-        "mov    QWORD PTR [rdx+40], rax",   // GetModuleHandleW
+        "mov    QWORD PTR [rdx+40], rax",   // handle to kernel32
         "lea    rax, [rip+{4}]",
         "mov    QWORD PTR [rdx+48], rax",   // GetProcAddress
-        "mov    rbx, rcx",
         "jmp    2f",
         "1:",
         "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
@@ -126,7 +131,7 @@ unsafe extern "win64" fn _start() -> ! {
         "2:",
         "mov    rax, QWORD PTR [rbx + 72]",
         "mov    rdx, QWORD PTR [rax + 8]",
-        "btc    rdx, 0",
+        "btc    edx, 0",
         "jnc    3f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
@@ -145,7 +150,7 @@ unsafe extern "win64" fn _start() -> ! {
         sym loader::amd64_pe::relocate,
         sym _start_rust,
         sym __chkstk,
-        sym GetModuleHandleW,
+        sym get_kernel32,
         sym GetProcAddress,
         options(noreturn)
     );
