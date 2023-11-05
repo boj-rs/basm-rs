@@ -151,15 +151,15 @@ _ret:
 _svc_alloc_rwx_windows:
     mov     rax, 0x0123456789ABCDEF
 _svc_alloc_rwx_windows_pre:
-    sub     rsp, 40                 ; shadow space
     push    rcx
     pop     rdx                     ; size
     xor     ecx, ecx
     mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
     push    0x40
     pop     r9                      ; PAGE_EXECUTE_READWRITE
+    sub     rsp, r9                 ; shadow space (40 suffices but we use 64 for code golf)
     call    rax                     ; kernel32!VirtualAlloc
-    add     rsp, 40
+    add     rsp, 64
     ret
 _svc_alloc_rwx_windows_end:
 
