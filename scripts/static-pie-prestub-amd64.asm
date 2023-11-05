@@ -55,39 +55,33 @@ _u:
     call    rbx
 
 ; Windows: copy svc_alloc_rwx to the new buffer
+    xchg    rax, rdi                ; rax = pointer to VirtualAlloc / rdi = new buffer
     test    ebp, ebp
     jnz     _x
-    lea     rcx, [rbx + _svc_alloc_rwx_windows - _svc_alloc_rwx_windows_pre]
-    push    rax
-    pop     rbx                     ; rbx = new svc_alloc_rwx
-_v:
-    mov     dl, byte [rcx]
-    mov     byte [rax], dl
-    inc     rcx                     ; src
-    inc     rax                     ; dst
-    cmp     dl, 0xc3                ; 'ret' instruction
-    jne      _v
-    mov     qword [rbx+2], rdi      ; pointer to VirtualAlloc
+    lea     rsi, [rbx + _svc_alloc_rwx_windows - _svc_alloc_rwx_windows_pre]
+    push    rdi
+    pop     rbx                     ; mov rbx, rdi
+    push    _svc_alloc_rwx_windows_end - _svc_alloc_rwx_windows
+    pop     rcx
+    rep     movsb
+    mov     qword [rbx+2], rax      ; pointer to VirtualAlloc
 _x:
     mov     qword [rsp+120], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
-    push    rax
-    pop     rdi
     push    rdi
 
 ; Initialize base85 decoder buffer
-    lea     rax, [rel _b85]         ; rax = _b85
-    lea     rbx, [rax + _3 - _b85]
+    lea     rsi, [rel _b85]         ; rsi = _b85
+    lea     rbx, [rsi + _3 - _b85]
     xor     ecx, ecx
 _2:
-    movzx   edx, byte [rax]         ; edx = start
-    inc     rax
-    movzx   esi, byte [rax]         ; esi = end
-    inc     rax
+    lodsb
+    movzx   edx, al                 ; edx = start
+    lodsb                           ; al = end
 _2a:
     mov     byte [rsp+rdx-8], cl
     inc     ecx
     inc     edx
-    cmp     edx, esi
+    cmp     dl, al
     jbe     _2a
     cmp     ecx, 85
     jb      _2
@@ -120,21 +114,18 @@ _4:
     xor     eax, eax
 _5:
     mul     ecx
-    movzx   edx, byte [rsi]
-    cmp     edx, 93                 ; 93 = 0x5D = b']' denotes end of base85 stream
-    je      _6
-    movzx   edx, byte [rsp+rdx]
+    xchg    eax, edx
+    lodsb
+    cmp     al, 93                  ; 93 = 0x5D = b']' denotes end of base85 stream
+    je      _ret
+    movzx   eax, byte [rsp+rax]
     add     eax, edx
-    inc     rsi
     inc     ebp
     cmp     ebp, 5
     jl      _5
     bswap   eax
-    mov     dword [rdi], eax
-    add     rdi, 4
+    stosd                           ; stores eax to dword [rdi] and increment rdi by 4
     jmp     _4
-_6:
-    ret
 
 ; svc_alloc_rwx for Linux
 ; rcx = size
@@ -151,6 +142,7 @@ _svc_alloc_rwx_linux:
     pop     r8                      ; fd
     xor     r9d, r9d                ; offset
     syscall
+_ret:
     ret
 
 ; svc_alloc_rwx for Windows
@@ -169,6 +161,7 @@ _svc_alloc_rwx_windows_pre:
     call    rax                     ; kernel32!VirtualAlloc
     add     rsp, 40
     ret
+_svc_alloc_rwx_windows_end:
 
 _kernel32:
     dw      'k','e','r','n','e','l','3','2',0
