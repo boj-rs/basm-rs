@@ -2,8 +2,8 @@
 // Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
 
 // IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
-#![crate_type="cdylib"]
-#![allow(non_snake_case, non_upper_case_globals)]
+#![crate_type = "cdylib"]
+#![allow(dead_code, non_upper_case_globals)]
 #![cfg_attr(not(target_os = "windows"), no_std)]#[no_link]extern crate std as _;
 
 // SOLUTION BEGIN
@@ -19,17 +19,15 @@ compile_error!("The target architecture is not supported.");
 compile_error!("The target operating system is not supported.");
 
 #[cfg(target_os = "windows")]
-mod win {
-    #[link(name = "kernel32")] extern "C" {
-        pub fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
-        pub fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
-    }
+extern "C" {
+    fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
+    fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
 }
 #[cfg(not(target_os = "windows"))]
-mod win {
-    pub const GetModuleHandleW: usize = 0;
-    pub const GetProcAddress: usize = 0;
-}
+const GetModuleHandleW: usize = 0;
+#[cfg(not(target_os = "windows"))]
+const GetProcAddress: usize = 0;
+
 static mut PAYLOAD: [u8; $$$$binary_base85_len$$$$] = *b$$$$binary_base85$$$$;
 
 #[no_mangle]
@@ -46,10 +44,10 @@ unsafe fn _start() {
         406a00003000b841h,28c48348d0ff5941h,6e00720065006bc3h,320033006c006500h,\
         0\n.asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
         in("rcx") $$$$pe_image_base$$$$, in("rdx") $$$$pe_off_reloc$$$$, in("rsi") $$$$pe_size_reloc$$$$, in("r15") $$$$entrypoint_offset$$$$,
-        in("rax") win::GetModuleHandleW, in("rdi") win::GetProcAddress,
+        in("rax") GetModuleHandleW, in("rdi") GetProcAddress,
         in("r13") b$$$$stub_base85$$$$.as_ptr(),
         in("r14") PAYLOAD.as_mut_ptr()
     )
 }
-#[allow(dead_code)] fn main() { unsafe { _start() } }
+fn main() { unsafe { _start() } }
 // LOADER END
