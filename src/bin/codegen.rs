@@ -55,9 +55,9 @@ unsafe extern "win64" fn _start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
-        "xor    eax, eax",                  // rax=0 (running without loader) / rax=1 (running with loader)
-        "nop",                              // padding to reserve space so that loader can patch prologue
-        "nop",
+        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
+        "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
+        "pop    rax",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
         "lea    rdi, [rip + __ehdr_start]",
         "test   rax, rax",
@@ -100,9 +100,9 @@ unsafe extern "win64" fn _start() -> ! {
     //   on the 16-byte boundary BEFORE `call' instruction
     // In addition, we need to provide a `shadow space' of 32 bytes
     asm!(
-        "xor    eax, eax",                  // rax=0 (running without loader) / rax=1 (running with loader)
-        "nop",                              // padding to reserve space so that loader can patch prologue
-        "nop",
+        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
+        "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
+        "pop    rax",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
         "lea    rsi, [rip + __ImageBase]",
         "test   eax, eax",
@@ -187,9 +187,9 @@ unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
-        "xor    eax, eax",                  // eax=0 (running without loader) / eax=1 (running with loader)
-        "nop",                              // padding to reserve space so that loader can patch prologue
-        "nop",
+        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
+        "push   0",                         // eax=0 (running without loader) / eax=1 (running with loader)
+        "pop    eax",
         "mov    edi, DWORD PTR [esp + 4]",  // edi = SERVICE_FUNCTIONS table
         "and    esp, 0xFFFFFFF0",
         "test   eax, eax",

@@ -143,7 +143,7 @@ _start:
     rep     movsb
     mov     ecx, dword [ebx + 0]    ; ecx = ptr_imagebase
     add     ecx, dword [esi + 1]    ; add entrypoint_offset
-    mov     dword [ecx], 0x58016A90 ; nop -> push 0x1 -> pop eax
+    mov     byte [ecx + 2], 1       ; Change 'push 0' to 'push 1'
     test    byte [eax + 8], 4       ; Check ENV_FLAGS_BREAKPOINT
     jz      _f
     mov     byte [ecx], 0xCC        ; int 3
