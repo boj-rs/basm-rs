@@ -52,16 +52,11 @@ LOC _state, 8
 
 
 _start:
-    add     rsp, 40
-    push    r9
-    push    r8
-    push    rdx
-    pop     rbp
-    push    rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
-    push    rcx
-    pop     rbx
-    push    rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
-    sub     rsp, 48         ; for alignment and shadow space
+    push    rdx             ; LZMA binary
+    pop     rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
+    push    rcx             ; SERVICE_FUNCTIONS table
+    pop     rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
+    push    rbx             ; win64 convention ensures the shadow space; we only fix alignment
 
     movzx   eax, byte [rdx + 0]
     cdq                     ; sets edx = 0
@@ -82,12 +77,13 @@ _start:
     mov     al, 3
     shl     eax, cl
     add     eax, 2048
-    mov     r12, rax        ; r12 = tsize
+    xchg    rax, r12        ; r12 = tsize
 
     mov     rcx, qword [rbp + 5]    ; svc_alloc_rwx: size of memory
     call    qword [rbx + 64]        ; allocate the Dest memory
     mov     qword [rbx + 0], rax    ; save the image base address in the SERVICE_FUNCTIONS table
-    mov     r9, rax                 ; r9 = Dst
+    push    rax                     ; Save rax = Dst
+    xchg    rax, r9                 ; r9 = Dst
 
     lea     r8, [rbp + 18]          ; r8 = Src + 18
     mov     esi, dword [rbp + 14]
@@ -95,7 +91,6 @@ _start:
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
 
     lea     rcx, [r12 + r12 + 0]
-    push    rax                     ; Save rax = Dst
     push    rbx                     ; Save rbx
     mov     r11, rsp                ; Save rsp
     push    64
@@ -109,22 +104,10 @@ _c: cmp     ecx, eax                ; equivalent to "cmp rcx, rax" since the upp
 _e: sub     rsp, rcx
     and     rsp, 0xFFFFFFFFFFFFFFF8 ; Align stack to 8-byte boundary
     mov     r10, rsp                ; r10 = Temp
-    call    _lzma_dec
-    mov     rsp, r11                ; Restore rsp
-
-    pop     rcx                     ; Restore rbx = qword [rsp + 48] (the SERVICE_FUNCTIONS table) to rcx
-    pop     rax                     ; Restore rax = Dst
-    add     rax, qword [rsp + 64]
-    mov     edx, dword [rsp + 72]
-    mov     dword [rax], 0x9058016A ; push 0x1 -> pop rax -> nop
-    test    dl, 1                   ; Test if rbx has the lowest bit (bit 0) set
-    jz      _f
-    mov     byte [rax+3], 0xCC      ; replace nop -> int 3
-_f: call    rax             ; call the entrypoint of the binary
-                            ; -> subsequent instructions are never reached
 
 _lzma_dec:
-    enter   0, 0
+    push    rsp
+    pop     rbp
     or      eax, -1         ; 0xffffffff
     add     rax, 2          ; 0x100000001
     push    rax
@@ -377,6 +360,21 @@ _copy:
     jns     .1
     jmp     _loop
 _end:
-    leave
 _code_end:
-    ret
+    mov     rsp, r11                ; Restore rsp
+    pop     rax                     ; rax = SERVICE_FUNCTIONS table
+    mov     rbx, qword [rax + 72]   ; rbx = PLATFORM_DATA table
+    lea     rsi, [Dest - 32]
+    lea     rdi, [rbx + 16]
+    push    23
+    pop     rcx
+    rep     movsb
+    xchg    rax, rcx
+    pop     rax                     ; Restore rax = Dst
+    add     rax, qword [rsi + 1]    ; Add entrypoint offset
+    mov     dword [rax], 0x58016A90 ; nop -> push 1 -> pop rax
+    test    byte [rbx + 8], 4       ; Check ENV_FLAGS_BREAKPOINT
+    jz      _f
+    mov     byte [rax], 0xCC        ; int 3
+_f: call    rax             ; call the entrypoint of the binary
+                            ; -> subsequent instructions are never reached

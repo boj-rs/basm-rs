@@ -36,6 +36,12 @@ assert 'pe_size_reloc' in loader_fdict
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
+    # Embed these information into the LZMA file to reduce the generated code length
+    x = loader_fdict['pe_image_base'].to_bytes(8, byteorder='little') + \
+        loader_fdict['pe_off_reloc'].to_bytes(8, byteorder='little') + \
+        loader_fdict['pe_size_reloc'].to_bytes(8, byteorder='little') + \
+        loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
+    memory_bin += x
 lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 27}
 compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
 lzma_header_properties = ((lzma_filter['pb'] * 5 + lzma_filter['lp']) * 9 + lzma_filter['lc']).to_bytes(1, byteorder='little')

@@ -95,6 +95,7 @@ typedef struct {
 #define ENV_ID_LINUX                2
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001  // disables __chkstk in binaries compiled with Windows target
 #define ENV_FLAGS_NATIVE                0x0002  // indicates the binary is running without the loader
+#define ENV_FLAGS_BREAKPOINT            0x0004  // breakpoint at entrypoint or startup routine
 
 #if !defined(_WIN32) && !defined(__linux__)
 BASMCALL void *svc_alloc(size_t size, size_t align) {
@@ -148,7 +149,7 @@ BASMCALL void *svc_alloc_rwx(size_t size) {
     return (void *) (!ret ? ret : ret + off);
 }
 
-typedef void * (BASMCALL *stub_ptr)(void *, void *, size_t, size_t);
+typedef void * (BASMCALL *stub_ptr)(void *, void *);
 
 #define STUB_RAW $$$$stub_raw$$$$
 #if defined(__GNUC__)
@@ -204,6 +205,7 @@ int main(int argc, char *argv[]) {
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
+    if (g_debug) pd.env_flags |= ENV_FLAGS_BREAKPOINT;
     pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
@@ -246,7 +248,7 @@ int main(int argc, char *argv[]) {
         stub = (stub_ptr) stubbuf;
     }
 #endif
-    stub(&sf, payload, $$$$entrypoint_offset$$$$, (size_t) g_debug);
+    stub(&sf, payload);
     return 0; // never reached
 }
 // LOADER END

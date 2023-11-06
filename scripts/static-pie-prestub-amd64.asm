@@ -21,9 +21,9 @@ section .text
 ; PLATFORM_DATA
     push    rdi                     ; PLATFORM_DATA[48..55] = win_GetProcAddress
     push    rcx                     ; PLATFORM_DATA[40..47] = win_kernel32
-    push    rsi                     ; PLATFORM_DATA[32..39] = pe_size_reloc
-    push    rdx                     ; PLATFORM_DATA[24..31] = pe_off_reloc
-    push    rax                     ; PLATFORM_DATA[16..23] = pe_image_base
+    push    rax                     ; (To be filled by the stub) PLATFORM_DATA[32..39] = pe_size_reloc
+    push    rax                     ; (To be filled by the stub) PLATFORM_DATA[24..31] = pe_off_reloc
+    push    rax                     ; (To be filled by the stub) PLATFORM_DATA[16..23] = pe_image_base
     xor     eax, eax
     test    rdi, rdi
     sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
@@ -97,8 +97,6 @@ _2a:
     pop     rax
     lea     rcx, qword [rsp+ 56]    ; rcx = SERVICE_FUNCTIONS table
     mov     rdx, r14                ; rdx = LZMA-compressed binary
-    mov     r8, r15                 ; r8  = Entrypoint offset
-    xor     r9d, r9d                ; r9  = 1 if debugging is enabled, otherwise 0
     call    rax
 
 ; Base85 decoder

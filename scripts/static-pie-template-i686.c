@@ -1,17 +1,11 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
 
-//==============================================================================
 // SOLUTION BEGIN
-//==============================================================================
 $$$$solution_src$$$$
-//==============================================================================
 // SOLUTION END
-//==============================================================================
 
-//==============================================================================
 // LOADER BEGIN
-//==============================================================================
 
 #include <stdint.h>
 #include <stdio.h>
@@ -89,7 +83,9 @@ typedef struct {
 #define ENV_ID_UNKNOWN              0
 #define ENV_ID_WINDOWS              1
 #define ENV_ID_LINUX                2
-#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
+#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001  // disables __chkstk in binaries compiled with Windows target
+#define ENV_FLAGS_NATIVE                0x0002  // indicates the binary is running without the loader
+#define ENV_FLAGS_BREAKPOINT            0x0004  // breakpoint at entrypoint or startup routine
 
 void *svc_alloc(size_t size, size_t align) {
     return malloc(size);
@@ -133,11 +129,10 @@ void *svc_alloc_rwx(size_t size) {
     return (void *) (!ret ? ret : ret + off);
 }
 
-typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
+typedef void * (*stub_ptr)(void *, void *);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
 char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
-const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 int main(int argc, char *argv[]) {
     PLATFORM_DATA pd;
@@ -157,6 +152,7 @@ int main(int argc, char *argv[]) {
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
+    if (g_debug) pd.env_flags |= ENV_FLAGS_BREAKPOINT;
     pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
@@ -178,9 +174,7 @@ int main(int argc, char *argv[]) {
     stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x80001000);
     b85tobin((void *) stub, stub_base85);
     b85tobin(payload, (char const *)payload);
-    stub(&sf, payload, entrypoint_offset, (size_t) g_debug);
+    stub(&sf, payload);
     return 0; // never reached
 }
-//==============================================================================
 // LOADER END
-//==============================================================================
