@@ -64,6 +64,7 @@ _u:
 _x:
     mov     qword [rsp+120], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
     push    rdi
+    push    r14
 
 ; Initialize base85 decoder buffer
     lea     rsi, [rel _b85]         ; rsi = _b85
@@ -74,7 +75,7 @@ _2:
     movzx   edx, al                 ; edx = start
     lodsb                           ; al = end
 _2a:
-    mov     byte [rsp+rdx-8], cl
+    mov     byte [rsp+rdx], cl
     inc     ecx
     inc     edx
     cmp     dl, al
@@ -88,15 +89,16 @@ _2a:
     call    rbx
 
 ; Decode binary (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
-    mov     rsi, r14                ; rsi = BINARY_BASE85
+    pop     rsi                     ; rsi = BINARY_BASE85
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE85 (in-place decoding)
+    push    rdi
     call    rbx
 
 ; Call stub
+    pop     rdx                     ; rdx = LZMA-compressed binary
     pop     rax
     lea     rcx, qword [rsp+ 56]    ; rcx = SERVICE_FUNCTIONS table
-    mov     rdx, r14                ; rdx = LZMA-compressed binary
     call    rax
 
 ; Base85 decoder
@@ -112,7 +114,7 @@ _5:
     lodsb
     cmp     al, 93                  ; 93 = 0x5D = b']' denotes end of base85 stream
     je      _ret
-    movzx   eax, byte [rsp+rax]
+    movzx   eax, byte [rsp+rax+8]
     add     eax, edx
     inc     ebp
     cmp     ebp, 5
@@ -151,9 +153,9 @@ _svc_alloc_rwx_windows_pre:
     mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
     push    0x40
     pop     r9                      ; PAGE_EXECUTE_READWRITE
-    sub     rsp, r9                 ; shadow space (40 suffices but we use 64 for code golf)
+    sub     rsp, 40                 ; shadow space
     call    rax                     ; kernel32!VirtualAlloc
-    add     rsp, 64
+    add     rsp, 40
     ret
 _svc_alloc_rwx_windows_end:
 
