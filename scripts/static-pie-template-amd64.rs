@@ -3,7 +3,6 @@
 
 // IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
 #![crate_type = "cdylib"]
-#![allow(dead_code, non_upper_case_globals)]
 #![cfg_attr(not(windows), no_std)]#[no_link]extern crate std as _;
 
 // SOLUTION BEGIN
@@ -40,5 +39,5 @@ unsafe fn _start() {
         in("rcx") _p.0, in("rdi") _p.1, in("r14") PAYLOAD.as_mut_ptr(), in("r13") b$$$$stub_base85$$$$.as_ptr()
     )
 }
-fn main() { unsafe { _start() } }
+#[allow(dead_code)] fn main() { unsafe { _start() } }
 // LOADER END
