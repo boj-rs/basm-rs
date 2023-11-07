@@ -58,17 +58,19 @@ _start:
     pop     rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
     push    rbx             ; win64 convention ensures the shadow space; we only fix alignment
 
-    movzx   eax, byte [rdx + 0]
-    cdq                     ; sets edx = 0
-    mov     cl, 45
-    div     cl
+    movzx   eax, byte [rdx + 0]     ; al = pb*45 + lp*9 + lc
+    cdq                     ; edx = 0
+    push    45
+    pop     rcx
+    div     ecx             ; eax = pb, edx = lp*9 + lc
     xor     edi, edi
     bts     edi, eax
     lea     r13, [rdi-1]    ; r13 = (1 << pb) - 1
-    mov     eax, edx
-    cdq                     ; sets edx = 0
+    xchg    eax, edx        ; eax = lp*9 + lc
+    cdq                     ; edx = 0
     mov     cl, 9
-    div     cl              ; eax = lp, edx = lc
+    div     ecx             ; eax = lp, edx = lc
+    lea     ecx, [rax + rdx + 8]
     xor     edi, edi
     bts     edi, eax
     lea     r14, [rdi-1]    ; r14 = (1 << lp) - 1
@@ -77,7 +79,7 @@ _start:
     mov     al, 3
     shl     eax, cl
     add     eax, 2048
-    xchg    rax, r12        ; r12 = tsize
+    xchg    rax, r12        ; r12 = tsize (always a multiple of 256)
 
     mov     rcx, qword [rbp + 5]    ; svc_alloc_rwx: size of memory
     call    qword [rbx + 64]        ; allocate the Dest memory
@@ -90,20 +92,18 @@ _start:
     bswap   esi                     ; esi = initial 32 bits of the stream
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
 
-    lea     rcx, [r12 + r12 + 0]
+    lea     rcx, [r12 + r12 + 0]    ; rcx = tsize*2 (always a multiple of 512)
     push    rbx                     ; Save rbx
     mov     r11, rsp                ; Save rsp
     push    64
     pop     rax                     ; __chkstk: Touch QWORD every 64 bytes (not 4K for safety and short coding)
 _c: cmp     ecx, eax                ; equivalent to "cmp rcx, rax" since the upper 32bits are zero for both
-    jle     _e
+    jl      _e
     sub     rsp, rax
     sub     ecx, eax
     test    dword [rsp], esp
     jmp     _c
-_e: sub     rsp, rcx
-    and     rsp, 0xFFFFFFFFFFFFFFF8 ; Align stack to 8-byte boundary
-    mov     r10, rsp                ; r10 = Temp
+_e: mov     r10, rsp                ; r10 = Temp
 
 _lzma_dec:
     push    rsp
@@ -114,7 +114,9 @@ _lzma_dec:
     push    rax
     mov     ecx, r12d
 _rel_tsize:
-    mov     rdi, Temp
+    push    rbp
+    pop     rdi
+;   mov     rdi, Temp       ; Reduce code length by exploiting that Temp = r10 = rbp
     shl     eax, 10
     rep     stosw
     push    rsi             ; Code
