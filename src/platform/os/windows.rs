@@ -163,7 +163,7 @@ mod services_override {
                 ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                     &mut bytes_read as *mut u32, 1);
             }
-            if ret != 0 { bytes_read = 0; }
+            if ret != 0 { return 0; }
         }
         WINAPI.io_off[fd] += bytes_read as u64;
         bytes_read as usize
@@ -186,7 +186,7 @@ mod services_override {
                 ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                     &mut bytes_written as *mut u32, 1);
             }
-            if ret != 0 { bytes_written = 0; }
+            if ret != 0 { return 0; }
         }
         WINAPI.io_off[fd] += bytes_written as u64;
         bytes_written as usize
