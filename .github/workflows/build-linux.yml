@@ -50,6 +50,7 @@ jobs:
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
       - name: Check C (x86)
         if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
         run: |
@@ -58,6 +59,7 @@ jobs:
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
       - name: Check Rust (x86_64)
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: |
@@ -66,3 +68,4 @@ jobs:
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out

@@ -55,23 +55,22 @@ unsafe extern "win64" fn _start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
-        "xor    eax, eax",                  // rax=0 (running without loader) / rax=1 (running with loader)
-        "nop",                              // padding to reserve space so that loader can patch prologue
-        "nop",
+        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
+        "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
+        "pop    rax",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
+        "lea    rdi, [rip + __ehdr_start]",
         "test   rax, rax",
         "jnz    1f",
         "sub    rsp, 144",                  // 144 = 16*9 -> stack alignment preserved
         "lea    rcx, [rsp]",                // rcx = SERVICE_FUNCTIONS table
         "lea    rdx, [rsp+80]",             // rdx = PLATFORM_DATA table
-        "lea    rdi, [rip + __ehdr_start]",
         "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
         "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
         "mov    QWORD PTR [rdx], 2",        // env_id = 2 (ENV_ID_LINUX)
         "mov    QWORD PTR [rdx+8], 3",      // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "1:",
         "mov    rbx, rcx", // Save SERVICE_FUNCTIONS table
-        "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
         "mov    rdi, rbx",
@@ -84,8 +83,13 @@ unsafe extern "win64" fn _start() -> ! {
 #[allow(non_snake_case)]
 #[link(name = "kernel32")]
 extern "win64" {
-    fn GetModuleHandleW(lpModuleName: *const u16) -> usize;
+    fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
     fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
+}
+
+#[cfg(target_os = "windows")]
+unsafe extern "sysv64" fn get_kernel32() -> usize {
+    LoadLibraryA(b"kernel32\0".as_ptr())
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
@@ -96,41 +100,38 @@ unsafe extern "win64" fn _start() -> ! {
     //   on the 16-byte boundary BEFORE `call' instruction
     // In addition, we need to provide a `shadow space' of 32 bytes
     asm!(
-        "xor    eax, eax",                  // rax=0 (running without loader) / rax=1 (running with loader)
-        "nop",                              // padding to reserve space so that loader can patch prologue
-        "nop",
+        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
+        "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
+        "pop    rax",
         "and    rsp, 0xFFFFFFFFFFFFFFF0",
-        "test   rax, rax",
+        "lea    rsi, [rip + __ImageBase]",
+        "test   eax, eax",
         "jnz    1f",
         "sub    rsp, 176",                  // 176 = 144 (tables) + 32 (shadow space) : preserves stack alignment
+        "call   {3}",
         "lea    rcx, [rsp+32]",             // rcx = SERVICE_FUNCTIONS table
+        "mov    rbx, rcx",
         "lea    rdx, [rsp+112]",            // rdx = PLATFORM_DATA table
-        "lea    rdi, [rip + __ImageBase]",
-        "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
+        "mov    QWORD PTR [rcx], rsi",      // ptr_imagebase
         "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
         "mov    QWORD PTR [rdx], 1",        // env_id = 1 (ENV_ID_WINDOWS)
         "mov    QWORD PTR [rdx+8], 2",      // env_flags = 2 (ENV_FLAGS_NATIVE)
-        "lea    rax, [rip+{3}]",
-        "mov    QWORD PTR [rdx+48], rax",   // GetModuleHandleW
+        "mov    QWORD PTR [rdx+40], rax",   // handle to kernel32
         "lea    rax, [rip+{4}]",
-        "mov    QWORD PTR [rdx+56], rax",   // GetProcAddress
-        "mov    rbx, rcx",
+        "mov    QWORD PTR [rdx+48], rax",   // GetProcAddress
         "jmp    2f",
         "1:",
         "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
         "mov    rax, QWORD PTR [rbx + 72]", // PLATFORM_DATA
-        "mov    rdi, QWORD PTR [rax + 24]", // ImageBase
-        "mov    rsi, QWORD PTR [rbx + 0]",  // Base address of current program in memory
-        "mov    rdx, QWORD PTR [rax + 32]", // Offset of relocation table
-        "mov    rcx, QWORD PTR [rax + 40]", // Size of relocation table
-        "mov    r8, QWORD PTR [rax + 16]", // Leading unused bytes
-        "sub    rsi, r8",
-        "add    rdx, r8",
+        "mov    rdi, QWORD PTR [rax + 16]", // ImageBase
+        // rsi is already set as the in-memory ImageBase
+        "mov    rdx, QWORD PTR [rax + 24]", // Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    rcx, QWORD PTR [rax + 32]", // Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
         "mov    rax, QWORD PTR [rbx + 72]",
         "mov    rdx, QWORD PTR [rax + 8]",
-        "btc    rdx, 0",
+        "btc    edx, 0",
         "jnc    3f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
@@ -149,7 +150,7 @@ unsafe extern "win64" fn _start() -> ! {
         sym loader::amd64_pe::relocate,
         sym _start_rust,
         sym __chkstk,
-        sym GetModuleHandleW,
+        sym get_kernel32,
         sym GetProcAddress,
         options(noreturn)
     );
@@ -186,9 +187,9 @@ unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call' instruction
     asm!(
-        "xor    eax, eax",                  // eax=0 (running without loader) / eax=1 (running with loader)
-        "nop",                              // padding to reserve space so that loader can patch prologue
-        "nop",
+        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
+        "push   0",                         // eax=0 (running without loader) / eax=1 (running with loader)
+        "pop    eax",
         "mov    edi, DWORD PTR [esp + 4]",  // edi = SERVICE_FUNCTIONS table
         "and    esp, 0xFFFFFFF0",
         "test   eax, eax",
@@ -254,13 +255,13 @@ unsafe extern "win64" fn __chkstk() -> ! {
         "jb     1f",
         "2:",
         "sub    rcx, 4096",
-        "test   QWORD PTR [rcx], rcx", // just touches the memory address; no meaning in itself
+        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
         "sub    rax, 4096",
         "cmp    rax, 4096",
         "ja     2b",
         "1:",
         "sub    rcx, rax",
-        "test   QWORD PTR [rcx], rcx", // just touches the memory address; no meaning in itself
+        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
         "pop    rax",
         "pop    rcx",
         "ret",

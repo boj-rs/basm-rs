@@ -68,11 +68,10 @@ void b85tobin(void *dest, char const *src) {
 typedef struct {
     uint64_t    env_id;
     uint64_t    env_flags;
-    uint64_t    leading_unused_bytes;
     uint64_t    pe_image_base;
     uint64_t    pe_off_reloc;
     uint64_t    pe_size_reloc;
-    uint64_t    win_GetModuleHandleW;   // pointer to kernel32!GetModuleHandleW
+    uint64_t    win_kernel32;           // handle of kernel32.dll
     uint64_t    win_GetProcAddress;     // pointer to kernel32!GetProcAddress
 } PLATFORM_DATA;
 
@@ -96,6 +95,7 @@ typedef struct {
 #define ENV_ID_LINUX                2
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001  // disables __chkstk in binaries compiled with Windows target
 #define ENV_FLAGS_NATIVE                0x0002  // indicates the binary is running without the loader
+#define ENV_FLAGS_BREAKPOINT            0x0004  // breakpoint at entrypoint or startup routine
 
 #if !defined(_WIN32) && !defined(__linux__)
 BASMCALL void *svc_alloc(size_t size, size_t align) {
@@ -149,7 +149,7 @@ BASMCALL void *svc_alloc_rwx(size_t size) {
     return (void *) (!ret ? ret : ret + off);
 }
 
-typedef void * (BASMCALL *stub_ptr)(void *, void *, size_t, size_t);
+typedef void * (BASMCALL *stub_ptr)(void *, void *);
 
 #define STUB_RAW $$$$stub_raw$$$$
 #if defined(__GNUC__)
@@ -205,12 +205,12 @@ int main(int argc, char *argv[]) {
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
-    pd.leading_unused_bytes = $$$$leading_unused_bytes$$$$ULL;
+    if (g_debug) pd.env_flags |= ENV_FLAGS_BREAKPOINT;
     pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
     pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
     pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
 #if defined(_WIN32)
-    pd.win_GetModuleHandleW = (uint64_t) GetModuleHandleW;
+    pd.win_kernel32         = (uint64_t) GetModuleHandleW(L"kernel32");
     pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
 #endif
     sf.ptr_imagebase        = NULL;
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
         stub = (stub_ptr) stubbuf;
     }
 #endif
-    stub(&sf, payload, $$$$entrypoint_offset$$$$, (size_t) g_debug);
+    stub(&sf, payload);
     return 0; // never reached
 }
 // LOADER END

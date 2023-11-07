@@ -50,8 +50,6 @@ LOC _state
 %define Temp dword [ebp+8]
 
 
-; [ebp + 16] = g_debug
-; [ebp + 12] = entrypoint_offset
 ; [ebp +  8] = Src
 ; [ebp +  4] = the SERVICE_FUNCTIONS table
 ; [esp + 28] = the first 4 bytes of the LZMA stream     (callee: [ebp + 36])
@@ -135,17 +133,22 @@ _start:
     call    eax             ; free the Temp memory
     add     esp, 32
 
-    mov     ebx, dword [ebp + 4]
-    mov     eax, dword [ebx + 0]
-    mov     ecx, dword [ebp + 12]
-    add     eax, ecx
-    mov     edx, dword [ebp + 16]
-    mov     dword [eax], 0x9058016A ; push 0x1 -> pop eax -> nop
-    bt      edx, 0
-    jnc     _f
-    mov     dword [eax], 0xCC58016A ; push 0x1 -> pop eax -> int 3
+    mov     ebx, dword [ebp + 4]    ; ebx = SERVICE_FUNCTIONS table
+    mov     eax, dword [ebx + 36]   ; eax = PLATFORM_DATA table
+    mov     edx, dword [esp + 4]    ; edx = (End of the decompressed data)
+    lea     esi, [edx - 32]
+    lea     edi, [eax + 16]
+    push    23
+    pop     ecx
+    rep     movsb
+    mov     ecx, dword [ebx + 0]    ; ecx = ptr_imagebase
+    add     ecx, dword [esi + 1]    ; add entrypoint_offset
+    mov     byte [ecx + 2], 1       ; Change 'push 0' to 'push 1'
+    test    byte [eax + 8], 4       ; Check ENV_FLAGS_BREAKPOINT
+    jz      _f
+    mov     byte [ecx], 0xCC        ; int 3
 _f: mov     dword [esp + 0], ebx    ; the SERVICE_FUNCTIONS table
-    call    eax             ; call the entrypoint of the binary
+    call    ecx             ; call the entrypoint of the binary
                             ; -> subsequent instructions are never reached
 
 _lzma_dec:

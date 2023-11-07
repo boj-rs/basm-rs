@@ -163,7 +163,7 @@ mod services_override {
                 ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                     &mut bytes_read as *mut u32, 1);
             }
-            if ret != 0 { bytes_read = 0; }
+            if ret != 0 { return 0; }
         }
         WINAPI.io_off[fd] += bytes_read as u64;
         bytes_read as usize
@@ -186,7 +186,7 @@ mod services_override {
                 ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                     &mut bytes_written as *mut u32, 1);
             }
-            if ret != 0 { bytes_written = 0; }
+            if ret != 0 { return 0; }
         }
         WINAPI.io_off[fd] += bytes_written as u64;
         bytes_written as usize
@@ -195,9 +195,8 @@ mod services_override {
 
 pub unsafe fn init() {
     let pd = services::platform_data();
-    let GetModuleHandleW: ms_abi!{fn(*const u16) -> usize} = core::mem::transmute((*pd).win_GetModuleHandleW as usize);
+    let kernel32 = (*pd).win_kernel32 as usize;
     let GetProcAddress: ms_abi!{fn(usize, *const u8) -> usize} = core::mem::transmute((*pd).win_GetProcAddress as usize);
-    let kernel32 = GetModuleHandleW(WinApi::KERNEL32.as_ptr());
     WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(GetProcAddress(kernel32, b"VirtualAlloc\0".as_ptr())));
     WINAPI.ptr_VirtualFree = Some(core::mem::transmute(GetProcAddress(kernel32, b"VirtualFree\0".as_ptr())));
     WINAPI.ptr_ExitProcess = Some(core::mem::transmute(GetProcAddress(kernel32, b"ExitProcess\0".as_ptr())));

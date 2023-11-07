@@ -31,11 +31,10 @@ pub const ENV_FLAGS_NATIVE: u64 = 0x0002;               // indicates the binary 
 pub struct PlatformData {
     pub env_id: u64,
     pub env_flags: u64,
-    pub leading_unused_bytes: u64,
     pub pe_image_base: u64,
     pub pe_off_reloc: u64,
     pub pe_size_reloc: u64,
-    pub win_GetModuleHandleW: u64,      // pointer to kernel32::GetModuleHandleW
+    pub win_kernel32: u64,              // handle of kernel32.dll
     pub win_GetProcAddress: u64,        // pointer to kernel32::GetProcAddress
 }
 

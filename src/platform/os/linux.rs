@@ -249,8 +249,8 @@ pub unsafe fn init() {
      * by the runtime startup code (e.g., glibc).
      * Thus, instead of parsing the ELF section, we just invoke
      * the kernel APIs directly. */
-    let pd = &*services::platform_data();
-    if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
+    let pd = services::platform_data();
+    if (*pd).env_flags & services::ENV_FLAGS_NATIVE != 0 {
         let mut rlim: syscall::RLimit = Default::default();
         let ret = syscall::getrlimit(syscall::RLIMIT_STACK, &mut rlim);
         if ret == 0 && rlim.rlim_cur < 256 * 1024 * 1024 {
