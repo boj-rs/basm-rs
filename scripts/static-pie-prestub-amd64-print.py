@@ -30,9 +30,20 @@ for i in range(0, len(prestub), 8):
     elif i % 32 == 0:
         out.append("        ")
     x = int.from_bytes(prestub[i:i+8], "little")
-    qword1 = str(hex(x))[2:] + "h"
-    if ord(qword1[0]) >= ord('a'):
-        qword1 = "0" + qword1
+    def to_hex_short(y):
+        out = str(hex(y))[2:]
+        nonzero_idx = len(out)
+        while nonzero_idx > 1 and out[nonzero_idx-1] == '0':
+            nonzero_idx -= 1
+        out2 = out[:nonzero_idx] + "h<<" + str((len(out) - nonzero_idx) * 4)
+        out = out + "h"
+        if len(out2) < len(out):
+            print(out2, out)
+            out = out2
+        if ord(out[0]) >= ord('a'):
+            out = "0" + out
+        return out
+    qword1 = to_hex_short(x)
     qword2 = str(x)
     if len(qword1) <= len(qword2):
         out.append(qword1)

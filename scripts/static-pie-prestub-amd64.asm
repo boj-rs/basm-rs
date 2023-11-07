@@ -145,7 +145,7 @@ _ret:
 ; rcx = size
 ; rdx = pointer to VirtualAlloc ('pre' only)
 _svc_alloc_rwx_windows:
-    mov     rax, 0x0123456789ABCDEF
+    mov     rax, STRICT QWORD 0
 _svc_alloc_rwx_windows_pre:
     push    rcx
     pop     rdx                     ; size
