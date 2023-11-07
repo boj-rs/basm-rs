@@ -1,8 +1,7 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
 
-// IMPORTANT: To compile on Windows, change 'cdylib' on the next line to 'bin' or pass '--crate-type=bin' to rustc to avoid creating a DLL.
-#![crate_type = "cdylib"]
+#![crate_type = "cdylib"] // To compile on Windows, remove this line or pass '--crate-type=bin' to rustc to avoid creating a DLL.
 #![cfg_attr(not(windows), no_std)]#[no_link]extern crate std as _;
 
 // SOLUTION BEGIN
