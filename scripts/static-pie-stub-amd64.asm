@@ -48,7 +48,7 @@ LOC _state, 8
 ; src + 1+4+8+1+4
 %define Src r8
 %define Dest r9
-%define Temp r10
+%define Temp rbp
 
 
 _start:
@@ -71,10 +71,10 @@ _start:
     mov     cl, 9
     div     ecx             ; eax = lp, edx = lc
     lea     ecx, [rax + rdx + 8]
-    xor     edi, edi
-    bts     edi, eax
-    lea     r14, [rdi-1]    ; r14 = (1 << lp) - 1
     mov     r15, rdx        ; r15 = lc
+    cdq                     ; edx = 0
+    bts     edx, eax
+    lea     r14, [rdx-1]    ; r14 = (1 << lp) - 1
 
     mov     al, 3
     shl     eax, cl
@@ -92,33 +92,23 @@ _start:
     bswap   esi                     ; esi = initial 32 bits of the stream
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
 
-    lea     rcx, [r12 + r12 + 0]    ; rcx = tsize*2 (always a multiple of 512)
     push    rbx                     ; Save rbx
-    mov     r11, rsp                ; Save rsp
-    push    64
-    pop     rax                     ; __chkstk: Touch QWORD every 64 bytes (not 4K for safety and short coding)
-_c: cmp     ecx, eax                ; equivalent to "cmp rcx, rax" since the upper 32bits are zero for both
-    jl      _e
-    sub     rsp, rax
-    sub     ecx, eax
-    test    dword [rsp], esp
-    jmp     _c
-_e: mov     r10, rsp                ; r10 = Temp
+    lea     rdi, [rsp - 2]
+    sub     rsp, r12
+    sub     rsp, r12
 
 _lzma_dec:
+    mov     ecx, r12d
+    mov     ax, 1024
+    std                     ; set direction flag
+    rep     stosw
+    cld                     ; clear direction flag
     push    rsp
     pop     rbp
     or      eax, -1         ; 0xffffffff
     add     rax, 2          ; 0x100000001
     push    rax
     push    rax
-    mov     ecx, r12d
-_rel_tsize:
-    push    rbp
-    pop     rdi
-;   mov     rdi, Temp       ; Reduce code length by exploiting that Temp = r10 = rbp
-    shl     eax, 10
-    rep     stosw
     push    rsi             ; Code
 _rel_code:
     push    -1              ; Range
@@ -363,17 +353,17 @@ _copy:
     jmp     _loop
 _end:
 _code_end:
-    mov     rsp, r11                ; Restore rsp
+    lea     rsp, [rsp + 2*r12 + 48] ; Restore rsp
     pop     rax                     ; rax = SERVICE_FUNCTIONS table
     mov     rbx, qword [rax + 72]   ; rbx = PLATFORM_DATA table
     lea     rsi, [Dest - 32]
     lea     rdi, [rbx + 16]
-    push    23
+    push    24
     pop     rcx
     rep     movsb
     xchg    rax, rcx
     pop     rax                     ; Restore rax = Dst
-    add     rax, qword [rsi + 1]    ; Add entrypoint offset
+    add     rax, qword [rsi]        ; Add entrypoint offset
     mov     byte [rax + 2], 1       ; Change 'push 0' to 'push 1'
     test    byte [rbx + 8], 4       ; Check ENV_FLAGS_BREAKPOINT
     jz      _f
