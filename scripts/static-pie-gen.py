@@ -42,7 +42,7 @@ with open(binary_path, "rb") as f:
         loader_fdict['pe_size_reloc'].to_bytes(8, byteorder='little') + \
         loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
     memory_bin += x
-lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 27}
+lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 22}
 compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
 lzma_header_properties = ((lzma_filter['pb'] * 5 + lzma_filter['lp']) * 9 + lzma_filter['lc']).to_bytes(1, byteorder='little')
 lzma_header_dictionary_size = lzma_filter['dict_size'].to_bytes(4, byteorder='little')
