@@ -50,36 +50,36 @@ impl<const N: usize> Reader<N> {
     pub fn try_refill(&mut self, readahead: usize) -> usize {
         /* readahead cannot exceed the buffer size */
         assert!(readahead <= Self::BUF_LEN);
-        if self.off + readahead <= self.len {
-            /* data already available */
-            return readahead;
-        }
-        /* secure space by discarding the already-consumed buffer contents at front */
         let end = self.off + readahead;
-        if end > Self::BUF_LEN {
-            let rem = self.len - self.off;
-            unsafe { core::ptr::copy(self.buf[self.off..Self::BUF_LEN].as_ptr(), self.buf.as_mut_ptr(), rem); }
-            self.len = rem;
-            self.off = 0;
-        }
-        unsafe {
-            /* Although the buffer currently falls short of what has been requested,
-             * it may still be possible that a full token (which is short)
-             * is available within the remains. Thus, we check if we can return
-             * without invoking read_stdio. This is crucial for cases where
-             * the standard input is a pipe, which includes the local testing
-             * console environment. */
-            let white_pos = position::white(MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]));
-            if white_pos.is_none() {
-                /* No whitespace has been found. We have to read.
-                 * We try to read as much as possible at once. */
-                self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..Self::BUF_LEN]));
+        if end <= self.len {
+            /* data already available */
+        } else {
+            /* secure space by discarding the already-consumed buffer contents at front */
+            if end > Self::BUF_LEN {
+                let rem = self.len - self.off;
+                unsafe { core::ptr::copy(self.buf.as_ptr().add(self.off), self.buf.as_mut_ptr(), rem); }
+                self.len = rem;
+                self.off = 0;
             }
-            /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
-               This is safe since we spare 8 bytes at the end of the buffer. */
-            *self.buf[self.len].assume_init_mut() = 0u8;
+            unsafe {
+                /* Although the buffer currently falls short of what has been requested,
+                * it may still be possible that a full token (which is short)
+                * is available within the remains. Thus, we check if we can return
+                * without invoking read_stdio. This is crucial for cases where
+                * the standard input is a pipe, which includes the local testing
+                * console environment. */
+                let white_pos = position::white(MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]));
+                if white_pos.is_none() {
+                    /* No whitespace has been found. We have to read.
+                    * We try to read as much as possible at once. */
+                    self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..Self::BUF_LEN]));
+                }
+                /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
+                This is safe since we spare 8 bytes at the end of the buffer. */
+                *self.buf[self.len].assume_init_mut() = 0u8;
+            }
         }
-        core::cmp::min(readahead, self.len - self.off)
+        self.len - self.off
     }
     pub fn try_consume(&mut self, bytes: usize) -> usize {
         let mut consumed = 0;
