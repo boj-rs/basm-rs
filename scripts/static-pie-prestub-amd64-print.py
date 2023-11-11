@@ -63,7 +63,7 @@ for i in range(0, len(prestub), CHUNK_SIZE):
 # convert the table part
 table_part = table_part.decode('ascii')
 table_part = table_part.replace('{', '{{').replace('}', '}}').replace('$', '\\\\x24')
-out.append("        \"{0} \\\"{1}\\\"\",\n".format(".asciz" if asciz else ".ascii", table_part))
+out.append("        \"{0}\\\"{1}\\\"\",\n".format(".asciz" if asciz else ".ascii", table_part))
 
 # print the result
 print("".join(out))
