@@ -24,10 +24,6 @@ mod position {
     pub unsafe fn newline(s: &[u8]) -> Option<usize> {
         s.iter().position(|&c| c == b'\n')
     }
-    #[target_feature(enable = "avx2")]
-    pub unsafe fn nonwhite(s: &[u8]) -> Option<usize> {
-        s.iter().position(|&c| c > b' ')
-    }
     #[target_feature(enable = "avx2,sse4.2")]
     pub unsafe fn memchr(s: &[u8], delim: u8) -> Option<usize> {
         s.iter().position(|&b| b == delim)
@@ -68,8 +64,14 @@ impl<const N: usize> Reader<N> {
                 * without invoking read_stdio. This is crucial for cases where
                 * the standard input is a pipe, which includes the local testing
                 * console environment. */
-                let white_pos = position::white(MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]));
-                if white_pos.is_none() {
+                let mut white_pos = self.off;
+                while white_pos < self.len {
+                    if self.buf[white_pos].assume_init() <= b' ' {
+                        break;
+                    }
+                    white_pos += 1;
+                }
+                if white_pos == self.len {
                     /* No whitespace has been found. We have to read.
                     * We try to read as much as possible at once. */
                     self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..Self::BUF_LEN]));
@@ -91,31 +93,31 @@ impl<const N: usize> Reader<N> {
         }
         consumed
     }
+    // We do not use avx2 for this function since most of the time
+    // we only skip a few whitespaces.
     pub fn skip_whitespace(&mut self) -> usize {
         let mut len = 0;
-        loop {
-            let pos = unsafe { position::nonwhite(self.remain()) };
-            if let Some(pos) = pos {
-                len += pos;
-                self.off += pos;
-                break len;
+        'outer: loop {
+            while self.off < self.len {
+                if unsafe { self.buf[self.off].assume_init() } > b' ' {
+                    break 'outer len;
+                }
+                self.off += 1;
+                len += 1;
             }
-            len += self.len - self.off;
-            self.off = self.len;
             if self.try_refill(1) == 0 { break len; }
         }
     }
     pub fn skip_until_whitespace(&mut self) -> usize {
         let mut len = 0;
-        loop {
-            let pos = unsafe { position::white(self.remain()) };
-            if let Some(pos) = pos {
-                len += pos;
-                self.off += pos;
-                break len;
+        'outer: loop {
+            while self.off < self.len {
+                if unsafe { self.buf[self.off].assume_init() } <= b' ' {
+                    break 'outer len;
+                }
+                self.off += 1;
+                len += 1;
             }
-            len += self.len - self.off;
-            self.off = self.len;
             if self.try_refill(1) == 0 { break len; }
         }
     }
