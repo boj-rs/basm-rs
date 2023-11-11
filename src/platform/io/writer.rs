@@ -89,11 +89,21 @@ impl<const N: usize> Writer<N> {
             self.flush();
         }
     }
-    pub fn byte(&mut self, b: u8) {
-        self.try_flush(1);
+    // Call this function instead of `byte` if it is known for sure that
+    // the buffer is not full. For example, this function is called in
+    // println() after calling respective print routines, which ensure an
+    // extra space for one byte in the buffer to allow for safe use of
+    // this function.
+    fn byte_unchecked(&mut self, b: u8) {
         self.buf[self.off].write(b);
         self.off += 1;
     }
+    pub fn byte(&mut self, b: u8) {
+        self.try_flush(1);
+        self.byte_unchecked(b);
+    }
+    // This function ensures an extra byte in the buffer to make sure that
+    // println() can safely use `byte_unchecked`.
     pub fn bytes(&mut self, s: &[u8]) {
         let mut i = 0;
         while i < s.len() {
@@ -101,9 +111,7 @@ impl<const N: usize> Writer<N> {
             unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[i..i + rem]); }
             self.off += rem;
             i += rem;
-            if self.off == self.buf.len() {
-                self.flush();
-            }
+            self.try_flush(1);
         }
     }
     pub fn str(&mut self, s: &str) {
@@ -130,7 +138,7 @@ impl<const N: usize> Writer<N> {
         }
     }
     pub fn u32(&mut self, n: u32) {
-        self.try_flush(10);
+        self.try_flush(11);
         let mut b128 = B128([0u8; 16]);
         let mut off;
         if n < 100_000_000 {
@@ -159,7 +167,7 @@ impl<const N: usize> Writer<N> {
         }
     }
     pub fn u64(&mut self, n: u64) {
-        self.try_flush(20);
+        self.try_flush(21);
         let mut hi128 = B128([0u8; 16]);
         let mut lo128 = B128([0u8; 16]);
         let mut hioff;
@@ -257,7 +265,7 @@ impl<const N: usize> Print<&[u8]> for Writer<N> {
     }
     fn println(&mut self, x: &[u8]) {
         self.bytes(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -267,7 +275,7 @@ impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
     }
     fn println(&mut self, x: &[u8; M]) {
         self.bytes(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -277,7 +285,7 @@ impl<const N: usize> Print<&str> for Writer<N> {
     }
     fn println(&mut self, x: &str) {
         self.bytes(x.as_bytes());
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -287,7 +295,7 @@ impl<const N: usize> Print<i16> for Writer<N> {
     }
     fn println(&mut self, x: i16) {
         self.i16(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -297,7 +305,7 @@ impl<const N: usize> Print<u16> for Writer<N> {
     }
     fn println(&mut self, x: u16) {
         self.u16(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -307,7 +315,7 @@ impl<const N: usize> Print<i32> for Writer<N> {
     }
     fn println(&mut self, x: i32) {
         self.i32(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -317,7 +325,7 @@ impl<const N: usize> Print<u32> for Writer<N> {
     }
     fn println(&mut self, x: u32) {
         self.u32(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -327,7 +335,7 @@ impl<const N: usize> Print<i64> for Writer<N> {
     }
     fn println(&mut self, x: i64) {
         self.i64(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -337,7 +345,7 @@ impl<const N: usize> Print<u64> for Writer<N> {
     }
     fn println(&mut self, x: u64) {
         self.u64(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -347,7 +355,7 @@ impl<const N: usize> Print<isize> for Writer<N> {
     }
     fn println(&mut self, x: isize) {
         self.isize(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -357,7 +365,7 @@ impl<const N: usize> Print<usize> for Writer<N> {
     }
     fn println(&mut self, x: usize) {
         self.usize(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
@@ -367,7 +375,7 @@ impl<const N: usize> Print<f64> for Writer<N> {
     }
     fn println(&mut self, x: f64) {
         self.f64(x);
-        self.byte(b'\n');
+        self.byte_unchecked(b'\n');
     }
 }
 
