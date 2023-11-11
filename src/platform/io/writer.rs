@@ -133,7 +133,9 @@ impl<const N: usize> Writer<N> {
         self.try_flush(10);
         let mut b128 = B128([0u8; 16]);
         let mut off;
-        if n >= 100_000_000 {
+        if n < 100_000_000 {
+            off = unsafe { cvt8(&mut b128, n) };
+        } else {
             let mut hi = n / 100_000_000;
             let lo = n % 100_000_000;
             unsafe { cvt8(&mut b128, lo) };
@@ -143,8 +145,6 @@ impl<const N: usize> Writer<N> {
                 b128.0[off] = (hi % 10) as u8 + b'0';
                 hi /= 10;
             }
-        } else {
-            off = unsafe { cvt8(&mut b128, n) };
         }
         let len = 16 - off;
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&b128.0[off..]); }
@@ -164,7 +164,16 @@ impl<const N: usize> Writer<N> {
         let mut lo128 = B128([0u8; 16]);
         let mut hioff;
         let looff;
-        if n >= 10_000_000_000_000_000 {
+        if n < 100_000_000 {
+            hioff = 16;
+            looff = unsafe { cvt8(&mut lo128, n as u32) };
+        } else if n < 10_000_000_000_000_000 {
+            let hi = (n / 100_000_000) as u32;
+            let lo = (n % 100_000_000) as u32;
+            hioff = unsafe { cvt8(&mut hi128, hi) };
+            unsafe { cvt8(&mut lo128, lo) };
+            looff = 8;
+        } else {
             let mut hi = (n / 10_000_000_000_000_000) as u32;
             let lo = n % 10_000_000_000_000_000;
             let lohi = (lo / 100_000_000) as u32;
@@ -178,15 +187,6 @@ impl<const N: usize> Writer<N> {
                 hi128.0[hioff] = (hi % 10) as u8 + b'0';
                 hi /= 10;
             }
-        } else if n >= 100_000_000 {
-            let hi = (n / 100_000_000) as u32;
-            let lo = (n % 100_000_000) as u32;
-            hioff = unsafe { cvt8(&mut hi128, hi) };
-            unsafe { cvt8(&mut lo128, lo) };
-            looff = 8;
-        } else {
-            hioff = 16;
-            looff = unsafe { cvt8(&mut lo128, n as u32) };
         }
         let len = 16 - hioff;
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&hi128.0[hioff..]); }
