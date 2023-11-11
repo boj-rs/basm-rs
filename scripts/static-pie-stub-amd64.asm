@@ -364,7 +364,7 @@ _code_end:
     xchg    rax, rcx
     pop     rax                     ; Restore rax = Dst
     add     rax, qword [rsi]        ; Add entrypoint offset
-    mov     byte [rax + 2], 1       ; Change 'push 0' to 'push 1'
+    inc     byte [rax + 2]          ; Change 'push 0' to 'push 1'
     test    byte [rbx + 8], 4       ; Check ENV_FLAGS_BREAKPOINT
     jz      _f
     mov     byte [rax], 0xCC        ; int 3
