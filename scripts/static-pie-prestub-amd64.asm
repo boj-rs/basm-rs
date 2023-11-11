@@ -38,6 +38,7 @@ section .text
 
 ; Allocate memory for stub
     lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
+    lea     r15, [rbx + _decode - _svc_alloc_rwx_linux] ; r15 = _decode
     test    ebp, ebp
     jnz     _u
     add     rbx, _svc_alloc_rwx_windows_pre - _svc_alloc_rwx_linux  ; Register svc_alloc_rwx on Windows
@@ -66,34 +67,17 @@ _x:
     push    rdi
     push    r14
 
-; Initialize base85 decoder buffer
-    lea     rsi, [rel _b85]         ; rsi = _b85
-    lea     rbx, [rsi + _3 - _b85]
-    xor     ecx, ecx
-_2:
-    lodsb
-    movzx   edx, al                 ; edx = start
-    lodsb                           ; al = end
-_2a:
-    mov     byte [rsp+rdx], cl
-    inc     ecx
-    inc     edx
-    cmp     dl, al
-    jbe     _2a
-    cmp     ecx, 85
-    jb      _2
-
 ; Decode stub (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
     mov     rsi, r13                ; rsi = STUB_BASE85
 ;   mov     rdi, r12                ; rdi = stub memory (already saved)
-    call    rbx
+    call    r15
 
 ; Decode binary (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
     pop     rsi                     ; rsi = BINARY_BASE85
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE85 (in-place decoding)
     push    rdi
-    call    rbx
+    call    r15
 
 ; Call stub
     pop     rdx                     ; rdx = LZMA-compressed binary
@@ -101,27 +85,27 @@ _2a:
     lea     rcx, qword [rsp+ 56]    ; rcx = SERVICE_FUNCTIONS table
     call    rax
 
-; Base85 decoder
-_3:
-;   push    85                      ; ecx is already set to 85 just before calling the decoder
-;   pop     rcx
-_4:
-    xor     ebp, ebp
-    xor     eax, eax
-_5:
-    mul     ecx
+; Base91 decoder
+_decode:
+    push    0x1f
+    pop     rax
+_decode_loop:
+    shl     eax, 13
+    lodsb
+    sub     al, 0x24
+    jc      _ret
+    cdq
     xchg    eax, edx
     lodsb
-    cmp     al, 93                  ; 93 = 0x5D = b']' denotes end of base85 stream
-    je      _ret
-    movzx   eax, byte [rsp+rax+8]
+    sub     al, 0x24
+    imul    eax, eax, 91
     add     eax, edx
-    inc     ebp
-    cmp     ebp, 5
-    jl      _5
-    bswap   eax
-    stosd                           ; stores eax to dword [rdi] and increment rdi by 4
-    jmp     _4
+_decode_output:
+    stosb
+    shr     eax, 8
+    test    ah, 16
+    jnz      _decode_output
+    jmp     _decode_loop
 
 ; svc_alloc_rwx for Linux
 ; rcx = size
@@ -159,12 +143,7 @@ _svc_alloc_rwx_windows_pre:
     ret
 _svc_alloc_rwx_windows_end:
 
-; b85 table ([start, end] encoding)
-    align 8, db 0
-_b85:
-    dq 0x21217A615A413930
-    dq 0x403B2D2D2B282623
-    dd 0x7E7B605E
+align 8, db 0
 
 _VirtualAlloc:
     db      "VirtualAlloc"
