@@ -1,7 +1,7 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
-// Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
+// Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 
-#![crate_type = "cdylib"] // To compile on Windows, remove this line or pass '--crate-type=bin' to rustc to avoid creating a DLL.
+#![crate_type = "cdylib"] // On Windows, remove this line or pass '--crate-type=bin' to rustc to avoid DLL creation.
 #![cfg_attr(not(windows), no_std)]#![allow(unused)]#[no_link]extern crate std as _;
 
 // SOLUTION BEGIN
@@ -11,13 +11,9 @@ $$$$solution_src$$$$
 // SOLUTION END
 
 // LOADER BEGIN
-#[cfg(not(target_arch = "x86_64"))]
-compile_error!("The target architecture is not supported.");
-#[cfg(not(any(windows, target_os = "linux")))]
-compile_error!("The target operating system is not supported.");
-
-#[cfg(windows)]
-extern "C" {
+#[cfg(not(target_arch = "x86_64"))] compile_error!("Unsupported target architecture.");
+#[cfg(not(any(windows, target_os = "linux")))] compile_error!("Unsupported target operating system.");
+#[cfg(windows)] extern "C" {
     fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
     fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
 }
