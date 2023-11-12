@@ -108,7 +108,7 @@ _decode_output:
     stosb
     shr     eax, 8
     test    ah, 16
-    jnz      _decode_output
+    jnz     _decode_output
     jmp     _decode_loop
 
 ; svc_alloc_rwx for Linux
@@ -133,16 +133,13 @@ _ret:
 ; rcx = size
 ; rdx = pointer to VirtualAlloc ('pre' only)
 _svc_alloc_rwx_windows:
-    enter   40, 0                   ; shadow space
     push    rcx
     pop     rdx                     ; size
     xor     ecx, ecx
     mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
     push    0x40
     pop     r9                      ; PAGE_EXECUTE_READWRITE
-    call    rax                     ; kernel32!VirtualAlloc
-    leave
-    ret
+    jmp     rax                     ; kernel32!VirtualAlloc
 _svc_alloc_rwx_windows_end:
 
 align 8, db 0
