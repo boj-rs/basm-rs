@@ -32,9 +32,9 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
  * When running without the loader, the relocations are handled differently.
  *   For Windows, the Windows kernel will handle relocations for us,
  *     so it is not necessary to consider them. However, we must link against
- *     the two OS functions: GetModuleHandleW and GetProcAddress. They cannot
- *     be found at runtime, unless we adopt Windows internals-dependent hacks
- *     employed in shellcodes.
+ *     the two OS functions: LoadLibraryA (or GetModuleHandleW) and GetProcAddress.
+ *     They cannot be found at runtime, unless we adopt Windows internals-dependent
+ *     hacks employed in shellcodes.
  *   For Linux, we still need to handle relocations by ourselves. We need to
  *     identify the image base address and the dynamic table address. Contrary
  *     to Windows, Linux kernel ABI uses system calls, whose use don't require
