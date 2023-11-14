@@ -53,29 +53,31 @@ compile_error!("The target architecture is not supported.");
 #[naked]
 unsafe extern "win64" fn _start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
-    //   on the 16-byte boundary BEFORE `call' instruction
+    //   on the 16-byte boundary BEFORE `call` instruction.
+    // However, when called as the entrypoint by the Linux OS,
+    //   RSP will be 16-byte aligned AFTER `call` instruction.
     asm!(
-        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
         "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
         "pop    rax",
-        "and    rsp, 0xFFFFFFFFFFFFFFF0",
-        "lea    rdi, [rip + __ehdr_start]",
-        "test   rax, rax",
+        "push   rcx",                       // short form of "sub rsp, 8"
+        "mov    rbx, rcx",                  // Save PLATFORM_DATA table
+        "test   eax, eax",
         "jnz    1f",
-        "sub    rsp, 144",                  // 144 = 16*9 -> stack alignment preserved
-        "lea    rcx, [rsp]",                // rcx = SERVICE_FUNCTIONS table
-        "lea    rdx, [rsp+80]",             // rdx = PLATFORM_DATA table
-        "mov    QWORD PTR [rcx], rdi",      // ptr_imagebase
-        "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
-        "mov    QWORD PTR [rdx], 2",        // env_id = 2 (ENV_ID_LINUX)
-        "mov    QWORD PTR [rdx+8], 3",      // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "sub    rsp, 88",                   // 16 + 88 + 8 = 112 = 16*7 -> stack alignment preserved
+        "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
         "1:",
-        "mov    rbx, rcx", // Save SERVICE_FUNCTIONS table
+        "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
         "mov    rdi, rbx",
         "call   {1}",
-        sym loader::amd64_elf::relocate, sym _start_rust, options(noreturn)
+        "pop    rcx",                       // short form of "add rsp, 8"
+        "ret",
+        sym loader::amd64_elf::relocate,
+        sym _start_rust,
+        options(noreturn)
     );
 }
 
@@ -97,41 +99,36 @@ unsafe extern "sysv64" fn get_kernel32() -> usize {
 #[naked]
 unsafe extern "win64" fn _start() -> ! {
     // Microsoft x64 ABI requires RSP to be aligned
-    //   on the 16-byte boundary BEFORE `call' instruction
-    // In addition, we need to provide a `shadow space' of 32 bytes
+    //   on the 16-byte boundary BEFORE `call` instruction.
+    // Also, when called as the entrypoint by the Windows OS,
+    //   RSP will be 16-byte aligned BEFORE `call` instruction.
+    // In addition, we need to provide a `shadow space` of 32 bytes.
     asm!(
-        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
         "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
         "pop    rax",
-        "and    rsp, 0xFFFFFFFFFFFFFFF0",
-        "lea    rsi, [rip + __ImageBase]",
+        "push   rbp",
+        "mov    rbp, rsp",
+        "sub    rsp, 80",                   // 80 = 112 - 32 (tables)
+        "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
         "test   eax, eax",
         "jnz    1f",
-        "sub    rsp, 176",                  // 176 = 144 (tables) + 32 (shadow space) : preserves stack alignment
         "call   {3}",
-        "lea    rcx, [rsp+32]",             // rcx = SERVICE_FUNCTIONS table
-        "mov    rbx, rcx",
-        "lea    rdx, [rsp+112]",            // rdx = PLATFORM_DATA table
-        "mov    QWORD PTR [rcx], rsi",      // ptr_imagebase
-        "mov    QWORD PTR [rcx+72], rdx",   // ptr_platform
-        "mov    QWORD PTR [rdx], 1",        // env_id = 1 (ENV_ID_WINDOWS)
-        "mov    QWORD PTR [rdx+8], 2",      // env_flags = 2 (ENV_FLAGS_NATIVE)
-        "mov    QWORD PTR [rdx+40], rax",   // handle to kernel32
-        "lea    rax, [rip+{4}]",
-        "mov    QWORD PTR [rdx+48], rax",   // GetProcAddress
+        "lea    rdi, [rip+{4}]",
+        "push   rdi",                       // GetProcAddress
+        "push   rax",                       // handle to kernel32
+        "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
+        "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
+        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
+        "sub    rsp, 32",
         "jmp    2f",
         "1:",
-        "mov    rbx, rcx", // save rcx as rbx is non-volatile (callee-saved)
-        "mov    rax, QWORD PTR [rbx + 72]", // PLATFORM_DATA
-        "mov    rdi, QWORD PTR [rax + 16]", // ImageBase
-        // rsi is already set as the in-memory ImageBase
-        "mov    rdx, QWORD PTR [rax + 24]", // Offset of relocation table (relative to the in-memory ImageBase)
-        "mov    rcx, QWORD PTR [rax + 32]", // Size of relocation table (relative to the in-memory ImageBase)
+        "mov    rdi, QWORD PTR [rbx + 32]", // Preferred ImageBase
+        "lea    rsi, [rip + __ImageBase]",  // In-memory ImageBase
+        "mov    rdx, QWORD PTR [rbx + 40]", // Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    rcx, QWORD PTR [rbx + 48]", // Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
-        "mov    rax, QWORD PTR [rbx + 72]",
-        "mov    rdx, QWORD PTR [rax + 8]",
-        "btc    edx, 0",
+        "bt     DWORD PTR [rbx + 8], 0",
         "jnc    3f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
@@ -141,12 +138,14 @@ unsafe extern "win64" fn _start() -> ! {
         // See: https://stackoverflow.com/a/46791370
         //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
         // 0:  c3                      ret
-        "lea    rcx, QWORD PTR [rip + {2}]",
-        "mov    BYTE PTR [rcx], 0xc3",
+        "mov    BYTE PTR [rip + {2}], 0xc3",
         // END Linux patch
         "3:",
         "mov    rcx, rbx",
         "call   {1}",
+        "mov    rsp, rbp",
+        "pop    rbp",
+        "ret",
         sym loader::amd64_pe::relocate,
         sym _start_rust,
         sym __chkstk,
@@ -223,7 +222,6 @@ unsafe extern "cdecl" fn _start() -> ! {
         sym _start_rust,
         sym _get_start_offset,
         sym _get_dynamic_section_offset,
-        options(noreturn)
     );
 }
 
@@ -236,10 +234,11 @@ unsafe extern "cdecl" fn _start() -> ! {
 fn _call_main() {
     solution::main();
 }
-fn _start_rust(service_functions: usize) -> ! {
-    platform::init(service_functions);
+fn _start_rust(platform_data: usize) -> i32 {
+    platform::init(platform_data);
     _call_main();
-    platform::services::exit(0)
+    platform::try_exit();
+    platform::services::get_exit_status()
 }
 
 #[no_mangle]

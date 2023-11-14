@@ -12,17 +12,18 @@ ORG 0
 section .text
 
 ; Align stack to 16 byte boundary
-; [rsp+120, rsp+176): PLATFORM_DATA
-; [rsp+ 40, rsp+120): SERVICE_FUNCTIONS
+; [rsp+ 32, rsp+144): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
+    push    rbp
+    push    rbx
+    push    r12
+    mov     r12, rsp
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
-    push    rdi                     ; PLATFORM_DATA[48..55] = win_GetProcAddress
-    push    rcx                     ; PLATFORM_DATA[40..47] = win_kernel32
-    push    rax                     ; (To be filled by the stub) PLATFORM_DATA[32..39] = pe_size_reloc
-    push    rax                     ; (To be filled by the stub) PLATFORM_DATA[24..31] = pe_off_reloc
-    push    rax                     ; (To be filled by the stub) PLATFORM_DATA[16..23] = pe_image_base
+    sub     rsp, 80
+    push    rdi                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
+    push    rcx                     ; PLATFORM_DATA[16..23] = win_kernel32
     xor     eax, eax
     test    rdi, rdi
     sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
@@ -30,10 +31,7 @@ section .text
     push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
     inc     eax
     push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
-
-; SERVICE_FUNCTIONS
-    push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
-    sub     rsp, 112                ; shadow space
+    sub     rsp, 32                 ; shadow space
 
 ; Allocate memory for stub
     lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
@@ -67,16 +65,16 @@ _u:
     pop     rcx
     rep     movsb
 _x:
-    mov     qword [rsp+104], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
+    mov     qword [rsp+56+32], rbx  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx
     push    rdi
     push    r14
 
-; Decode stub (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
+; Decode stub (rsi -> rdi)
     mov     rsi, r13                ; rsi = STUB_BASE91
 ;   mov     rdi, r12                ; rdi = stub memory (already saved)
     call    r15
 
-; Decode binary (rsi -> rdi; rsp = digittobin-8 (rsp+0 after call instruction))
+; Decode binary (rsi -> rdi)
     pop     rsi                     ; rsi = BINARY_BASE91
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
@@ -86,8 +84,13 @@ _x:
 ; Call stub
     pop     rdx                     ; rdx = LZMA-compressed binary
     pop     rax
-    lea     rcx, qword [rsp+ 40]    ; rcx = SERVICE_FUNCTIONS table
+    lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
     call    rax
+    mov     rsp, r12
+    pop     r12
+    pop     rbx
+    pop     rbp
+    jmp     _end_of_everything
 
 ; Base91 decoder
 _decode:
@@ -147,3 +150,5 @@ align 8, db 0
 _VirtualAlloc:
     db      "VirtualAlloc"
     db      0
+
+_end_of_everything:

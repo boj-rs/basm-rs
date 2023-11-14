@@ -52,11 +52,12 @@ LOC _state, 8
 
 
 _start:
+    push    r12
     push    rdx             ; LZMA binary
     pop     rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
-    push    rcx             ; SERVICE_FUNCTIONS table
+    push    rcx             ; PLATFORM_DATA table
     pop     rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
-    push    rbx             ; win64 convention ensures the shadow space; we only fix alignment
+    sub     rsp, 32         ; shadow space
 
     movzx   eax, byte [rdx + 0]     ; al = pb*45 + lp*9 + lc
     cdq                     ; edx = 0
@@ -82,8 +83,7 @@ _start:
     xchg    rax, r12        ; r12 = tsize (always a multiple of 256)
 
     mov     rcx, qword [rbp + 5]    ; svc_alloc_rwx: size of memory
-    call    qword [rbx + 64]        ; allocate the Dest memory
-    mov     qword [rbx + 0], rax    ; save the image base address in the SERVICE_FUNCTIONS table
+    call    qword [rbx + 56]        ; allocate the Dest memory
     push    rax                     ; Save rax = Dst
     xchg    rax, r9                 ; r9 = Dst
 
@@ -354,19 +354,17 @@ _copy:
 _end:
 _code_end:
     lea     rsp, [rsp + 2*r12 + 48] ; Restore rsp
-    pop     rax                     ; rax = SERVICE_FUNCTIONS table
-    mov     rbx, qword [rax + 72]   ; rbx = PLATFORM_DATA table
+    pop     rax                     ; rax = PLATFORM_DATA table
     lea     rsi, [Dest - 32]
-    lea     rdi, [rbx + 16]
+    lea     rdi, [rax + 32]
     push    24
     pop     rcx
     rep     movsb
-    xchg    rax, rcx
+    xchg    rax, rcx                ; rcx = PLATFORM_DATA table
     pop     rax                     ; Restore rax = Dst
     add     rax, qword [rsi]        ; Add entrypoint offset
-    inc     byte [rax + 2]          ; Change 'push 0' to 'push 1'
-    test    byte [rbx + 8], 4       ; Check ENV_FLAGS_BREAKPOINT
-    jz      _f
-    mov     byte [rax], 0xCC        ; int 3
-_f: call    rax             ; call the entrypoint of the binary
-                            ; -> subsequent instructions are never reached
+    inc     byte [rax + 1]          ; Change 'push 0' to 'push 1'
+    add     rsp, 32
+    pop     r12
+    jmp     rax                     ; Jump to the entrypoint of the binary
+                                    ; (it will inherit the current stackframe)
