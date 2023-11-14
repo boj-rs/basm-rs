@@ -184,40 +184,44 @@ unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
 #[naked]
 unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
-    //   on the 16-byte boundary BEFORE `call' instruction
+    //   on the 16-byte boundary BEFORE `call` instruction
     asm!(
-        "nop",                              // padding to reserve space so that loader can patch prologue (e.g., int 3)
         "push   0",                         // eax=0 (running without loader) / eax=1 (running with loader)
         "pop    eax",
-        "mov    edi, DWORD PTR [esp + 4]",  // edi = SERVICE_FUNCTIONS table
-        "and    esp, 0xFFFFFFF0",
         "test   eax, eax",
         "jnz    1f",
-        "sub    esp, 112",                  // 112 = 16*7 -> stack alignment preserved (8 bytes wasted for alignment)
-        "lea    edi, [esp]",                // edi = SERVICE_FUNCTIONS table
-        "lea    edx, [esp+40]",             // edx = PLATFORM_DATA table
-        "mov    DWORD PTR [edi+36], edx",   // ptr_platform
-        "mov    DWORD PTR [edx], 2",        // env_id = 2 (ENV_ID_LINUX)
-        "mov    DWORD PTR [edx+4], 0",      // zero upper dword
-        "mov    DWORD PTR [edx+8], 3",      // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
-        "mov    DWORD PTR [edx+12], 0",     // zero upper dword
+        "sub    esp, 76",                   // 76 = 68 + 12; PLATFORM_DATA pointer (4 bytes) + PLATFORM_DATA (68 (+ 16 = 84 bytes)) + alignment (8 bytes wasted)
+        "push   0",                         // zero upper dword
+        "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "push   0",                         // zero upper dword
+        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+        "mov    edx, esp",                  // edx = PLATFORM_DATA table
+        "jmp    2f",
         "1:",
-        "call   2f",
+        "mov    edx, DWORD PTR [esp + 4]",  // edx = PLATFORM_DATA table
+        "push   ebp",
+        "mov    ebp, esp",
+        "and    esp, 0xFFFFFFF0",
+        "sub    esp, 12",
         "2:",
-        "pop    ecx",                       // ecx = _start + 60 (obtained by counting the opcode size in bytes)
+        "call   3f",
+        "3:",
+        "pop    ecx",                       // ecx = _start + 40 (obtained by counting the opcode size in bytes)
+        "push   edx",                       // [esp + 0] = PLATFORM_DATA table
         "call   {2}",                       // eax = offset of _start from the image base
         "sub    ecx, eax",
-        "sub    ecx, 60",                   // ecx = the in-memory image base (i.e., __ehdr_start)
-        "mov    DWORD PTR [edi], ecx",      // save __ehdr_start to cover the case of launching without loader
+        "sub    ecx, 40",                   // ecx = the in-memory image base (i.e., __ehdr_start)
         "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
         "add    eax, ecx",                  // eax = _DYNAMIC table
         "sub    esp, 8",                    // For stack alignment
         "push   eax",
         "push   ecx",
         "call   {0}",
-        "add    esp, 4",
-        "push   edi",
+        "add    esp, 16",
         "call   {1}",
+        "mov    esp, ebp",
+        "pop    ebp",
+        "ret",
         sym loader::i686_elf::relocate,
         sym _start_rust,
         sym _get_start_offset,

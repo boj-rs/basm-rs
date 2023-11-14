@@ -64,7 +64,6 @@ void b85tobin(void *dest, char const *src) {
 }
 
 #pragma pack(push, 1)
-
 typedef struct {
     uint64_t    env_id;
     uint64_t    env_flags;
@@ -81,7 +80,6 @@ typedef struct {
     void       *ptr_read_stdio;     // pointer to function
     void       *ptr_write_stdio;    // pointer to function
 } PLATFORM_DATA;
-
 #pragma pack(pop)
 
 #define ENV_ID_UNKNOWN              0
@@ -115,28 +113,14 @@ BASMCALL size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
 }
 #endif
 
-static uint32_t g_debug = 0;
-#ifdef _WIN64
-static const size_t g_debug_base = 0x920000000ULL;
-#else
-static const size_t g_debug_base = 0x20000000ULL;
-#endif
 BASMCALL void *svc_alloc_rwx(size_t size) {
-    size_t preferred_addr = 0;
-    size_t off = 0;
-    if (!(size >> 63) && g_debug) {
-        preferred_addr = g_debug_base;
-        off = $$$$leading_unused_bytes$$$$;
-        size += off;
-    }
-    size &= (1ULL << 63) - 1;
 #ifdef _WIN32
-    size_t ret = (size_t) VirtualAlloc((LPVOID) preferred_addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    size_t ret = (size_t) VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #else
-    size_t ret = (size_t) syscall(9, preferred_addr, size, 0x7, 0x22, -1, 0);
+    size_t ret = (size_t) syscall(9, NULL, size, 0x7, 0x22, -1, 0);
     if (ret == (size_t)-1) ret = 0;
 #endif
-    return (void *) (!ret ? ret : ret + off);
+    return (void *) ret;
 }
 
 typedef int (BASMCALL *stub_ptr)(void *, void *);
@@ -150,7 +134,7 @@ stub_ptr get_stub() {
 #else
 const char stub_raw[] = STUB_RAW;
 stub_ptr get_stub() {
-    char *stub = (char *) svc_alloc_rwx((1ULL << 63) | 0x1000);
+    char *stub = (char *) svc_alloc_rwx(4096);
     for (size_t i = 0; i < sizeof(stub_raw); i++) stub[i] = stub_raw[i];
     return (stub_ptr) stub;
 }
@@ -177,11 +161,6 @@ int main(int argc, char *argv[]) {
     if (sizeof(size_t) != 8) {
         // Cannot run amd64 binaries on non-64bit environment
         return 1;
-    }
-    if (argc >= 2 &&
-        argv[1][0] == '-' && argv[1][1] == '-' && argv[1][2] == 'd' && argv[1][3] == 'e' &&
-        argv[1][4] == 'b' && argv[1][5] == 'u' && argv[1][6] == 'g' && argv[1][7] == '\0') {
-        g_debug = 1;
     }
     pd.env_flags            = 0; // necessary since pd is on stack
 #if defined(_WIN32)
@@ -212,21 +191,19 @@ int main(int argc, char *argv[]) {
 #if defined(__linux__)
     uint8_t stubbuf[68 + $$$$stub_len$$$$] = "QMd~L002n8@6D@;XGJ3cz5oya01pLO>naZmS5~+Q0000n|450>x(5IN07=KfA^-pYO)<bp|Hw@-$qxlyU&9Xz]";
     b85tobin(stubbuf, (char const *)stubbuf);
-    if (!g_debug) {
-        /* prepend thunk and relocate stub onto stack */
-        for (size_t i = 0; i < $$$$stub_len$$$$; i++) stubbuf[68 + i] = (uint8_t)stub_raw[i];
-        size_t base = ((size_t)stub_raw) & 0xFFFFFFFFFFFFF000ULL; // page-aligned pointer to munmap in thunk
-        size_t len = (((size_t)stub_raw) + sizeof(stub_raw)) - base;
-        len = ((len + 0xFFF) >> 12) << 12;
-        *(uint64_t *)(stubbuf + 0x08) = (uint64_t) base;
-        *(uint32_t *)(stubbuf + 0x11) = (uint32_t) len;
-        base = ((size_t)stubbuf) & 0xFFFFFFFFFFFFF000ULL;
-        len = (((size_t)stubbuf) + 68 + $$$$stub_len$$$$) - base;
-        len = ((len + 0xFFF) >> 12) << 12;
-        syscall(10, base, len, 0x7); // mprotect: make the stub on stack executable
-        pd.ptr_alloc_rwx = (void *) (stubbuf + 0x1c); // thunk implements its own svc_alloc_rwx
-        stub = (stub_ptr) stubbuf;
-    }
+    /* prepend thunk and relocate stub onto stack */
+    for (size_t i = 0; i < $$$$stub_len$$$$; i++) stubbuf[68 + i] = (uint8_t)stub_raw[i];
+    size_t base = ((size_t)stub_raw) & 0xFFFFFFFFFFFFF000ULL; // page-aligned pointer to munmap in thunk
+    size_t len = (((size_t)stub_raw) + sizeof(stub_raw)) - base;
+    len = ((len + 0xFFF) >> 12) << 12;
+    *(uint64_t *)(stubbuf + 0x08) = (uint64_t) base;
+    *(uint32_t *)(stubbuf + 0x11) = (uint32_t) len;
+    base = ((size_t)stubbuf) & 0xFFFFFFFFFFFFF000ULL;
+    len = (((size_t)stubbuf) + 68 + $$$$stub_len$$$$) - base;
+    len = ((len + 0xFFF) >> 12) << 12;
+    syscall(10, base, len, 0x7); // mprotect: make the stub on stack executable
+    pd.ptr_alloc_rwx = (void *) (stubbuf + 0x1c); // thunk implements its own svc_alloc_rwx
+    stub = (stub_ptr) stubbuf;
 #endif
     b85tobin(payload, (char const *)payload);
     return stub(&pd, payload);

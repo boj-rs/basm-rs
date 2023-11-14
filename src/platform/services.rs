@@ -92,7 +92,7 @@ pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
 #[inline(always)]
 pub fn platform_data() -> PlatformData {
     unsafe {
-        let pd: *const PlatformData = core::mem::transmute(PLATFORM_DATA);
+        let pd: *const PlatformData = PLATFORM_DATA as *const PlatformData;
         core::ptr::read_unaligned(pd)
     }
 }

