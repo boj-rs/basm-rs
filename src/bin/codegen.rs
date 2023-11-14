@@ -222,6 +222,7 @@ unsafe extern "cdecl" fn _start() -> ! {
         sym _start_rust,
         sym _get_start_offset,
         sym _get_dynamic_section_offset,
+        options(noreturn)
     );
 }
 
