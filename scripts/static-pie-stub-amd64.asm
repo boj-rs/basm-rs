@@ -52,7 +52,7 @@ LOC _state, 8
 
 
 _start:
-    push    r12
+    push    rbp
     push    rdx             ; LZMA binary
     pop     rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
     push    rcx             ; PLATFORM_DATA table
@@ -365,6 +365,6 @@ _code_end:
     add     rax, qword [rsi]        ; Add entrypoint offset
     inc     byte [rax + 1]          ; Change 'push 0' to 'push 1'
     add     rsp, 32
-    pop     r12
+    pop     rbp
     jmp     rax                     ; Jump to the entrypoint of the binary
                                     ; (it will inherit the current stackframe)

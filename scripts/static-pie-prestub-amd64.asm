@@ -14,44 +14,37 @@ section .text
 ; Align stack to 16 byte boundary
 ; [rsp+ 32, rsp+144): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    push    rbp
     push    rbx
-    push    r12
-    mov     r12, rsp
+    enter   80, 0
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
-    sub     rsp, 80
-    push    rdi                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
+    push    rax                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
     push    rcx                     ; PLATFORM_DATA[16..23] = win_kernel32
-    xor     eax, eax
-    test    rdi, rdi
-    sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    mov     ebp, eax
-    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
-    inc     eax
-    push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+    xor     edx, edx
+    test    rax, rax
+    sete    dl                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+    push    rdx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    inc     edx
+    push    rdx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
     sub     rsp, 32                 ; shadow space
 
 ; Allocate memory for stub
-    lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
-    lea     r15, [rbx + _decode - _svc_alloc_rwx_linux] ; r15 = _decode
-    test    ebp, ebp
-    jnz     _u
-    add     rbx, _svc_alloc_rwx_windows - _svc_alloc_rwx_linux  ; Register svc_alloc_rwx on Windows
-    lea     rdx, [rbx + _VirtualAlloc - _svc_alloc_rwx_windows]
-    call    rdi
-    push    rax
-    pop     rdi                     ; pointer to VirtualAlloc
+    lea     rbx, [rel _svc_alloc_rwx]   ; Register svc_alloc_rwx
+    lea     r15, [rbx + _decode - _svc_alloc_rwx]   ; r15 = _decode
+    test    rax, rax
+    jz      _u
+    lea     rdx, [rbx + _VirtualAlloc - _svc_alloc_rwx]
+    call    rax                     ; rax = pointer to VirtualAlloc
 _u:
+    push    rax
+    pop     rdi                     ; rdi = pointer to VirtualAlloc
     xor     ecx, ecx
     mov     ch, 0x10                ; rcx = 0x1000 (4K)
     call    rbx
 
 ; Windows: copy svc_alloc_rwx to the new buffer
     xchg    rax, rdi                ; rax = pointer to VirtualAlloc / rdi = new buffer
-    test    ebp, ebp
-    jnz     _x
     push    rbx
     pop     rsi
     push    rdi
@@ -61,10 +54,9 @@ _u:
     stosw
     pop     rax
     stosq
-    push    _svc_alloc_rwx_windows_end - _svc_alloc_rwx_windows
+    push    _svc_alloc_rwx_end - _svc_alloc_rwx
     pop     rcx
     rep     movsb
-_x:
     mov     qword [rsp+56+32], rbx  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx
     push    rdi
     push    r14
@@ -86,10 +78,8 @@ _x:
     pop     rax
     lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
     call    rax
-    mov     rsp, r12
-    pop     r12
+    leave
     pop     rbx
-    pop     rbp
     jmp     _end_of_everything
 
 ; Base91 decoder
@@ -114,9 +104,22 @@ _decode_output:
     jnz     _decode_output
     jmp     _decode_loop
 
-; svc_alloc_rwx for Linux
+; svc_alloc_rwx for Windows and Linux
 ; rcx = size
+; rdx = pointer to VirtualAlloc ('pre' only)
+_svc_alloc_rwx:
+    test    rax, rax
+    jz      _svc_alloc_rwx_linux
+_svc_alloc_rwx_windows:
+    push    rcx
+    pop     rdx                     ; size
+    xor     ecx, ecx
+    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
+    push    0x40
+    pop     r9                      ; PAGE_EXECUTE_READWRITE
+    jmp     rax                     ; kernel32!VirtualAlloc
 _svc_alloc_rwx_linux:
+    push    rdi                     ; save rdi
     push    9
     pop     rax                     ; syscall id of x64 mmap
     xor     edi, edi
@@ -129,21 +132,10 @@ _svc_alloc_rwx_linux:
     pop     r8                      ; fd
     xor     r9d, r9d                ; offset
     syscall
+    pop     rdi                     ; restore rdi
 _ret:
     ret
-
-; svc_alloc_rwx for Windows
-; rcx = size
-; rdx = pointer to VirtualAlloc ('pre' only)
-_svc_alloc_rwx_windows:
-    push    rcx
-    pop     rdx                     ; size
-    xor     ecx, ecx
-    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
-    push    0x40
-    pop     r9                      ; PAGE_EXECUTE_READWRITE
-    jmp     rax                     ; kernel32!VirtualAlloc
-_svc_alloc_rwx_windows_end:
+_svc_alloc_rwx_end:
 
 align 8, db 0
 
