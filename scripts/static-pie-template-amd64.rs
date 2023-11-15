@@ -23,12 +23,12 @@ static mut PAYLOAD: [u8; $$$$binary_base91_len$$$$] = *br$$$$binary_base91$$$$;
 unsafe fn _start() {
     let p = (0, 0); #[cfg(windows)] let p = (LoadLibraryA("kernel32\0".as_ptr()), GetProcAddress);
     core::arch::asm!(
-        ".quad 0e48348000050c853h,0c08548d2315150f0h,4852c2ff52c2940fh,46358d4820ec83h,\
-        480674c085480000h,315b50d0ff50568dh,448948d6ff10b5c9h,0b848b86697485824h,\
-        2f6aab489348ab66h,5641575b56a4f359h,5f565ed3ffee894ch,4c8d48585ad3ff57h,\
-        5deb5bc9d0ff2024h,315a511074c08548h,6a00003000b841c9h,96a56e0ff594140h,\
-        5a076ace89ff3158h,5841ff6a5a41226ah,6ac35e050fc93145h,242cac0de0c1581fh,\
-        6b242cac9299f472h,8e8c1aad0015bc0h,0e3ebf77510c4f6h\n.asciz\"VirtualAlloc\"",
+        ".quad 0e48348000050c853h,0c08548d2315150f0h,4852c2ff52c2940fh,45358d4820ec83h,\
+        480674c085480000h,6a5b50d0ff51568dh,24448948d6ff5901h,66b848b866974858h,\
+        592e6aab489348abh,4c5641575b56a4f3h,575f565ed3ffee89h,244c8d48585ad3ffh,\
+        485eeb5bc9d0ff20h,0c9315a511074c085h,406a00003000b841h,3109b056e0ff5941h,\
+        226a5a076ace89ffh,31455841ff6a5a41h,581f6ac35e050fc9h,0f472242cac0de0c1h,\
+        5bc06b242cac9299h,0c4f608e8c1aad001h,0e3ebf77510h;.asciz\"VirtualAlloc\"",
         in("rcx") p.0, in("rax") p.1, in("r14") PAYLOAD.as_mut_ptr(), in("r13") r$$$$stub_base91$$$$.as_ptr()
     )
 }

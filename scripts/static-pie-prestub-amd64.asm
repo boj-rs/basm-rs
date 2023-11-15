@@ -38,8 +38,8 @@ section .text
 _u:
     push    rax
     pop     rbx                     ; rbx = pointer to VirtualAlloc
-    xor     ecx, ecx
-    mov     ch, 0x10                ; rcx = 0x1000 (4K)
+    push    1
+    pop     rcx                     ; rcx = 1 -> will be rounded up to the nearest page size, which is 0x1000 (4K)
     call    rsi                     ; svc_alloc_rwx
 
 ; Copy svc_alloc_rwx to the new buffer
@@ -95,8 +95,7 @@ _svc_alloc_rwx_windows:
     jmp     rax                     ; kernel32!VirtualAlloc
 _svc_alloc_rwx_linux:
     push    rsi                     ; save rsi
-    push    9
-    pop     rax                     ; syscall id of x64 mmap
+    mov     al, 9                   ; syscall id of x64 mmap (safe since we have ensured rax=0)
     xor     edi, edi
     mov     esi, ecx                ; size
     push    7
