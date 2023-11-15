@@ -30,57 +30,87 @@ section .text
     sub     rsp, 32                 ; shadow space
 
 ; Allocate memory for stub
-    lea     rbx, [rel _svc_alloc_rwx]   ; Register svc_alloc_rwx
-    lea     r15, [rbx + _decode - _svc_alloc_rwx]   ; r15 = _decode
+    lea     rsi, [rel _svc_alloc_rwx]   ; Register svc_alloc_rwx
     test    rax, rax
     jz      _u
-    lea     rdx, [rbx + _VirtualAlloc - _svc_alloc_rwx]
-    call    rax                     ; rax = pointer to VirtualAlloc
+    lea     rdx, [rsi + _VirtualAlloc - _svc_alloc_rwx]
+    call    rax                     ; after the call, rax = pointer to VirtualAlloc
 _u:
     push    rax
-    pop     rdi                     ; rdi = pointer to VirtualAlloc
+    pop     rbx                     ; rbx = pointer to VirtualAlloc
     xor     ecx, ecx
     mov     ch, 0x10                ; rcx = 0x1000 (4K)
-    call    rbx
+    call    rsi                     ; svc_alloc_rwx
 
-; Windows: copy svc_alloc_rwx to the new buffer
-    xchg    rax, rdi                ; rax = pointer to VirtualAlloc / rdi = new buffer
-    push    rbx
-    pop     rsi
-    push    rdi
-    pop     rbx                     ; mov rbx, rdi
-    push    rax
+; Copy svc_alloc_rwx to the new buffer
+; Current state: rax = new buffer, rbx = pointer to VirtualAlloc, rsi = svc_alloc_rwx
+    mov     qword [rsp+56+32], rax  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx (on the new buffer)
+    xchg    rax, rdi                ; rdi = new buffer
     mov     ax, 0xB848              ; mov rax, STRICT QWORD imm64
     stosw
-    pop     rax
+    xchg    rax, rbx                ; rax = pointer to VirtualAlloc
     stosq
     push    _svc_alloc_rwx_end - _svc_alloc_rwx
     pop     rcx
-    rep     movsb
-    mov     qword [rsp+56+32], rbx  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx
+    rep     movsb                   ; this progresses rsi to _decode
+    push    rsi
+    pop     rbx                     ; rbx = _decode
     push    rdi
     push    r14
 
 ; Decode stub (rsi -> rdi)
+; Current state: rdi = stub memory
     mov     rsi, r13                ; rsi = STUB_BASE91
-;   mov     rdi, r12                ; rdi = stub memory (already saved)
-    call    r15
+    call    rbx
 
 ; Decode binary (rsi -> rdi)
     pop     rsi                     ; rsi = BINARY_BASE91
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
     push    rdi
-    call    r15
+    call    rbx
 
 ; Call stub
     pop     rdx                     ; rdx = LZMA-compressed binary
-    pop     rax
+    pop     rax                     ; rax = stub entrypoint
     lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
     call    rax
     leave
     pop     rbx
     jmp     _end_of_everything
+
+; svc_alloc_rwx for Windows and Linux
+; rcx = size
+; rax = pointer to VirtualAlloc (must be supplied before prepending the mov instruction)
+_svc_alloc_rwx:
+    test    rax, rax
+    jz      _svc_alloc_rwx_linux
+_svc_alloc_rwx_windows:
+    push    rcx
+    pop     rdx                     ; size
+    xor     ecx, ecx
+    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
+    push    0x40
+    pop     r9                      ; PAGE_EXECUTE_READWRITE
+    jmp     rax                     ; kernel32!VirtualAlloc
+_svc_alloc_rwx_linux:
+    push    rsi                     ; save rsi
+    push    9
+    pop     rax                     ; syscall id of x64 mmap
+    xor     edi, edi
+    mov     esi, ecx                ; size
+    push    7
+    pop     rdx                     ; protect
+    push    0x22
+    pop     r10                     ; flags
+    push    -1
+    pop     r8                      ; fd
+    xor     r9d, r9d                ; offset
+    syscall
+    pop     rsi                     ; restore rsi
+_ret:
+    ret
+_svc_alloc_rwx_end:
 
 ; Base91 decoder
 _decode:
@@ -103,39 +133,6 @@ _decode_output:
     test    ah, 16
     jnz     _decode_output
     jmp     _decode_loop
-
-; svc_alloc_rwx for Windows and Linux
-; rcx = size
-; rdx = pointer to VirtualAlloc ('pre' only)
-_svc_alloc_rwx:
-    test    rax, rax
-    jz      _svc_alloc_rwx_linux
-_svc_alloc_rwx_windows:
-    push    rcx
-    pop     rdx                     ; size
-    xor     ecx, ecx
-    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
-    push    0x40
-    pop     r9                      ; PAGE_EXECUTE_READWRITE
-    jmp     rax                     ; kernel32!VirtualAlloc
-_svc_alloc_rwx_linux:
-    push    rdi                     ; save rdi
-    push    9
-    pop     rax                     ; syscall id of x64 mmap
-    xor     edi, edi
-    mov     esi, ecx                ; size
-    push    7
-    pop     rdx                     ; protect
-    push    0x22
-    pop     r10                     ; flags
-    push    -1
-    pop     r8                      ; fd
-    xor     r9d, r9d                ; offset
-    syscall
-    pop     rdi                     ; restore rdi
-_ret:
-    ret
-_svc_alloc_rwx_end:
 
 align 8, db 0
 
