@@ -91,7 +91,7 @@ extern "win64" {
 
 #[cfg(target_os = "windows")]
 unsafe extern "sysv64" fn get_kernel32() -> usize {
-    LoadLibraryA(b"kernel32\0".as_ptr())
+    LoadLibraryA(b"KERNEL32\0".as_ptr())
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
