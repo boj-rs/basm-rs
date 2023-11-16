@@ -139,5 +139,7 @@ align 8, db 0
 _VirtualAlloc:
     db      "VirtualAlloc"
     db      0
-
+_kernel32:
+    db      "kernel32"
+    db      0
 _end_of_everything:

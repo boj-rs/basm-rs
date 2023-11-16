@@ -11,7 +11,7 @@ else:
 # special handling for trailing ASCII characters
 j = len(prestub)
 b85_table = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~"
-while j > 0 and prestub[j-1] in b85_table:
+while j > 0 and (prestub[j-1] in b85_table or prestub[j-1] == 0):
     j -= 1
 while j < len(prestub) and j % 8 != 0:
     j += 1
@@ -62,7 +62,7 @@ for i in range(0, len(prestub), CHUNK_SIZE):
 
 # convert the table part
 table_part = table_part.decode('ascii')
-table_part = table_part.replace('{', '{{').replace('}', '}}').replace('$', '\\\\x24')
+table_part = table_part.replace('{', '{{').replace('}', '}}').replace('$', '\\\\x24').replace('\0','\\\\0')
 out.append("        \"{0}\\\"{1}\\\"\",\n".format(".asciz" if asciz else ".ascii", table_part))
 
 # print the result
