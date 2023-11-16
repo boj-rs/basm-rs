@@ -17,7 +17,7 @@ $$$$solution_src$$$$
 #[cfg(windows)]
 macro_rules! p { () => { "lea rcx,[rip+209];call LoadLibraryA;lea rcx,[rip+GetProcAddress]" } }
 #[cfg(not(windows))]
-macro_rules! p { () => { "" } }
+macro_rules! p { () => { "mov rcx,0" } }
 
 static mut PAYLOAD: [u8; $$$$binary_base91_len$$$$] = *br$$$$binary_base91$$$$;
 #[no_mangle]
