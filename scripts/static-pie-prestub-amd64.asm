@@ -19,6 +19,7 @@ section .text
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
+    xchg    rax, rcx
     push    rax                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
     push    rcx                     ; PLATFORM_DATA[16..23] = win_kernel32
     xor     edx, edx
