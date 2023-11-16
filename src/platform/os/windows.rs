@@ -52,7 +52,6 @@ impl Overlapped {
 pub struct WinApi {
     ptr_VirtualAlloc: Option<ms_abi!{fn(*mut u8, usize, u32, u32) -> *mut u8}>,
     ptr_VirtualFree: Option<ms_abi!{fn(*mut u8, usize, u32) -> i32}>,
-    ptr_ExitProcess: Option<ms_abi!{fn(u32) -> !}>,
     ptr_GetStdHandle: Option<ms_abi!{fn(u32) -> usize}>,
     ptr_ReadFile: Option<ms_abi!{fn(usize, *mut u8, u32, *mut u32, *mut Overlapped) -> i32}>,
     ptr_WriteFile: Option<ms_abi!{fn(usize, *const u8, u32, *mut u32, *mut Overlapped) -> i32}>,
@@ -76,10 +75,6 @@ impl WinApi {
     #[inline(always)]
     pub unsafe fn VirtualFree(&self, lpAddress: *mut u8, dwSize: usize, dwFreeType: u32) -> i32 {
         (self.ptr_VirtualFree.unwrap())(lpAddress, dwSize, dwFreeType)
-    }
-    #[inline(always)]
-    pub unsafe fn ExitProcess(&self, uExitCode: u32) -> ! {
-        (self.ptr_ExitProcess.unwrap())(uExitCode)
     }
     #[inline(always)]
     pub unsafe fn GetStdHandle(&self, nStdHandle: u32) -> usize {
@@ -108,7 +103,6 @@ impl WinApi {
 pub static mut WINAPI: WinApi = WinApi {
     ptr_VirtualAlloc: None,
     ptr_VirtualFree: None,
-    ptr_ExitProcess: None,
     ptr_GetStdHandle: None,
     ptr_ReadFile: None,
     ptr_WriteFile: None,
@@ -146,9 +140,6 @@ unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_
 
 mod services_override {
     use super::*;
-    basm_abi!{pub unsafe fn svc_exit(status: usize) -> ! {
-        WINAPI.ExitProcess(status as u32)
-    }}
     basm_abi!{pub unsafe fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
         debug_assert!(fd == 0);
         let handle = WINAPI.GetStdHandle(WinApi::STD_INPUT_HANDLE);
@@ -195,11 +186,10 @@ mod services_override {
 
 pub unsafe fn init() {
     let pd = services::platform_data();
-    let kernel32 = (*pd).win_kernel32 as usize;
-    let GetProcAddress: ms_abi!{fn(usize, *const u8) -> usize} = core::mem::transmute((*pd).win_GetProcAddress as usize);
+    let kernel32 = pd.win_kernel32 as usize;
+    let GetProcAddress: ms_abi!{fn(usize, *const u8) -> usize} = core::mem::transmute(pd.win_GetProcAddress as usize);
     WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(GetProcAddress(kernel32, b"VirtualAlloc\0".as_ptr())));
     WINAPI.ptr_VirtualFree = Some(core::mem::transmute(GetProcAddress(kernel32, b"VirtualFree\0".as_ptr())));
-    WINAPI.ptr_ExitProcess = Some(core::mem::transmute(GetProcAddress(kernel32, b"ExitProcess\0".as_ptr())));
     WINAPI.ptr_GetStdHandle = Some(core::mem::transmute(GetProcAddress(kernel32, b"GetStdHandle\0".as_ptr())));
     WINAPI.ptr_ReadFile = Some(core::mem::transmute(GetProcAddress(kernel32, b"ReadFile\0".as_ptr())));
     WINAPI.ptr_WriteFile = Some(core::mem::transmute(GetProcAddress(kernel32, b"WriteFile\0".as_ptr())));
@@ -212,7 +202,6 @@ pub unsafe fn init() {
         dlmalloc_dealloc,
         dlmalloc_realloc,
     );
-    services::install_single_service(5, services_override::svc_exit as usize);
-    services::install_single_service(6, services_override::svc_read_stdio as usize);
-    services::install_single_service(7, services_override::svc_write_stdio as usize);
+    services::install_single_service(5, services_override::svc_read_stdio as usize);
+    services::install_single_service(6, services_override::svc_write_stdio as usize);
 }
