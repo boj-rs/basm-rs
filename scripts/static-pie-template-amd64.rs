@@ -15,7 +15,7 @@ $$$$solution_src$$$$
 #[cfg(not(any(windows, target_os = "linux")))] compile_error!("Unsupported target operating system.");
 
 #[cfg(windows)]
-macro_rules! p { () => { "lea rcx,[rip+122];call LoadLibraryA;lea rcx,[rip+GetProcAddress];lea rdi,[rip+VirtualAlloc];clc" } }
+macro_rules! p { () => { "lea rcx,[rip+120];call LoadLibraryA;lea rdx,[rip+GetProcAddress];lea rdi,[rip+VirtualAlloc];clc" } }
 #[cfg(not(windows))]
 macro_rules! p { () => { "stc" } }
 
@@ -23,12 +23,12 @@ static mut PAYLOAD: [u8; $$$$binary_base91_len$$$$] = *br$$$$binary_base91$$$$;
 #[no_mangle]
 unsafe fn _start() {
     s::arch::asm!(p!(),
-        ".quad 0f7db19000050c853h,535051f0e48348dbh,0e820ec834853c3ffh,9958096a00000053h,\
-        0d74ff8548c93145h,3000b841ca87h,0ce8956e7ff40b141h,0ff6a5a41226a07b2h,\
-        1f6ac35e050f5841h,72242cac0de0c158h,0c06b242cac9299f4h,0f608e8c1aad0015bh,\
-        656be3ebf77510c4h,5e0032336c656e72h,48d6ff59016a5b57h,0b866974858244489h,\
-        0ab489348ab66bf48h,575b56a4f3592a6ah,5e5641d3ffee894ch,48585ad3ff575f56h,\
-        5bc9d0ff20244c8dh", in("r14") PAYLOAD.as_mut_ptr(), in("r13") r$$$$stub_base91$$$$.as_ptr()
+        ".quad 19510172000050c8h,0c1ff515052d9f7c9h,53e820ec834851h,31459958096a0000h,\
+        0ca870d74ff8548c9h,0b14100003000b841h,7b2ce8956e7ff40h,5841ff6a5a41226ah,\
+        0c1581f6ac35e050fh,99f472242cac0de0h,15bc06b242cac92h,10c4f608e8c1aad0h,\
+        6e72656be3ebf775h,0d6ff5e0032336c65h,9748602444894857h,4858ab66bf48b866h,\
+        4957a4f3592a6aabh,5e5641d5ff41f587h,585ad5ff41575f56h,0c9d0ff20244c8d48h",
+        in("r14") PAYLOAD.as_mut_ptr(), in("r13") r$$$$stub_base91$$$$.as_ptr()
     )
 }
 fn main() { unsafe { _start() } }

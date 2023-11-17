@@ -14,18 +14,18 @@ section .text
 ; Align stack to 16 byte boundary
 ; [rsp+ 32, rsp+144): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    push    rbx
     enter   80, 0
-    sbb     ebx, ebx
-    neg     ebx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    and     rsp, 0xFFFFFFFFFFFFFFF0
+    jc      _s
+    push    rcx                     ; Linux: align stack on 16-byte boundary
+_s: sbb     ecx, ecx
+    neg     ecx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
 
 ; PLATFORM_DATA
-    push    rcx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
+    push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
     push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
-    push    rbx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
-    inc     ebx
-    push    rbx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+    push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    inc     ecx
+    push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
     sub     rsp, 32                 ; shadow space
     call    _t
 
@@ -86,33 +86,29 @@ _kernel32:
     db      0
 
 ; Allocate memory for stub
+; rcx = 1 or 2 -> will be rounded up to the nearest page size, which is 0x1000 (4K)
 _t:
     pop     rsi                     ; Register svc_alloc_rwx
-    push    rdi
-    pop     rbx                     ; rbx = pointer to VirtualAlloc
-    push    1
-    pop     rcx                     ; rcx = 1 -> will be rounded up to the nearest page size, which is 0x1000 (4K)
     call    rsi                     ; svc_alloc_rwx
 
 ; Copy svc_alloc_rwx to the new buffer
-; Current state: rax = new buffer, rbx = pointer to VirtualAlloc, rsi = svc_alloc_rwx
-    mov     qword [rsp+56+32], rax  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx (on the new buffer)
+; Current state: rax = new buffer, rdi = pointer to VirtualAlloc, rsi = svc_alloc_rwx
+    push    rdi                     ; rdi = pointer to VirtualAlloc
+    mov     qword [rsp+56+40], rax  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx (on the new buffer)
     xchg    rax, rdi                ; rdi = new buffer
     mov     ax, 0xBF48              ; mov rdi, STRICT QWORD imm64
     stosw
-    xchg    rax, rbx                ; rax = pointer to VirtualAlloc
+    pop     rax                     ; rax = pointer to VirtualAlloc
     stosq
     push    _svc_alloc_rwx_end - _svc_alloc_rwx
     pop     rcx
     rep     movsb                   ; this progresses rsi to _decode
-    push    rsi
-    pop     rbx                     ; rbx = _decode
 
 ; Decode stub (rsi -> rdi)
 ; Current state: rdi = stub memory
     push    rdi
-    mov     rsi, r13                ; rsi = STUB_BASE91
-    call    rbx
+    xchg    rsi, r13                ; rsi = STUB_BASE91 / r13 = _decode
+    call    r13
 
 ; Decode binary (rsi -> rdi)
     push    r14
@@ -120,7 +116,7 @@ _t:
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
     push    rdi
-    call    rbx
+    call    r13
 
 ; Call stub
     pop     rdx                     ; rdx = LZMA-compressed binary
@@ -128,6 +124,5 @@ _t:
     lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
     call    rax
     leave
-    pop     rbx
 
 align 8, db 0x90                    ; nop
