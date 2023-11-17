@@ -12,137 +12,91 @@ ORG 0
 section .text
 
 ; Align stack to 16 byte boundary
-; [rsp+128, rsp+192]: PLATFORM_DATA
-; [rsp+ 48, rsp+128]: SERVICE_FUNCTIONS
-; [rsp-  8, rsp+120]: digittobin
-; [rsp+  0, rsp+ 32]: (shadow space for win64 calling convention)
-; [rsp+ 16, rsp+ 48]: (shadow space for win64 calling convention, only for next stage stub)
+; [rsp+ 32, rsp+144): PLATFORM_DATA
+; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
+    push    rbx
+    enter   80, 0
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
-    push    r12                     ; PLATFORM_DATA[56..63] = win_GetProcAddress
-    pop     rbp
-    push    rbp                     ; Perform mov rbp, r12
-    push    r11                     ; PLATFORM_DATA[48..55] = win_GetModuleHandleW
-    push    rsi                     ; PLATFORM_DATA[40..47] = pe_size_reloc
-    push    rdi                     ; PLATFORM_DATA[32..39] = pe_off_reloc
-    push    rdx                     ; PLATFORM_DATA[24..31] = pe_image_base
-    push    rcx                     ; PLATFORM_DATA[16..23] = leading_unused_bytes
-    xor     eax, eax
-    test    ebp, ebp
-    sete    al                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    push    rax                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=Enable debug breakpoint)
-    inc     eax
-    push    rax                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
-
-; SERVICE_FUNCTIONS
-    push    rsp                     ; SERVICE_FUNCTIONS[72..79] = ptr_platform
-    sub     rsp, 120                ; digittobin
+    xchg    rax, rcx
+    push    rax                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
+    push    rcx                     ; PLATFORM_DATA[16..23] = win_kernel32
+    xor     edx, edx
+    test    rax, rax
+    sete    dl                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
+    push    rdx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    inc     edx
+    push    rdx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+    sub     rsp, 32                 ; shadow space
 
 ; Allocate memory for stub
-    lea     rbx, [rel _svc_alloc_rwx_linux] ; Register svc_alloc_rwx on Linux
-    test    ebp, ebp
+    lea     rsi, [rel _svc_alloc_rwx]   ; Register svc_alloc_rwx
+    test    rax, rax
     jz      _u
-    add     rbx, _svc_alloc_rwx_windows_pre - _svc_alloc_rwx_linux  ; Register svc_alloc_rwx on Windows
-    lea     rcx, [rbx + _kernel32 - _svc_alloc_rwx_windows_pre]
-    call    r11
-    push    rax
-    pop     rcx
-    lea     rdx, [rbx + _VirtualAlloc - _svc_alloc_rwx_windows_pre]
-    call    r12
-    push    rax
-    pop     rdi                     ; pointer to VirtualAlloc
+    lea     rdx, [rsi + _VirtualAlloc - _svc_alloc_rwx]
+    call    rax                     ; after the call, rax = pointer to VirtualAlloc
 _u:
-    mov     rcx, 0x1000
+    push    rax
+    pop     rbx                     ; rbx = pointer to VirtualAlloc
+    push    1
+    pop     rcx                     ; rcx = 1 -> will be rounded up to the nearest page size, which is 0x1000 (4K)
+    call    rsi                     ; svc_alloc_rwx
+
+; Copy svc_alloc_rwx to the new buffer
+; Current state: rax = new buffer, rbx = pointer to VirtualAlloc, rsi = svc_alloc_rwx
+    mov     qword [rsp+56+32], rax  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx (on the new buffer)
+    xchg    rax, rdi                ; rdi = new buffer
+    mov     ax, 0xB848              ; mov rax, STRICT QWORD imm64
+    stosw
+    xchg    rax, rbx                ; rax = pointer to VirtualAlloc
+    stosq
+    push    _svc_alloc_rwx_end - _svc_alloc_rwx
+    pop     rcx
+    rep     movsb                   ; this progresses rsi to _decode
+    push    rsi
+    pop     rbx                     ; rbx = _decode
+    push    rdi
+    push    r14
+
+; Decode stub (rsi -> rdi)
+; Current state: rdi = stub memory
+    mov     rsi, r13                ; rsi = STUB_BASE91
     call    rbx
 
-; Windows: copy svc_alloc_rwx to the new buffer
-    test    ebp, ebp
-    jz      _x
-    lea     rcx, [rbx + _svc_alloc_rwx_windows - _svc_alloc_rwx_windows_pre]
-    push    rax
-    pop     rbx                     ; rbx = new svc_alloc_rwx
-_v:
-    mov     dl, byte [rcx]
-    mov     byte [rax], dl
-    inc     rcx                     ; src
-    inc     rax                     ; dst
-    cmp     dl, 0xc3                ; 'ret' instruction
-    jne      _v
-    mov     qword [rbx+2], rdi      ; pointer to VirtualAlloc
-_x:
-    push    rax
-    pop     rdi
-    push    rdi
-
-; Initialize base85 decoder buffer
-    lea     rax, [rel _b85]         ; rax = _b85
-    xor     ecx, ecx
-_2:
-    movzx   edx, byte [rax]         ; edx = start
-    inc     rax
-    movzx   esi, byte [rax]         ; esi = end
-    inc     rax
-_2a:
-    mov     byte [rsp+rdx-8], cl
-    inc     ecx
-    inc     edx
-    cmp     edx, esi
-    jbe     _2a
-    cmp     ecx, 85
-    jb      _2
-
-; Decode stub (rsi -> rdi; rsp = digittobin (rsp+8 after call instruction))
-    mov     rsi, r13                ; rsi = STUB_BASE85
-;   mov     rdi, r12                ; rdi = stub memory (already saved)
-    call    _3
-
-; Decode binary (rsi -> rdi; rsp = digittobin (rsp+8 after call instruction))
-    mov     rsi, r14                ; rsi = BINARY_BASE85
+; Decode binary (rsi -> rdi)
+    pop     rsi                     ; rsi = BINARY_BASE91
     push    rsi
-    pop     rdi                     ; rdi = BINARY_BASE85 (in-place decoding)
-    call    _3
+    pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
+    push    rdi
+    call    rbx
 
 ; Call stub
-    pop     rax
-    add     rsp, 16                 ; Discard digittobin
-    mov     qword [rsp+ 96], rbx    ; SERVICE_FUNCTIONS[64..71] = ptr_alloc_rwx
-    lea     rcx, qword [rsp+ 32]    ; rcx = SERVICE_FUNCTIONS table
-    mov     rdx, r14                ; rdx = LZMA-compressed binary
-    mov     r8, r15                 ; r8  = Entrypoint offset
-    xor     r9d, r9d                ; r9  = 1 if debugging is enabled, otherwise 0
+    pop     rdx                     ; rdx = LZMA-compressed binary
+    pop     rax                     ; rax = stub entrypoint
+    lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
     call    rax
+    leave
+    pop     rbx
+    jmp     _end_of_everything
 
-; Base85 decoder
-_3:
-;   push    85                      ; ecx is already set to 85 just before calling the decoder
-;   pop     rcx
-_4:
-    xor     ebp, ebp
-    xor     eax, eax
-_5:
-    mul     ecx
-    movzx   edx, byte [rsi]
-    cmp     edx, 93                 ; 93 = 0x5D = b']' denotes end of base85 stream
-    je      _6
-    movzx   edx, byte [rsp+rdx]
-    add     eax, edx
-    inc     rsi
-    inc     ebp
-    cmp     ebp, 5
-    jl      _5
-    bswap   eax
-    mov     dword [rdi], eax
-    add     rdi, 4
-    jmp     _4
-_6:
-    ret
-
-; svc_alloc_rwx for Linux
+; svc_alloc_rwx for Windows and Linux
 ; rcx = size
+; rax = pointer to VirtualAlloc (must be supplied before prepending the mov instruction)
+_svc_alloc_rwx:
+    test    rax, rax
+    jz      _svc_alloc_rwx_linux
+_svc_alloc_rwx_windows:
+    push    rcx
+    pop     rdx                     ; size
+    xor     ecx, ecx
+    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
+    push    0x40
+    pop     r9                      ; PAGE_EXECUTE_READWRITE
+    jmp     rax                     ; kernel32!VirtualAlloc
 _svc_alloc_rwx_linux:
-    push    9
-    pop     rax                     ; syscall id of x64 mmap
+    push    rsi                     ; save rsi
+    mov     al, 9                   ; syscall id of x64 mmap (safe since we have ensured rax=0)
     xor     edi, edi
     mov     esi, ecx                ; size
     push    7
@@ -153,35 +107,39 @@ _svc_alloc_rwx_linux:
     pop     r8                      ; fd
     xor     r9d, r9d                ; offset
     syscall
+    pop     rsi                     ; restore rsi
+_ret:
     ret
+_svc_alloc_rwx_end:
 
-; svc_alloc_rwx for Windows
-; rcx = size
-; rdx = pointer to VirtualAlloc ('pre' only)
-_svc_alloc_rwx_windows:
-    mov     rax, 0x0123456789ABCDEF
-_svc_alloc_rwx_windows_pre:
-    sub     rsp, 40                 ; shadow space
-    push    rcx
-    pop     rdx                     ; size
-    xor     ecx, ecx
-    mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
-    push    0x40
-    pop     r9                      ; PAGE_EXECUTE_READWRITE
-    call    rax                     ; kernel32!VirtualAlloc
-    add     rsp, 40
-    ret
+; Base91 decoder
+_decode:
+    push    0x1f
+    pop     rax
+_decode_loop:
+    shl     eax, 13
+    lodsb
+    sub     al, 0x24
+    jc      _ret
+    cdq
+    xchg    eax, edx
+    lodsb
+    sub     al, 0x24
+    imul    eax, eax, 91
+    add     eax, edx
+_decode_output:
+    stosb
+    shr     eax, 8
+    test    ah, 16
+    jnz     _decode_output
+    jmp     _decode_loop
 
-_kernel32:
-    dw      'k','e','r','n','e','l','3','2',0
-
-; b85 table ([start, end] encoding)
-    align 8, db 0
-_b85:
-    dq 0x21217A615A413930
-    dq 0x403B2D2D2B282623
-    dd 0x7E7B605E
+align 8, db 0
 
 _VirtualAlloc:
     db      "VirtualAlloc"
     db      0
+_kernel32:
+    db      "kernel32"
+    db      0
+_end_of_everything:

@@ -7,50 +7,20 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'basm' (amd64-win)",
-            "args": ["--debug"],
-            "preLaunchTask": "build-debug-amd64-win",
-            "program": "${workspaceFolder}/target/x86_64-pc-windows-msvc/debug/loader.exe",
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "sourceLanguages": ["rust"],
-            "env": {
-                "LLDB_USE_NATIVE_PDB_READER": "1",
+            "name": "Debug executable 'basm'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=basm",
+                    "--package=basm"
+                ],
+                "filter": {
+                    "name": "basm",
+                    "kind": "bin"
+                }
             },
-            "postRunCommands": [
-                "target modules add target/x86_64-pc-windows-msvc/debug/basm.exe",
-                "target modules load --file basm.exe --slide 0x920000000",
-            ],
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug executable 'basm' (amd64)",
-            "args": ["--debug"],
-            "preLaunchTask": "build-debug-amd64",
-            "program": "${workspaceFolder}/target/x86_64-unknown-linux-gnu/debug/loader",
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "sourceLanguages": ["rust"],
-            "preRunCommands": [
-                "target modules add ${workspaceFolder}/target/x86_64-unknown-linux-gnu/debug/basm",
-                "target modules load --file basm --slide 0x20000000",
-            ],
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug executable 'basm' (i686)",
-            "args": ["--debug"],
-            "preLaunchTask": "build-debug-i686",
-            "program": "${workspaceFolder}/target/i686-unknown-linux-gnu/debug/loader",
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "sourceLanguages": ["rust"],
-            "preRunCommands": [
-                "target modules add ${workspaceFolder}/target/i686-unknown-linux-gnu/debug/basm",
-                "target modules load --file basm --slide 0x20000000",
-            ],
+            "args": [],
+            "cwd": "${workspaceFolder}"
         },
     ]
 }

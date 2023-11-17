@@ -28,7 +28,13 @@ fn main() {
             link_args_basm.push("-fno-unwind-tables");
             link_args_basm.push("-fno-stack-protector");
             link_args_basm.push("-fno-plt");
-            link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro");
+            if target == "x86_64-unknown-linux-gnu" {
+                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro");
+            } else {
+                // Prevent linker from putting data into text, which is non-writable and hence not relocatable.
+                // This prevents the hack for getting the _DYNAMIC symbol in the entrypoint.
+                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro,-z,notext");
+            }
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
         }
         _ => {

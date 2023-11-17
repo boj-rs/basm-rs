@@ -3,3 +3,4 @@ basm.bin
 Cargo.lock
 /[Tt]mp
 *.obj
+*.pyc

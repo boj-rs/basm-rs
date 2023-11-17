@@ -1,5 +1,6 @@
 ﻿import array
 import base64
+import base91
 import codecs
 import json
 import lzma
@@ -36,7 +37,13 @@ assert 'pe_size_reloc' in loader_fdict
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
-lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 27}
+    # Embed these information into the LZMA file to reduce the generated code length
+    x = loader_fdict['pe_image_base'].to_bytes(8, byteorder='little') + \
+        loader_fdict['pe_off_reloc'].to_bytes(8, byteorder='little') + \
+        loader_fdict['pe_size_reloc'].to_bytes(8, byteorder='little') + \
+        loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
+    memory_bin += x
+lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 22}
 compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
 lzma_header_properties = ((lzma_filter['pb'] * 5 + lzma_filter['lp']) * 9 + lzma_filter['lc']).to_bytes(1, byteorder='little')
 lzma_header_dictionary_size = lzma_filter['dict_size'].to_bytes(4, byteorder='little')
@@ -59,6 +66,10 @@ sol = "".join(sol)
 with open(compressed_binary_path, "rb") as f:
     code = f.read()
 
+code_b91 = base91.encode(code).decode('ascii')
+code_b91_len = len(code_b91)
+code_b91 = '"' + code_b91 + '"'
+
 code = bytearray(code)
 while len(code) % 4 != 0:
     code.append(0)
@@ -79,6 +90,10 @@ else:
 # stub
 with open(stub_path, "rb") as f:
     stub = f.read()
+
+stub_b91 = base91.encode(stub).decode('ascii')
+stub_b91_len = len(stub_b91)
+stub_b91 = '"' + stub_b91 + '"'
 
 stub = bytearray(stub)
 while len(stub) % 4 != 0:
@@ -107,8 +122,12 @@ out = multiple_replace(template, {
     "$$$$stub_base85$$$$": stub_b85,
     "$$$$stub_len$$$$": str(len(stub)),
     "$$$$stub_base85_len$$$$": str(stub_b85_len),
+    "$$$$stub_base91$$$$": stub_b91,
+    "$$$$stub_base91_len$$$$": str(stub_b91_len),
     "$$$$binary_base85$$$$": r,
     "$$$$binary_base85_len$$$$": str(len(code_b85)),
+    "$$$$binary_base91$$$$": code_b91,
+    "$$$$binary_base91_len$$$$": str(code_b91_len),
     "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
     "$$$$leading_unused_bytes$$$$": str(loader_fdict['leading_unused_bytes']),
     "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),

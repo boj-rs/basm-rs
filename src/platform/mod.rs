@@ -11,12 +11,12 @@ pub mod services;
 pub mod io;
 
 #[cfg(not(test))]
-pub fn init(service_functions_by_loader: usize) {
-    services::install(service_functions_by_loader);
+pub fn init(platform_data_by_loader: usize) {
+    services::install(platform_data_by_loader);
 
     let pd = services::platform_data();
     unsafe {
-        match (*pd).env_id {
+        match pd.env_id {
             services::ENV_ID_WINDOWS => {
                 /* use OS APIs directly */
                 os::windows::init();
@@ -32,7 +32,17 @@ pub fn init(service_functions_by_loader: usize) {
         }
     }
 }
+#[cfg(not(test))]
+pub fn try_exit() {
+    let pd = services::platform_data();
+    if pd.env_id == services::ENV_ID_LINUX {
+        unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
+    }
+}
 
 #[cfg(test)]
-pub fn init(_service_functions_by_loader: usize) {
+pub fn init(_platform_data_by_loader: usize) {
+}
+#[cfg(test)]
+pub fn try_exit() {
 }

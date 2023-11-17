@@ -1,18 +1,11 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
-// Learn rust and get high performance out of the box! See: https://doc.rust-lang.org/book/
+// Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 
-//==============================================================================
 // SOLUTION BEGIN
-//==============================================================================
 $$$$solution_src$$$$
-//==============================================================================
 // SOLUTION END
-//==============================================================================
 
-//==============================================================================
 // LOADER BEGIN
-//==============================================================================
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,14 +20,8 @@ $$$$solution_src$$$$
 #endif
 #endif
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
 // Base85 decoder. Code adapted from:
 //     https://github.com/rafagafe/base85/blob/master/base85.c
-//
-////////////////////////////////////////////////////////////////////////////////
-
 const char *b85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>\?@^_`{|}~";
 void b85tobin(void *dest, char const *src) {
     uint32_t *p = (uint32_t *)dest;
@@ -52,45 +39,30 @@ void b85tobin(void *dest, char const *src) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// Service functions
-//
-////////////////////////////////////////////////////////////////////////////////
-
-
 #pragma pack(push, 1)
-
 typedef struct {
     uint64_t    env_id;
     uint64_t    env_flags;
-    uint64_t    leading_unused_bytes;
+    uint64_t    win_kernel32;       // handle of kernel32.dll
+    uint64_t    win_GetProcAddress; // pointer to kernel32!GetProcAddress
     uint64_t    pe_image_base;
     uint64_t    pe_off_reloc;
     uint64_t    pe_size_reloc;
-    uint64_t    win_GetModuleHandleW;   // pointer to kernel32::GetModuleHandleW
-    uint64_t    win_GetProcAddress;     // pointer to kernel32::GetProcAddress
+    void       *ptr_alloc_rwx;      // pointer to function
+    void       *ptr_alloc;          // pointer to function
+    void       *ptr_alloc_zeroed;   // pointer to function
+    void       *ptr_dealloc;        // pointer to function
+    void       *ptr_realloc;        // pointer to function
+    void       *ptr_read_stdio;     // pointer to function
+    void       *ptr_write_stdio;    // pointer to function
 } PLATFORM_DATA;
-
-typedef struct {
-    void *ptr_imagebase;            // pointer to data
-    void *ptr_alloc;                // pointer to function
-    void *ptr_alloc_zeroed;         // pointer to function
-    void *ptr_dealloc;              // pointer to function
-    void *ptr_realloc;              // pointer to function
-    void *ptr_exit;                 // pointer to function
-    void *ptr_read_stdio;           // pointer to function
-    void *ptr_write_stdio;          // pointer to function
-    void *ptr_alloc_rwx;            // pointer to function
-    void *ptr_platform;             // pointer to data
-} SERVICE_FUNCTIONS;
-
 #pragma pack(pop)
 
 #define ENV_ID_UNKNOWN              0
 #define ENV_ID_WINDOWS              1
 #define ENV_ID_LINUX                2
-#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001
+#define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001  // disables __chkstk in binaries compiled with Windows target
+#define ENV_FLAGS_NATIVE                0x0002  // indicates the binary is running without the loader
 
 void *svc_alloc(size_t size, size_t align) {
     return malloc(size);
@@ -115,74 +87,49 @@ size_t svc_write_stdio(size_t fd, void *buf, size_t count) {
     if (fd != 1 && fd != 2) return 0;
     return fwrite(buf, 1, count, (fd == 1) ? stdout : stderr);
 }
-static uint32_t g_debug = 0;
 void *svc_alloc_rwx(size_t size) {
-    size_t preferred_addr = 0;
-    size_t off = 0;
-    if (!(size >> 31) && g_debug) {
-        preferred_addr = 0x20000000;
-        off = $$$$leading_unused_bytes$$$$;
-        size += off;
-    }
-    size &= (1ULL << 31) - 1;
 #ifdef _WIN32
-    size_t ret = (size_t) VirtualAlloc((LPVOID) preferred_addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    size_t ret = (size_t) VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #else
-    size_t ret = (size_t) mmap((void *) preferred_addr, size, 0x7, 0x22, -1, 0);
+    size_t ret = (size_t) mmap(NULL, size, 0x7, 0x22, -1, 0);
     if (ret == (size_t)-1) ret = 0;
 #endif
-    return (void *) (!ret ? ret : ret + off);
+    return (void *) ret;
 }
 
-typedef void * (*stub_ptr)(void *, void *, size_t, size_t);
+typedef int (*stub_ptr)(void *, void *);
 
 const char *stub_base85 = $$$$stub_base85$$$$;
 char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
-const size_t entrypoint_offset = $$$$entrypoint_offset$$$$;
 
 int main(int argc, char *argv[]) {
     PLATFORM_DATA pd;
-    SERVICE_FUNCTIONS sf;
-    if (argc >= 2 && !strcmp("--debug", argv[1])) {
-        g_debug = 1;
-    }
     pd.env_flags            = 0; // necessary since pd is on stack
 #if defined(_WIN32)
     pd.env_id               = ENV_ID_WINDOWS;
 #elif defined(__linux__)
     pd.env_id               = ENV_ID_LINUX;
     // Linux's stack growth works differently than Windows.
-    // However, we do make sure the stack grows since we cannot rely on
-    //   Microsoft compiler's behavior on the stack usage.
+    // Hence, we disable the __chkstk mechanism on Linux.
     pd.env_flags            |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
 #else
     pd.env_id               = ENV_ID_UNKNOWN;
 #endif
-    pd.leading_unused_bytes = $$$$leading_unused_bytes$$$$ULL;
-    pd.pe_image_base        = $$$$pe_image_base$$$$ULL;
-    pd.pe_off_reloc         = $$$$pe_off_reloc$$$$ULL;
-    pd.pe_size_reloc        = $$$$pe_size_reloc$$$$ULL;
 #if defined(_WIN32)
-    pd.win_GetModuleHandleW = (uint64_t) GetModuleHandleW;
+    pd.win_kernel32         = (uint64_t) GetModuleHandleW(L"kernel32");
     pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
 #endif
-    sf.ptr_imagebase        = NULL;
-    sf.ptr_alloc            = (void *) svc_alloc;
-    sf.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
-    sf.ptr_dealloc          = (void *) svc_free;
-    sf.ptr_realloc          = (void *) svc_realloc;
-    sf.ptr_exit             = (void *) svc_exit;
-    sf.ptr_read_stdio       = (void *) svc_read_stdio;
-    sf.ptr_write_stdio      = (void *) svc_write_stdio;
-    sf.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
-    sf.ptr_platform         = (void *) &pd;
+    pd.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
+    pd.ptr_alloc            = (void *) svc_alloc;
+    pd.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
+    pd.ptr_dealloc          = (void *) svc_free;
+    pd.ptr_realloc          = (void *) svc_realloc;
+    pd.ptr_read_stdio       = (void *) svc_read_stdio;
+    pd.ptr_write_stdio      = (void *) svc_write_stdio;
 
-    stub_ptr stub = (stub_ptr) svc_alloc_rwx(0x80001000);
+    stub_ptr stub = (stub_ptr) svc_alloc_rwx(4096);
     b85tobin((void *) stub, stub_base85);
     b85tobin(payload, (char const *)payload);
-    stub(&sf, payload, entrypoint_offset, (size_t) g_debug);
-    return 0; // never reached
+    return stub(&pd, payload);
 }
-//==============================================================================
 // LOADER END
-//==============================================================================

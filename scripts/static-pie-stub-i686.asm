@@ -50,10 +50,9 @@ LOC _state
 %define Temp dword [ebp+8]
 
 
-; [ebp + 16] = g_debug
-; [ebp + 12] = entrypoint_offset
-; [ebp +  8] = Src
-; [ebp +  4] = the SERVICE_FUNCTIONS table
+; [ebp + 12] = Src
+; [ebp +  8] = the PLATFORM_DATA table
+; [esp + 32] = Dest (original)
 ; [esp + 28] = the first 4 bytes of the LZMA stream     (callee: [ebp + 36])
 ; [esp + 24] = tsize                                    (callee: [ebp + 32])
 ; [esp + 20] = (1 << pb) - 1                            (callee: [ebp + 28])
@@ -63,9 +62,10 @@ LOC _state
 ; [esp +  4] = Dest                                     (callee: [ebp + 12])
 ; [esp +  0] = Temp                                     (callee: [ebp +  8])
 _start:
+    push    ebp
     mov     ebp, esp
-    sub     esp, 60
-    mov     esi, dword [ebp + 8]
+    sub     esp, 40
+    mov     esi, dword [ebp + 12]
     movzx   eax, byte [esi + 0]
     xor     edx, edx
     xor     ecx, ecx
@@ -91,29 +91,26 @@ _start:
     add     eax, 2048
     mov     dword [esp + 24], eax   ; [esp + 24] = tsize
 
-    mov     ebx, dword [ebp + 4]
-    mov     esi, dword [ebp + 8]
-    mov     edi, dword [esi + 5]
-    sub     esp, 28
+    mov     ebx, dword [ebp + 8]    ; ebx = PLATFORM_DATA table
+    mov     esi, dword [ebp + 12]
+    mov     edi, dword [esi + 5]    ; edi = decompressed size of payload
+    sub     esp, 12
     push    edi                     ; svc_alloc_rwx: size of memory
-    mov     eax, dword [ebx + 32]
-    call    eax             ; allocate the Dest memory
-    add     esp, 32
-    mov     ebx, dword [ebp + 4]
-    mov     dword [ebx + 0], eax    ; save the image base address in the SERVICE_FUNCTIONS table
+    call    dword [ebx + 56]        ; allocate the Dest memory
+    add     esp, 16
     mov     dword [esp + 4], eax    ; [esp +  4] = Dest
+    mov     dword [esp + 32], eax   ; [esp + 32] = Dest
 
     mov     edi, dword [esp + 24]
     shl     edi, 1
-    sub     esp, 24
+    sub     esp, 8
     push    1                       ; svc_alloc: alignment (required by Rust)
     push    edi                     ; svc_alloc: size of memory
-    mov     eax, dword [ebx + 4]
-    call    eax             ; allocate the Temp memory
-    add     esp, 32
+    call    dword [ebx + 60]        ; allocate the Temp memory
+    add     esp, 16
     mov     dword [esp + 0], eax    ; [esp +  0] = Temp
 
-    mov     esi, dword [ebp + 8]
+    mov     esi, dword [ebp + 12]
     mov     edi, dword [esi + 14]
     bswap   edi                     ; edi = initial 32 bits of the stream
                                     ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
@@ -126,27 +123,28 @@ _start:
     mov     edi, dword [esp + 0]
     mov     eax, dword [esp + 24]
     shl     eax, 1
-    sub     esp, 20
+    sub     esp, 4
     push    1                       ; svc_free: alignment of memory to be freed (required by Rust)
     push    eax                     ; svc_free: size of memory to be freed (required by Rust)
     push    edi                     ; svc_free: ptr to be freed
-    mov     ebx, dword [ebp + 4]
-    mov     eax, dword [ebx + 12]
-    call    eax             ; free the Temp memory
-    add     esp, 32
+    mov     ebx, dword [ebp + 8]    ; ebx = PLATFORM_DATA table (since _lzma_dec clobbers ebx)
+    call    dword [ebx + 68]        ; free the Temp memory
+    add     esp, 16
 
-    mov     ebx, dword [ebp + 4]
-    mov     eax, dword [ebx + 0]
-    mov     ecx, dword [ebp + 12]
-    add     eax, ecx
-    mov     edx, dword [ebp + 16]
-    mov     dword [eax], 0x9058016A ; push 0x1 -> pop eax -> nop
-    bt      edx, 0
-    jnc     _f
-    mov     dword [eax], 0xCC58016A ; push 0x1 -> pop eax -> int 3
-_f: mov     dword [esp + 0], ebx    ; the SERVICE_FUNCTIONS table
-    call    eax             ; call the entrypoint of the binary
-                            ; -> subsequent instructions are never reached
+    mov     edx, dword [esp + 4]    ; edx = (End of the decompressed data)
+    lea     esi, [edx - 32]
+    lea     edi, [ebx + 32]
+    push    24
+    pop     ecx
+    rep     movsb
+    mov     ecx, dword [esp + 32]   ; ecx = Dest
+    add     ecx, dword [esi]        ; add entrypoint_offset
+    mov     byte [ecx + 1], 1       ; Change 'push 0' to 'push 1'
+    mov     dword [esp + 0], ebx    ; the PLATFORM_DATA table
+    call    ecx                     ; call the entrypoint of the binary
+    add     esp, 40
+    pop     ebp
+    ret
 
 _lzma_dec:
     enter   0, 0

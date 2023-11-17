@@ -212,10 +212,6 @@ unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_
 #[cfg(target_arch = "x86_64")]
 mod services_override {
     #[inline(always)]
-    pub unsafe extern "win64" fn svc_exit(status: usize) -> ! {
-        super::syscall::exit_group(status)
-    }
-    #[inline(always)]
     pub unsafe extern "win64" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
         super::syscall::read(fd, buf, count)
     }
@@ -226,10 +222,6 @@ mod services_override {
 }
 #[cfg(target_arch = "x86")]
 mod services_override {
-    #[inline(always)]
-    pub unsafe extern "C" fn svc_exit(status: usize) -> ! {
-        super::syscall::exit_group(status)
-    }
     #[inline(always)]
     pub unsafe extern "C" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
         super::syscall::read(fd, buf, count)
@@ -249,7 +241,7 @@ pub unsafe fn init() {
      * by the runtime startup code (e.g., glibc).
      * Thus, instead of parsing the ELF section, we just invoke
      * the kernel APIs directly. */
-    let pd = &*services::platform_data();
+    let pd = services::platform_data();
     if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
         let mut rlim: syscall::RLimit = Default::default();
         let ret = syscall::getrlimit(syscall::RLIMIT_STACK, &mut rlim);
@@ -265,7 +257,6 @@ pub unsafe fn init() {
         dlmalloc_dealloc,
         dlmalloc_realloc,
     );
-    services::install_single_service(5, services_override::svc_exit as usize);
-    services::install_single_service(6, services_override::svc_read_stdio as usize);
-    services::install_single_service(7, services_override::svc_write_stdio as usize);
+    services::install_single_service(5, services_override::svc_read_stdio as usize);
+    services::install_single_service(6, services_override::svc_write_stdio as usize);
 }
