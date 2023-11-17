@@ -16,14 +16,13 @@ section .text
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
     push    rbx
     enter   80, 0
+    sbb     ebx, ebx
+    neg     ebx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
     and     rsp, 0xFFFFFFFFFFFFFFF0
 
 ; PLATFORM_DATA
     push    rcx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
     push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
-    xor     ebx, ebx
-    test    rdx, rdx
-    sete    bl                      ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
     push    rbx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
     inc     ebx
     push    rbx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
@@ -32,31 +31,28 @@ section .text
 
 ; svc_alloc_rwx for Windows and Linux
 ; rcx = size
-; rdx = pointer to VirtualAlloc (must be supplied before prepending the mov instruction)
+; rdi = pointer to VirtualAlloc (must be supplied before prepending the mov instruction)
 _svc_alloc_rwx:
-    test    rdx, rdx
+    push    9
+    pop     rax                     ; syscall id of x64 mmap
+    cdq                             ; rdx=0
+    xor     r9d, r9d                ; offset
+    test    rdi, rdi
     jz      _svc_alloc_rwx_linux
 _svc_alloc_rwx_windows:
-    push    rdx
-    push    rcx
-    pop     rdx                     ; size
-    xor     ecx, ecx
+    xchg    ecx, edx                ; rcx=0 / rdx=tsize
     mov     r8d, 0x3000             ; MEM_COMMIT | MEM_RESERVE
-    push    0x40
-    pop     r9                      ; PAGE_EXECUTE_READWRITE
-    ret                             ; kernel32!VirtualAlloc
+    mov     r9b, 0x40               ; PAGE_EXECUTE_READWRITE
+    jmp     rdi                     ; kernel32!VirtualAlloc
 _svc_alloc_rwx_linux:
     push    rsi                     ; save rsi
-    mov     al, 9                   ; syscall id of x64 mmap (safe since we have ensured rax=0)
-    xor     edi, edi
+;   xor     edi, edi                ; rdi=0 (already ensured)
     mov     esi, ecx                ; size
-    push    7
-    pop     rdx                     ; protect
+    mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
     push    0x22
     pop     r10                     ; flags
     push    -1
     pop     r8                      ; fd
-    xor     r9d, r9d                ; offset
     syscall
     pop     rsi                     ; restore rsi
 _ret:
@@ -92,7 +88,7 @@ _kernel32:
 ; Allocate memory for stub
 _t:
     pop     rsi                     ; Register svc_alloc_rwx
-    push    rdx
+    push    rdi
     pop     rbx                     ; rbx = pointer to VirtualAlloc
     push    1
     pop     rcx                     ; rcx = 1 -> will be rounded up to the nearest page size, which is 0x1000 (4K)
@@ -102,7 +98,7 @@ _t:
 ; Current state: rax = new buffer, rbx = pointer to VirtualAlloc, rsi = svc_alloc_rwx
     mov     qword [rsp+56+32], rax  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx (on the new buffer)
     xchg    rax, rdi                ; rdi = new buffer
-    mov     ax, 0xBA48              ; mov rdx, STRICT QWORD imm64
+    mov     ax, 0xBF48              ; mov rdi, STRICT QWORD imm64
     stosw
     xchg    rax, rbx                ; rax = pointer to VirtualAlloc
     stosq
@@ -111,15 +107,15 @@ _t:
     rep     movsb                   ; this progresses rsi to _decode
     push    rsi
     pop     rbx                     ; rbx = _decode
-    push    rdi
-    push    r14
 
 ; Decode stub (rsi -> rdi)
 ; Current state: rdi = stub memory
+    push    rdi
     mov     rsi, r13                ; rsi = STUB_BASE91
     call    rbx
 
 ; Decode binary (rsi -> rdi)
+    push    r14
     pop     rsi                     ; rsi = BINARY_BASE91
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
