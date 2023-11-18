@@ -27,21 +27,14 @@ else:
     compressed_binary_path = binary_path + ".lzma"
     elf2bin = subprocess.check_output([sys.executable, "scripts/static-pie-elf2bin.py", elf_path, binary_path]).decode("utf-8")
 loader_fdict = json.loads(elf2bin)
-assert 'leading_unused_bytes' in loader_fdict
 assert 'entrypoint_offset' in loader_fdict
-assert 'pe_image_base' in loader_fdict
-assert 'pe_off_reloc' in loader_fdict
-assert 'pe_size_reloc' in loader_fdict
 
 # Please refer to the following link for the lzma file format:
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
     # Embed these information into the LZMA file to reduce the generated code length
-    x = loader_fdict['pe_image_base'].to_bytes(8, byteorder='little') + \
-        loader_fdict['pe_off_reloc'].to_bytes(8, byteorder='little') + \
-        loader_fdict['pe_size_reloc'].to_bytes(8, byteorder='little') + \
-        loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
+    x = loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
     memory_bin += x
 lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 22}
 compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
@@ -129,10 +122,6 @@ out = multiple_replace(template, {
     "$$$$binary_base91$$$$": code_b91,
     "$$$$binary_base91_len$$$$": str(code_b91_len),
     "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
-    "$$$$leading_unused_bytes$$$$": str(loader_fdict['leading_unused_bytes']),
     "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
-    "$$$$pe_image_base$$$$": str(loader_fdict['pe_image_base']),
-    "$$$$pe_off_reloc$$$$": str(loader_fdict['pe_off_reloc']),
-    "$$$$pe_size_reloc$$$$": str(loader_fdict['pe_size_reloc']),
 })
 print(out)

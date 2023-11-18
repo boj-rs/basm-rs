@@ -236,9 +236,5 @@ if __name__ == '__main__':
         f.write(bytes(memory_bin))
 
     fdict = {}
-    fdict['leading_unused_bytes'] = pos_begin
     fdict['entrypoint_offset'] = entrypoint_offset
-    fdict['pe_image_base'] = 0
-    fdict['pe_off_reloc'] = 0
-    fdict['pe_size_reloc'] = 0
     print(json.dumps(fdict))    # callers of this script can capture stdout to get this value

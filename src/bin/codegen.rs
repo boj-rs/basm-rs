@@ -122,10 +122,9 @@ unsafe extern "win64" fn _start() -> ! {
         "sub    rsp, 32",
         "jmp    2f",
         "1:",
-        "mov    rdi, QWORD PTR [rbx + 32]", // Preferred ImageBase
-        "lea    rsi, [rip + __ImageBase]",  // In-memory ImageBase
-        "mov    rdx, QWORD PTR [rbx + 40]", // Offset of relocation table (relative to the in-memory ImageBase)
-        "mov    rcx, QWORD PTR [rbx + 48]", // Size of relocation table (relative to the in-memory ImageBase)
+        "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
+        "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
         "bt     DWORD PTR [rbx + 8], 0",

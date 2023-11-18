@@ -354,15 +354,9 @@ _copy:
 _end:
 _code_end:
     lea     rsp, [rsp + 2*r12 + 48] ; Restore rsp
-    pop     rax                     ; rax = PLATFORM_DATA table
-    lea     rsi, [Dest - 32]
-    lea     rdi, [rax + 32]
-    push    24
-    pop     rcx
-    rep     movsb
-    xchg    rax, rcx                ; rcx = PLATFORM_DATA table
-    pop     rax                     ; Restore rax = Dst
-    add     rax, qword [rsi]        ; Add entrypoint offset
+    pop     rcx                     ; rcx = PLATFORM_DATA table
+    pop     rax                     ; rax = start of the binary
+    add     rax, qword [Dest - 8]   ; add entrypoint offset
     inc     byte [rax + 1]          ; Change 'push 0' to 'push 1'
     add     rsp, 32
     pop     rbp

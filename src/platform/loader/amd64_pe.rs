@@ -17,8 +17,14 @@ const IMAGE_REL_BASED_DIR64:        u16 = 10;   // The base relocation applies t
 //}
 
 
+/* This function assumes the original ImageBase is 0x0,
+ *   which is ensured by `static-pie-pe2bin.py`.
+ * Note that when the executable runs natively,
+ *   this assumption breaks; but in that case,
+ *   the Windows PE loader handles relocation for us,
+ *   and thus this function is not run; hence no problem.
+ */
 pub unsafe extern "sysv64" fn relocate(
-    orig_image_base: u64,
     addr_image_base: u64,
     off_reloc: u64,
     size_reloc: u64,
@@ -30,7 +36,7 @@ pub unsafe extern "sysv64" fn relocate(
         let size_of_block: u32 = ptr::read((off + 4) as *const u32);
         let end_of_block: u64 = off + size_of_block as u64;
         off += 8;
-        let reloc_delta: u64 = addr_image_base - orig_image_base;
+        let reloc_delta: u64 = addr_image_base;
         while off < end_of_block {
             let w_val: u16 = ptr::read(off as *const u16);
             off += 2;
