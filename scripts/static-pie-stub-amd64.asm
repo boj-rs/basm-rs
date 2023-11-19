@@ -51,22 +51,21 @@ LOC _state, 8
 %define Temp rbp
 
 
+; Does not touch rdi until we call svc_alloc_rwx
 _start:
     push    rbp
     push    rdx             ; LZMA binary
     pop     rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
     push    rcx             ; PLATFORM_DATA table
-    pop     rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
-    sub     rsp, 32         ; shadow space
 
     movzx   eax, byte [rdx + 0]     ; al = pb*45 + lp*9 + lc
     cdq                     ; edx = 0
     push    45
     pop     rcx
     div     ecx             ; eax = pb, edx = lp*9 + lc
-    xor     edi, edi
-    bts     edi, eax
-    lea     r13, [rdi-1]    ; r13 = (1 << pb) - 1
+    xor     ebx, ebx
+    bts     ebx, eax
+    lea     r13, [rbx-1]    ; r13 = (1 << pb) - 1
     xchg    eax, edx        ; eax = lp*9 + lc
     cdq                     ; edx = 0
     mov     cl, 9
@@ -76,6 +75,9 @@ _start:
     cdq                     ; edx = 0
     bts     edx, eax
     lea     r14, [rdx-1]    ; r14 = (1 << lp) - 1
+
+    pop     rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
+    sub     rsp, 32         ; shadow space
 
     mov     al, 3
     shl     eax, cl

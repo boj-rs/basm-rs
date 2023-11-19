@@ -14,19 +14,11 @@ section .text
 ; Align stack to 16 byte boundary
 ; [rsp+ 32, rsp+120): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    enter   56, 0
+    enter   48, 0
     jnc      _s
     push    rcx                     ; Linux: align stack on 16-byte boundary
 _s: sbb     ecx, ecx
     neg     ecx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-
-; PLATFORM_DATA
-    push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
-    push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
-    push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
-    inc     ecx
-    push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
-    sub     rsp, 32                 ; shadow space
     call    _t
 
 ; svc_alloc_rwx for Windows and Linux
@@ -59,6 +51,10 @@ _ret:
     ret
 _svc_alloc_rwx_end:
 
+_kernel32:
+    db      "kernel32"
+    db      0
+
 ; Base91 decoder
 _decode:
     push    0x1f
@@ -81,34 +77,25 @@ _decode_output:
     jnz     _decode_output
     jmp     _decode_loop
 
-_kernel32:
-    db      "kernel32"
-    db      0
+; PLATFORM_DATA
+_t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
+    push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
+    push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
+    push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    inc     ecx
+    push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+    sub     rsp, 32                 ; shadow space
+    call    qword [rsp+32+32]       ; svc_alloc_rwx
 
-; Allocate memory for stub
-; rcx = 1 or 2 -> will be rounded up to the nearest page size, which is 0x1000 (4K)
-_t:
-    pop     rsi                     ; Register svc_alloc_rwx
-    call    rsi                     ; svc_alloc_rwx
-
-; Copy svc_alloc_rwx to the new buffer
-; Current state: rax = new buffer, rdi = pointer to VirtualAlloc, rsi = svc_alloc_rwx
-    push    rdi                     ; rdi = pointer to VirtualAlloc
-    mov     qword [rsp+32+40], rax  ; PLATFORM_DATA[32..39] = ptr_alloc_rwx (on the new buffer)
+; Current state: rax = new buffer, rdi = pointer to VirtualAlloc
+    push    rdi
+    push    rax
     xchg    rax, rdi                ; rdi = new buffer
-    mov     ax, 0xBF48              ; mov rdi, STRICT QWORD imm64
-    stosw
-    pop     rax                     ; rax = pointer to VirtualAlloc
-    stosq
-    push    _svc_alloc_rwx_end - _svc_alloc_rwx
-    pop     rcx
-    rep     movsb                   ; this progresses rsi to _decode
 
 ; Decode stub (rsi -> rdi)
-; Current state: rdi = stub memory
-    push    rdi
-    xchg    rsi, r13                ; rsi = STUB_BASE91 / r13 = _decode
-    call    r13
+; Current state: rdi = stub memory (by the previous instruction)
+;                rsi = STUB_BASE91 (by the Rust template)
+    call    _decode
 
 ; Decode binary (rsi -> rdi)
     push    r14
@@ -116,11 +103,12 @@ _t:
     push    rsi
     pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
     push    rdi
-    call    r13
+    call    _decode
 
 ; Call stub
     pop     rdx                     ; rdx = LZMA-compressed binary
     pop     rax                     ; rax = stub entrypoint
+    pop     rdi
     lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
     call    rax
     leave
