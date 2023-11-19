@@ -12,10 +12,10 @@ ORG 0
 section .text
 
 ; Align stack to 16 byte boundary
-; [rsp+ 32, rsp+144): PLATFORM_DATA
+; [rsp+ 32, rsp+120): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    enter   80, 0
-    jc      _s
+    enter   56, 0
+    jnc      _s
     push    rcx                     ; Linux: align stack on 16-byte boundary
 _s: sbb     ecx, ecx
     neg     ecx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
@@ -94,7 +94,7 @@ _t:
 ; Copy svc_alloc_rwx to the new buffer
 ; Current state: rax = new buffer, rdi = pointer to VirtualAlloc, rsi = svc_alloc_rwx
     push    rdi                     ; rdi = pointer to VirtualAlloc
-    mov     qword [rsp+56+40], rax  ; PLATFORM_DATA[56..63] = ptr_alloc_rwx (on the new buffer)
+    mov     qword [rsp+32+40], rax  ; PLATFORM_DATA[32..39] = ptr_alloc_rwx (on the new buffer)
     xchg    rax, rdi                ; rdi = new buffer
     mov     ax, 0xBF48              ; mov rdi, STRICT QWORD imm64
     stosw

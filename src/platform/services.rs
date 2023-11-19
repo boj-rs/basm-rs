@@ -35,9 +35,6 @@ pub struct PlatformData {
     pub env_flags: u64,
     pub win_kernel32: u64,              // handle of kernel32.dll
     pub win_GetProcAddress: u64,        // pointer to kernel32::GetProcAddress
-    pub pe_image_base: u64,
-    pub pe_off_reloc: u64,
-    pub pe_size_reloc: u64,
     pub fn_table: [usize; 7],
 }
 
@@ -49,11 +46,11 @@ pub fn install(platform_data_by_loader: usize) {
 }
 #[inline(always)]
 unsafe fn addr(fn_id: usize) -> usize {
-    core::ptr::read((PLATFORM_DATA + 56 + fn_id * core::mem::size_of::<usize>()) as *mut usize)
+    core::ptr::read((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize)
 }
 #[inline(always)]
 pub unsafe fn install_single_service(fn_id: usize, fn_ptr: usize) {
-    core::ptr::write((PLATFORM_DATA + 56 + fn_id * core::mem::size_of::<usize>()) as *mut usize, fn_ptr)
+    core::ptr::write((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize, fn_ptr)
 }
 //#[inline(always)]
 pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {

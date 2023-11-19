@@ -63,7 +63,7 @@ unsafe extern "win64" fn _start() -> ! {
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
         "test   eax, eax",
         "jnz    1f",
-        "sub    rsp, 88",                   // 16 + 88 + 8 = 112 = 16*7 -> stack alignment preserved
+        "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
@@ -108,7 +108,7 @@ unsafe extern "win64" fn _start() -> ! {
         "pop    rax",
         "push   rbp",
         "mov    rbp, rsp",
-        "sub    rsp, 80",                   // 80 = 112 - 32 (tables)
+        "sub    rsp, 64",                   // 64 = 88 - 32 (tables) + 8 (alignment)
         "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
         "test   eax, eax",
         "jnz    1f",
@@ -189,7 +189,7 @@ unsafe extern "cdecl" fn _start() -> ! {
         "pop    eax",
         "test   eax, eax",
         "jnz    1f",
-        "sub    esp, 76",                   // 76 = 68 + 12; PLATFORM_DATA pointer (4 bytes) + PLATFORM_DATA (68 (+ 16 = 84 bytes)) + alignment (8 bytes wasted)
+        "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
         "push   0",                         // zero upper dword
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   0",                         // zero upper dword

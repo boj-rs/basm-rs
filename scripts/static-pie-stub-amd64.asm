@@ -83,7 +83,7 @@ _start:
     xchg    rax, r12        ; r12 = tsize (always a multiple of 256)
 
     mov     rcx, qword [rbp + 5]    ; svc_alloc_rwx: size of memory
-    call    qword [rbx + 56]        ; allocate the Dest memory
+    call    qword [rbx + 32]        ; allocate the Dest memory
     push    rax                     ; Save rax = Dst
     xchg    rax, r9                 ; r9 = Dst
 
