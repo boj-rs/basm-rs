@@ -52,6 +52,15 @@ if __name__ == '__main__':
         memory_bin += reloc_bin
     reloc_off = 0 if reloc_sz == 0 else pos_begin + reloc_off
 
+    # Patch the entrypoint
+    # We look for:
+    #   0:  6a 00                   push   0x0
+    # and replace it with:
+    #   0:  6a 01                   push   0x1
+    # This works for both i686 and amd64.
+    assert memory_bin[entrypoint_offset:entrypoint_offset+2] == b"\x6a\x00"
+    memory_bin[entrypoint_offset:entrypoint_offset+2] = b"\x6a\x01"
+
     # Patch the relocation offset and size (which is in _start)
     # We look for:
     #   0:  be 78 56 34 12          mov    esi,0x12345678  <- replaced with reloc_off

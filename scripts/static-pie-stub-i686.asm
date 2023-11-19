@@ -134,7 +134,6 @@ _start:
     mov     edx, dword [esp + 4]    ; edx = (End of the decompressed data)
     mov     ecx, dword [esp + 32]   ; ecx = Dest
     add     ecx, dword [edx - 8]    ; add entrypoint_offset
-    mov     byte [ecx + 1], 1       ; Change 'push 0' to 'push 1'
     mov     dword [esp + 0], ebx    ; the PLATFORM_DATA table
     call    ecx                     ; call the entrypoint of the binary
     add     esp, 40

@@ -357,7 +357,6 @@ _code_end:
     pop     rcx                     ; rcx = PLATFORM_DATA table
     pop     rax                     ; rax = start of the binary
     add     rax, qword [Dest - 8]   ; add entrypoint offset
-    inc     byte [rax + 1]          ; Change 'push 0' to 'push 1'
     add     rsp, 32
     pop     rbp
     jmp     rax                     ; Jump to the entrypoint of the binary

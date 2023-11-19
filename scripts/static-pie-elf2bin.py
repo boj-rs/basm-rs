@@ -232,6 +232,15 @@ if __name__ == '__main__':
     memory_bin = memory_bin[pos_begin:]
     entrypoint_offset -= pos_begin
 
+    # Patch the entrypoint
+    # We look for:
+    #   0:  6a 00                   push   0x0
+    # and replace it with:
+    #   0:  6a 01                   push   0x1
+    # This works for both i686 and amd64.
+    assert memory_bin[entrypoint_offset:entrypoint_offset+2] == b"\x6a\x00"
+    memory_bin[entrypoint_offset:entrypoint_offset+2] = b"\x6a\x01"
+
     with open(binary_path, "wb") as f:
         f.write(bytes(memory_bin))
 
