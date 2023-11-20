@@ -57,17 +57,15 @@ unsafe extern "win64" fn _start() -> ! {
     // However, when called as the entrypoint by the Linux OS,
     //   RSP will be 16-byte aligned AFTER `call` instruction.
     asm!(
-        "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
-        "pop    rax",
-        "push   rcx",                       // short form of "sub rsp, 8"
+        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
-        "test   eax, eax",
-        "jnz    1f",
-        "sub    rsp, 88",                   // 16 + 88 + 8 = 112 = 16*7 -> stack alignment preserved
+        "jc     1f",
+        "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
         "1:",
+        "push   rcx",                       // short form of "sub rsp, 8"
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
@@ -104,31 +102,26 @@ unsafe extern "win64" fn _start() -> ! {
     //   RSP will be 16-byte aligned BEFORE `call` instruction.
     // In addition, we need to provide a `shadow space` of 32 bytes.
     asm!(
-        "push   0",                         // rax=0 (running without loader) / rax=1 (running with loader)
-        "pop    rax",
-        "push   rbp",
-        "mov    rbp, rsp",
-        "sub    rsp, 80",                   // 80 = 112 - 32 (tables)
+        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+        "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
         "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
-        "test   eax, eax",
-        "jnz    1f",
+        "jc     1f",
         "call   {3}",
         "lea    rdi, [rip+{4}]",
         "push   rdi",                       // GetProcAddress
         "push   rax",                       // handle to kernel32
         "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
         "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
-        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
+        "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
         "sub    rsp, 32",
         "jmp    2f",
         "1:",
-        "mov    rdi, QWORD PTR [rbx + 32]", // Preferred ImageBase
-        "lea    rsi, [rip + __ImageBase]",  // In-memory ImageBase
-        "mov    rdx, QWORD PTR [rbx + 40]", // Offset of relocation table (relative to the in-memory ImageBase)
-        "mov    rcx, QWORD PTR [rbx + 48]", // Size of relocation table (relative to the in-memory ImageBase)
+        "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
+        "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
-        "bt     DWORD PTR [rbx + 8], 0",
+        "bt     QWORD PTR [rbx + 8], 0",
         "jnc    3f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
@@ -143,8 +136,7 @@ unsafe extern "win64" fn _start() -> ! {
         "3:",
         "mov    rcx, rbx",
         "call   {1}",
-        "mov    rsp, rbp",
-        "pop    rbp",
+        "leave",
         "ret",
         sym loader::amd64_pe::relocate,
         sym _start_rust,
@@ -186,11 +178,9 @@ unsafe extern "cdecl" fn _start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call` instruction
     asm!(
-        "push   0",                         // eax=0 (running without loader) / eax=1 (running with loader)
-        "pop    eax",
-        "test   eax, eax",
-        "jnz    1f",
-        "sub    esp, 76",                   // 76 = 68 + 12; PLATFORM_DATA pointer (4 bytes) + PLATFORM_DATA (68 (+ 16 = 84 bytes)) + alignment (8 bytes wasted)
+        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+        "jc     1f",
+        "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
         "push   0",                         // zero upper dword
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   0",                         // zero upper dword
@@ -206,11 +196,11 @@ unsafe extern "cdecl" fn _start() -> ! {
         "2:",
         "call   3f",
         "3:",
-        "pop    ecx",                       // ecx = _start + 40 (obtained by counting the opcode size in bytes)
+        "pop    ecx",                       // ecx = _start + 36 (obtained by counting the opcode size in bytes)
         "push   edx",                       // [esp + 0] = PLATFORM_DATA table
         "call   {2}",                       // eax = offset of _start from the image base
         "sub    ecx, eax",
-        "sub    ecx, 40",                   // ecx = the in-memory image base (i.e., __ehdr_start)
+        "sub    ecx, 36",                   // ecx = the in-memory image base (i.e., __ehdr_start)
         "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
         "add    eax, ecx",                  // eax = _DYNAMIC table
         "sub    esp, 8",                    // For stack alignment

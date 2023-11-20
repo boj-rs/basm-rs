@@ -45,9 +45,6 @@ typedef struct {
     uint64_t    env_flags;
     uint64_t    win_kernel32;       // handle of kernel32.dll
     uint64_t    win_GetProcAddress; // pointer to kernel32!GetProcAddress
-    uint64_t    pe_image_base;
-    uint64_t    pe_off_reloc;
-    uint64_t    pe_size_reloc;
     void       *ptr_alloc_rwx;      // pointer to function
     void       *ptr_alloc;          // pointer to function
     void       *ptr_alloc_zeroed;   // pointer to function
