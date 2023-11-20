@@ -27,28 +27,33 @@ else:
     compressed_binary_path = binary_path + ".lzma"
     elf2bin = subprocess.check_output([sys.executable, "scripts/static-pie-elf2bin.py", elf_path, binary_path]).decode("utf-8")
 loader_fdict = json.loads(elf2bin)
-assert 'leading_unused_bytes' in loader_fdict
 assert 'entrypoint_offset' in loader_fdict
-assert 'pe_image_base' in loader_fdict
-assert 'pe_off_reloc' in loader_fdict
-assert 'pe_size_reloc' in loader_fdict
 
 # Please refer to the following link for the lzma file format:
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
+# However, we use a different format:
+#   [ 0,  1) = (1 << pb) - 1
+#   [ 1,  2) = (1 << lp) - 1
+#   [ 2,  3) = lc
+#   [ 3,  4) = lp + lc + 8
+#   [ 4,  8) = Uncompressed size
+#   [ 8, ..) = Compressed data without the leading byte
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
     # Embed these information into the LZMA file to reduce the generated code length
-    x = loader_fdict['pe_image_base'].to_bytes(8, byteorder='little') + \
-        loader_fdict['pe_off_reloc'].to_bytes(8, byteorder='little') + \
-        loader_fdict['pe_size_reloc'].to_bytes(8, byteorder='little') + \
-        loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
+    x = loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
     memory_bin += x
-lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 2, 'dict_size': 1 << 22}
-compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
-lzma_header_properties = ((lzma_filter['pb'] * 5 + lzma_filter['lp']) * 9 + lzma_filter['lc']).to_bytes(1, byteorder='little')
-lzma_header_dictionary_size = lzma_filter['dict_size'].to_bytes(4, byteorder='little')
-lzma_header_uncompressed_size = len(memory_bin).to_bytes(8, byteorder='little')
-compressed_memory_bin = lzma_header_properties + lzma_header_dictionary_size + lzma_header_uncompressed_size + bytes(compressed_memory_bin)
+lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 0, 'dict_size': 1 << 22, 'depth': 200}
+compressed_memory_bin = bytearray(lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter]))
+while len(compressed_memory_bin) < 4:
+    compressed_memory_bin += b'\x00'                # append zeros for byte order swap (this won't happen in almost all cases, though)
+compressed_memory_bin = compressed_memory_bin[1:]   # strip the (redundant) leading zero byte of the LZMA stream
+compressed_memory_bin[:4] = reversed(compressed_memory_bin[:4]) # perform byte order swap in advance
+
+pb, lp, lc = lzma_filter['pb'], lzma_filter['lp'], lzma_filter['lc']
+lzma_header_properties = ((((1 << pb) - 1) + ((1 << lp) - 1) << 8) + (lc << 16) + ((lp + lc + 8) << 24)).to_bytes(4, byteorder='little')
+lzma_header_uncompressed_size = len(memory_bin).to_bytes(4, byteorder='little')
+compressed_memory_bin = lzma_header_properties + lzma_header_uncompressed_size + bytes(compressed_memory_bin)
 with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 
@@ -90,6 +95,10 @@ else:
 # stub
 with open(stub_path, "rb") as f:
     stub = f.read()
+if lang_name == "Rust" and "x86_64" in target_name:
+    with open(stub_path.replace("stub-amd64", "prestub-amd64-2"), "rb") as f:
+        prestub2 = f.read()
+    stub = prestub2 + stub
 
 stub_b91 = base91.encode(stub).decode('ascii')
 stub_b91_len = len(stub_b91)
@@ -129,10 +138,6 @@ out = multiple_replace(template, {
     "$$$$binary_base91$$$$": code_b91,
     "$$$$binary_base91_len$$$$": str(code_b91_len),
     "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
-    "$$$$leading_unused_bytes$$$$": str(loader_fdict['leading_unused_bytes']),
     "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
-    "$$$$pe_image_base$$$$": str(loader_fdict['pe_image_base']),
-    "$$$$pe_off_reloc$$$$": str(loader_fdict['pe_off_reloc']),
-    "$$$$pe_size_reloc$$$$": str(loader_fdict['pe_size_reloc']),
 })
 print(out)

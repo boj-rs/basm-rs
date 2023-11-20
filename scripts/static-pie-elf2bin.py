@@ -232,13 +232,18 @@ if __name__ == '__main__':
     memory_bin = memory_bin[pos_begin:]
     entrypoint_offset -= pos_begin
 
+    # Patch the entrypoint
+    # We look for:
+    #   0:  f8                      clc
+    # and replace it with:
+    #   0:  f9                      stc
+    # This works for both i686 and amd64.
+    assert memory_bin[entrypoint_offset:entrypoint_offset+1] == b"\xf8"
+    memory_bin[entrypoint_offset:entrypoint_offset+1] = b"\xf9"
+
     with open(binary_path, "wb") as f:
         f.write(bytes(memory_bin))
 
     fdict = {}
-    fdict['leading_unused_bytes'] = pos_begin
     fdict['entrypoint_offset'] = entrypoint_offset
-    fdict['pe_image_base'] = 0
-    fdict['pe_off_reloc'] = 0
-    fdict['pe_size_reloc'] = 0
     print(json.dumps(fdict))    # callers of this script can capture stdout to get this value
