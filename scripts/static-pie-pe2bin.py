@@ -22,7 +22,6 @@ if __name__ == '__main__':
     '''
     pe = pefile.PE(pe_path)
     memory_bin = bytearray(pe.get_memory_mapped_image(ImageBase=0))
-    #assert False, ''.join('{:02x}'.format(c) for c in memory_bin[pe.OPTIONAL_HEADER.AddressOfEntryPoint:][:32])
     needed = bytearray(len(memory_bin))
     pos_begin = len(memory_bin)
     pos_end = 0
