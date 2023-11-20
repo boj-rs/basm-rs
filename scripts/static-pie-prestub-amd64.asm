@@ -51,10 +51,6 @@ _ret:
     ret
 _svc_alloc_rwx_end:
 
-_kernel32:
-    db      "kernel32"
-    db      0
-
 ; Base91 decoder
 _decode:
     push    0x1f
