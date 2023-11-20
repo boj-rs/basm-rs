@@ -58,7 +58,6 @@ unsafe extern "win64" fn _start() -> ! {
     //   RSP will be 16-byte aligned AFTER `call` instruction.
     asm!(
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-        "push   rcx",                       // short form of "sub rsp, 8"
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
         "jc     1f",
         "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
@@ -66,6 +65,7 @@ unsafe extern "win64" fn _start() -> ! {
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
         "1:",
+        "push   rcx",                       // short form of "sub rsp, 8"
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
@@ -112,7 +112,7 @@ unsafe extern "win64" fn _start() -> ! {
         "push   rax",                       // handle to kernel32
         "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
         "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
-        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
+        "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
         "sub    rsp, 32",
         "jmp    2f",
         "1:",
@@ -121,7 +121,7 @@ unsafe extern "win64" fn _start() -> ! {
         "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
         "call   {0}",
         "2:",
-        "bt     DWORD PTR [rbx + 8], 0",
+        "bt     QWORD PTR [rbx + 8], 0",
         "jnc    3f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
@@ -136,8 +136,7 @@ unsafe extern "win64" fn _start() -> ! {
         "3:",
         "mov    rcx, rbx",
         "call   {1}",
-        "mov    rsp, rbp",
-        "pop    rbp",
+        "leave",
         "ret",
         sym loader::amd64_pe::relocate,
         sym _start_rust,
