@@ -31,17 +31,29 @@ assert 'entrypoint_offset' in loader_fdict
 
 # Please refer to the following link for the lzma file format:
 #   https://svn.python.org/projects/external/xz-5.0.3/doc/lzma-file-format.txt
+# However, we use a different format:
+#   [ 0,  1) = (1 << pb) - 1
+#   [ 1,  2) = (1 << lp) - 1
+#   [ 2,  3) = lc
+#   [ 3,  4) = lp + lc + 8
+#   [ 4,  8) = Uncompressed size
+#   [ 8, ..) = Compressed data without the leading byte
 with open(binary_path, "rb") as f:
     memory_bin = f.read()
     # Embed these information into the LZMA file to reduce the generated code length
     x = loader_fdict['entrypoint_offset'].to_bytes(8, byteorder='little')
     memory_bin += x
 lzma_filter = {'id': lzma.FILTER_LZMA1, 'preset': lzma.PRESET_EXTREME, 'lp': 0, 'lc': 0, 'pb': 0, 'dict_size': 1 << 22, 'depth': 200}
-compressed_memory_bin = lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter])
-lzma_header_properties = ((lzma_filter['pb'] * 5 + lzma_filter['lp']) * 9 + lzma_filter['lc']).to_bytes(1, byteorder='little')
-lzma_header_dictionary_size = lzma_filter['dict_size'].to_bytes(4, byteorder='little')
-lzma_header_uncompressed_size = len(memory_bin).to_bytes(8, byteorder='little')
-compressed_memory_bin = lzma_header_properties + lzma_header_dictionary_size + lzma_header_uncompressed_size + bytes(compressed_memory_bin)
+compressed_memory_bin = bytearray(lzma.compress(memory_bin, format=lzma.FORMAT_RAW, filters=[lzma_filter]))
+while len(compressed_memory_bin) < 4:
+    compressed_memory_bin += b'\x00'                # append zeros for byte order swap (this won't happen in almost all cases, though)
+compressed_memory_bin = compressed_memory_bin[1:]   # strip the (redundant) leading zero byte of the LZMA stream
+compressed_memory_bin[:4] = reversed(compressed_memory_bin[:4]) # perform byte order swap in advance
+
+pb, lp, lc = lzma_filter['pb'], lzma_filter['lp'], lzma_filter['lc']
+lzma_header_properties = ((((1 << pb) - 1) + ((1 << lp) - 1) << 8) + (lc << 16) + ((lp + lc + 8) << 24)).to_bytes(4, byteorder='little')
+lzma_header_uncompressed_size = len(memory_bin).to_bytes(4, byteorder='little')
+compressed_memory_bin = lzma_header_properties + lzma_header_uncompressed_size + bytes(compressed_memory_bin)
 with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 

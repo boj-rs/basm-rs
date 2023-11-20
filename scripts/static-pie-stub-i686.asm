@@ -67,25 +67,12 @@ _start:
     sub     esp, 40
     mov     esi, dword [ebp + 12]
     movzx   eax, byte [esi + 0]
-    xor     edx, edx
-    xor     ecx, ecx
-    mov     cl, 45
-    div     ecx
-    xor     ebx, ebx
-    bts     ebx, eax
-    dec     ebx
-    mov     dword [esp + 20], ebx   ; [esp + 20] = (1 << pb) - 1
-    mov     eax, edx
-    xor     edx, edx
-    mov     cl, 9
-    div     ecx             ; eax = lp, edx = lc
-    lea     ecx, [eax + edx + 8]
-    xor     ebx, ebx
-    bts     ebx, eax
-    dec     ebx
-    mov     dword [esp + 16], ebx   ; [esp + 16] = (1 << lp) - 1
-    mov     dword [esp + 12], edx   ; [esp + 12] = lc
-
+    mov     dword [esp + 20], eax
+    movzx   eax, byte [esi + 1]
+    mov     dword [esp + 16], eax
+    movzx   eax, byte [esi + 2]
+    mov     dword [esp + 12], eax
+    movzx   ecx, byte [esi + 3]
     mov     al, 3
     shl     eax, cl
     add     eax, 2048
@@ -93,7 +80,7 @@ _start:
 
     mov     ebx, dword [ebp + 8]    ; ebx = PLATFORM_DATA table
     mov     esi, dword [ebp + 12]
-    mov     edi, dword [esi + 5]    ; edi = decompressed size of payload
+    mov     edi, dword [esi + 4]    ; edi = decompressed size of payload
     sub     esp, 12
     push    edi                     ; svc_alloc_rwx: size of memory
     call    dword [ebx + 32]        ; allocate the Dest memory
@@ -111,12 +98,13 @@ _start:
     mov     dword [esp + 0], eax    ; [esp +  0] = Temp
 
     mov     esi, dword [ebp + 12]
-    mov     edi, dword [esi + 14]
-    bswap   edi                     ; edi = initial 32 bits of the stream
-                                    ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
+    mov     edi, dword [esi + 8]    ; edi = initial 32 bits of the stream
+                                    ; Note: the first byte of the LZMA stream is always the zero byte (ignored),
+                                    ;       but it is stripped by the packager and does not exist here.
+                                    ; Also, the byte swap is also done by the packager.
     mov     dword [esp + 28], edi   ; [esp + 28] = initial 32 bits of the stream
-    add     esi, 18                 ; esi = Src + 18
-    mov     dword [esp + 8], esi    ; [esp +  8] = Src + 18
+    add     esi, 12                 ; esi = Src + 12
+    mov     dword [esp + 8], esi    ; [esp +  8] = Src + 12
 
     call    _lzma_dec
 

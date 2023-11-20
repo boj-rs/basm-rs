@@ -53,48 +53,42 @@ LOC _state, 8
 
 ; Does not touch rdi until we call svc_alloc_rwx
 _start:
-    push    rbp
+    enter   32, 0           ; shadow space
     push    rdx             ; LZMA binary
-    pop     rbp             ; "mov rbp, rdx": rbp is preserved upon function calls
+    pop     rsi             ; "mov rsi, rdx": rsi is preserved upon function calls
     push    rcx             ; PLATFORM_DATA table
-
-    movzx   eax, byte [rdx + 0]     ; al = pb*45 + lp*9 + lc
-    cdq                     ; edx = 0
-    push    45
-    pop     rcx
-    div     ecx             ; eax = pb, edx = lp*9 + lc
-    xor     ebx, ebx
-    bts     ebx, eax
-    lea     r13, [rbx-1]    ; r13 = (1 << pb) - 1
-    xchg    eax, edx        ; eax = lp*9 + lc
-    cdq                     ; edx = 0
-    mov     cl, 9
-    div     ecx             ; eax = lp, edx = lc
-    lea     ecx, [rax + rdx + 8]
-    mov     r15, rdx        ; r15 = lc
-    cdq                     ; edx = 0
-    bts     edx, eax
-    lea     r14, [rdx-1]    ; r14 = (1 << lp) - 1
-
     pop     rbx             ; "mov rbx, rcx": rbx is preserved upon function calls
-    sub     rsp, 32         ; shadow space
+
+    xor     eax, eax
+    lodsb
+    mov     r13, rax                ; r13 = (1 << pb) - 1
+    lodsb
+    mov     r14, rax                ; r14 = (1 << lp) - 1
+    lodsb
+    mov     r15, rax                ; r15 = lc
+    lodsb
+    mov     ecx, eax                ; rcx = lp + lc + 8
 
     mov     al, 3
     shl     eax, cl
     add     eax, 2048
-    xchg    rax, r12        ; r12 = tsize (always a multiple of 256)
+    xchg    rax, r12                ; r12 = tsize (always a multiple of 256)
 
-    mov     rcx, qword [rbp + 5]    ; svc_alloc_rwx: size of memory
+    lodsd
+    xchg    eax, ecx                ; svc_alloc_rwx: size of memory
     call    qword [rbx + 32]        ; allocate the Dest memory
     push    rax                     ; Save rax = Dst
     xchg    rax, r9                 ; r9 = Dst
 
-    lea     r8, [rbp + 18]          ; r8 = Src + 18
-    mov     esi, dword [rbp + 14]
-    bswap   esi                     ; esi = initial 32 bits of the stream
-                                    ; Note: the first byte of the LZMA stream is always the zero byte (ignored)
+    lodsd
+    mov     r8, rsi                 ; r8 = Src + 12
+    xchg    eax, esi                ; esi = initial 32 bits of the stream
+                                    ; Note: the first byte of the LZMA stream is always the zero byte (ignored),
+                                    ;       but it is stripped by the packager and does not exist here.
+                                    ; Also, the byte swap is also done by the packager.
 
     push    rbx                     ; Save rbx
+    push    rbp                     ; Save rbp
     lea     rdi, [rsp - 2]
     sub     rsp, r12
     sub     rsp, r12
@@ -356,10 +350,10 @@ _copy:
 _end:
 _code_end:
     lea     rsp, [rsp + 2*r12 + 48] ; Restore rsp
+    pop     rbp                     ; Restore rbp
     pop     rcx                     ; rcx = PLATFORM_DATA table
     pop     rax                     ; rax = start of the binary
     add     rax, qword [Dest - 8]   ; add entrypoint offset
-    add     rsp, 32
-    pop     rbp
+    leave
     jmp     rax                     ; Jump to the entrypoint of the binary
                                     ; (it will inherit the current stackframe)
