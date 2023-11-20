@@ -1,7 +1,7 @@
 ﻿// Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 
-#![crate_type = "cdylib"] // On Windows, omit this line or pass '--crate-type=bin' to rustc to avoid DLL creation.
+#![crate_type = "cdylib"] // On Windows, omit this or pass '--crate-type=bin' to rustc to avoid DLL creation.
 #![cfg_attr(not(windows), no_std)]#![allow(unused)]#[no_link]extern crate std as s;
 
 // SOLUTION BEGIN
@@ -13,10 +13,9 @@ $$$$solution_src$$$$
 // LOADER BEGIN
 #[cfg(not(all(target_arch = "x86_64", any(windows, target_os = "linux"))))]
 compile_error!("Unsupported target architecture or operating system.");
+macro_rules! p { () => { "stc" } }
 #[cfg(windows)]
 macro_rules! p { () => { "call LoadLibraryA;lea rdx,[rip+GetProcAddress];lea rdi,[rip+VirtualAlloc];clc" } }
-#[cfg(not(windows))]
-macro_rules! p { () => { "stc" } }
 
 static mut PAYLOAD: [u8; $$$$binary_base91_len$$$$] = *br$$$$binary_base91$$$$;
 #[no_mangle]
