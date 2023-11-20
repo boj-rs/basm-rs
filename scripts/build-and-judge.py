@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     # Build the project to generate the source code
     try:
-        p = subprocess.run([build_cmd], shell=True, capture_output=True, text=True)
+        p = subprocess.run([build_cmd], shell=True, capture_output=True, text=True, encoding="utf8")
         if p.returncode != 0:
             raise Exception("Build failed. The stderr:\n{0}".format(p.stderr))
         source_code = p.stdout

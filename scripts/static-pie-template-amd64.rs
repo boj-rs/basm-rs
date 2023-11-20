@@ -11,9 +11,8 @@ $$$$solution_src$$$$
 // SOLUTION END
 
 // LOADER BEGIN
-#[cfg(not(target_arch = "x86_64"))] compile_error!("Unsupported target architecture.");
-#[cfg(not(any(windows, target_os = "linux")))] compile_error!("Unsupported target operating system.");
-
+#[cfg(not(all(target_arch = "x86_64", any(windows, target_os = "linux"))))]
+compile_error!("Unsupported target architecture or operating system.");
 #[cfg(windows)]
 macro_rules! p { () => { "lea rcx,[rip+78];call LoadLibraryA;lea rdx,[rip+GetProcAddress];lea rdi,[rip+VirtualAlloc];clc" } }
 #[cfg(not(windows))]
