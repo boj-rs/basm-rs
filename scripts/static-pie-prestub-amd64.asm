@@ -27,6 +27,7 @@ _s: sbb     ecx, ecx
 _svc_alloc_rwx:
     push    9
     pop     rax                     ; syscall id of x64 mmap
+    jecxz  _decode
     cdq                             ; rdx=0
     xor     r9d, r9d                ; offset
     test    rdi, rdi
@@ -53,8 +54,7 @@ _svc_alloc_rwx_end:
 
 ; Base91 decoder
 _decode:
-    push    0x1f
-    pop     rax
+    mov     al, 0x1f
 _decode_loop:
     shl     eax, 13
     lodsb
@@ -75,38 +75,31 @@ _decode_output:
 
 ; PLATFORM_DATA
 _t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
+    pop     rbx
+    push    rbx
     push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
     push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
     push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
     inc     ecx
     push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
     sub     rsp, 32                 ; shadow space
-    call    qword [rsp+32+32]       ; svc_alloc_rwx
+    call    rbx                     ; svc_alloc_rwx
 
 ; Current state: rax = new buffer, rdi = pointer to VirtualAlloc
-    push    rdi
     push    rax
+    push    rdi
     xchg    rax, rdi                ; rdi = new buffer
 
 ; Decode stub (rsi -> rdi)
 ; Current state: rdi = stub memory (by the previous instruction)
 ;                rsi = STUB_BASE91 (by the Rust template)
-    call    _decode
+    xor     ecx, ecx
+    call    rbx
 
-; Decode binary (rsi -> rdi)
-    push    r14
-    pop     rsi                     ; rsi = BINARY_BASE91
-    push    rsi
-    pop     rdi                     ; rdi = BINARY_BASE91 (in-place decoding)
-    push    rdi
-    call    _decode
-
-; Call stub
-    pop     rdx                     ; rdx = LZMA-compressed binary
-    pop     rax                     ; rax = stub entrypoint
-    pop     rdi
-    lea     rcx, qword [rsp+32]     ; rcx = PLATFORM_DATA table
-    call    rax
+; Call stub (it will perform the below operations)
+    pop     rdi                     ; rdi = pointer to VirtualAlloc
+    pop     rax
+    call    rax                     ; This will jump to the start of the new buffer (stub)
     leave
 
 align 8, db 0x90                    ; nop

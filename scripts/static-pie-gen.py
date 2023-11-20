@@ -83,6 +83,10 @@ else:
 # stub
 with open(stub_path, "rb") as f:
     stub = f.read()
+if lang_name == "Rust" and "x86_64" in target_name:
+    with open(stub_path.replace("stub-amd64", "prestub-amd64-2"), "rb") as f:
+        prestub2 = f.read()
+    stub = prestub2 + stub
 
 stub_b91 = base91.encode(stub).decode('ascii')
 stub_b91_len = len(stub_b91)
