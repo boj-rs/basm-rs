@@ -30,6 +30,7 @@ pub const ENV_FLAGS_BREAKPOINT: u64 = 0x0004;           // breakpoint at entrypo
 
 #[repr(C, packed)]
 #[allow(non_snake_case)]
+#[derive(Default)]
 pub struct PlatformData {
     pub env_id: u64,
     pub env_flags: u64,

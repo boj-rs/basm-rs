@@ -68,8 +68,14 @@ unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     offset
 }
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
-unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
-    8
+unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
+    let mut offset = 16;
+    loop {
+        offset -= 1;
+        out.0[offset] = b'0' + (n % 10) as u8;
+        n /= 10;
+        if n == 0 { break offset; }
+    }
 }
 
 impl<const N: usize> Writer<N> {

@@ -222,8 +222,15 @@ unsafe extern "cdecl" fn _start() -> ! {
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn _start() {
-    _start_rust(0);
+extern "C" fn _start(platform_data: usize) {
+    let mut pd: platform::services::PlatformData = Default::default();
+    extern "C" {
+        fn wasm_svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize;
+        fn wasm_svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize;
+    }
+    pd.fn_table[5] = wasm_svc_read_stdio as usize;
+    pd.fn_table[6] = wasm_svc_write_stdio as usize;
+    _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
 
 /* We prevent inlining solution::main, since if the user allocates
