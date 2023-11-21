@@ -45,7 +45,7 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
  *     have done a good job of marking sections needing relocations as writable.
  */
 
-#[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86")))]
+#[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86"), not(target_arch = "wasm32")))]
 compile_error!("The target architecture is not supported.");
 
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
@@ -218,6 +218,12 @@ unsafe extern "cdecl" fn _start() -> ! {
         sym _get_dynamic_section_offset,
         options(noreturn)
     );
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+extern "C" fn _start() {
+    _start_rust(0);
 }
 
 /* We prevent inlining solution::main, since if the user allocates

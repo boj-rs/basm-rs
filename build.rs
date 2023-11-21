@@ -35,7 +35,9 @@ fn main() {
                 link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro,-z,notext");
             }
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
-        }
+        },
+        "wasm32-unknown-unknown" => {
+        },
         _ => {
             panic!("Unsupported target {target}");
         }

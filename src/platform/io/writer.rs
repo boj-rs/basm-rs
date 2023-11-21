@@ -20,6 +20,7 @@ impl<const N: usize> Drop for Writer<N> {
 
 #[repr(align(16))]
 struct B128([u8; 16]);
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     #[cfg(target_arch = "x86_64")]
@@ -65,6 +66,10 @@ unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     let ascii = _mm_add_epi8(t6, ascii0);
     _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
     offset
+}
+#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
+    8
 }
 
 impl<const N: usize> Writer<N> {
