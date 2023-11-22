@@ -74,7 +74,18 @@ unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
         offset -= 1;
         out.0[offset] = b'0' + (n % 10) as u8;
         n /= 10;
-        if n == 0 { break offset; }
+        if n == 0 {
+            /* The remaining space must be filled with b'0',
+             * as this function is also used to convert the lower part
+             * of an integer that is larger than 10^8.
+             */
+            let mut i = offset;
+            while i > 8 {
+                i -= 1;
+                out.0[i] = b'0';
+            }
+            break offset;
+        }
     }
 }
 
