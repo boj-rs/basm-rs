@@ -14,6 +14,4 @@ WebAssembly.instantiate(code, { env: { wasm_svc_read_stdio, wasm_svc_write_stdio
   }
 )
 
-/*
 $$$$solution_src$$$$
-*/
