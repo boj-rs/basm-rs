@@ -1,7 +1,7 @@
 // Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 const fs = require('fs')
-const code = Buffer.from(`$$$$binary_base64$$$$`, 'base64')
+const code = require('zlib').inflateRawSync(Buffer.from(`$$$$binary_base64$$$$`, 'base64'))
 const wasm_svc_read_stdio = (fd, buf, count) =>
   fs.readSync(fd, new Uint8Array(wasm_memory.buffer, buf, count))
 const wasm_svc_write_stdio = (fd, buf, count) =>
