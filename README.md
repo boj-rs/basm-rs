@@ -2,7 +2,7 @@
 
 basm.rs는 Rust 코드를 BOJ에 제출 가능한 C 프로그램으로 성능 저하 없이 변환해 주는 프로젝트입니다.
 
-C 외에 Rust (메모리 사용량 감소)도 지원합니다.
+C 외에 Rust (메모리 사용량 감소), JavaScript (wasm32)도 지원합니다.
 
 > 156KB의 자유를 누리십시오!
 
@@ -93,9 +93,13 @@ Windows 환경에서 빌드하는 방법입니다.
 
 * `release-64bit-windows-rs.cmd`를 Windows 64비트 환경에서 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드는 Windows와 Linux에서 모두 컴파일 가능합니다. 단, Windows에서 컴파일할 경우 DLL 대신 EXE를 생성하기 위해 생성된 코드 맨 앞의 `cdylib`를 `bin`으로 변경하거나 rustc 호출 시 `--crate-type=bin` 옵션을 추가해주세요.
 
+* `release-wasm32.cmd`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
+
 * VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
 * VS Code의 `build-release-amd64-win-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
+
+* VS Code의 `build-release-wasm32-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
 Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
@@ -105,9 +109,13 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
 
+* `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
+
 * VS Code의 `build-release-amd64-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
 * VS Code의 `build-release-amd64-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
+
+* VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
 ~~`release-asm.sh`를 실행하면 제출 가능한 64bit Assembly 코드가 출력됩니다.~~ 추후 구현 예정입니다.
 
@@ -115,17 +123,11 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 > Windows 11 64비트, Windows Subsystems for Linux 2 (WSL2)에서 테스트되었습니다. 다른 환경에서 작동에 문제가 있을 시 이슈를 남겨주세요.
 
-1. 64비트 리눅스에서 Visual Studio Code를 설치하신 다음, rust-analyzer 확장 및 CodeLLDB 확장을 설치해주세요. WSL을 사용하시는 경우 반드시 WSL 내부에 확장을 설치하셔야 합니다.
+1. Windows 또는 Linux에서 Visual Studio Code를 설치하신 다음, rust-analyzer 확장 및 CodeLLDB 확장을 설치해주세요. WSL을 사용하시는 경우 반드시 WSL 내부에 확장을 설치하셔야 합니다.
 
-2. Launch configuration에서 `Debug executable 'basm' (amd64)`를 선택하여 실행하시면 생성된 코드의 진입점(EntryPoint)에 중단점(breakpoint)이 잡힙니다. 여기서부터 디버깅을 진행하시면 됩니다.
+2. F5를 눌러 디버깅을 진행해주세요.
 
-3. 기술적인 문제로 인해, 진입점에 중단점이 잡히기 전에 소스 코드에 설정한 중단점은 바로 적용되지 않습니다. 이를 해결하시려면 중단점 목록을 보여주는 `Breakpoints` 뷰에서 우측 상단의 동그라미 두 개가 겹쳐 있는 아이콘(`Toggle Breakpoints`)을 두 번 눌러주세요. 만약 그래도 중단점이 제대로 적용되지 않으면 이슈를 남겨주세요.
-
-4. Launch configuration에서 `Debug executable 'basm' (i686)`을 선택하여 실행하시면 32비트로 빌드된 프로그램을 디버깅하실 수 있습니다.
-
-5. 디버깅이 완료된 후에는 위의 "사용법"에 기술된 대로 `release.sh` 등을 실행하시면 Release 모드로 최종 프로그램을 빌드하실 수 있습니다.
-
-6. 네이티브 Windows 64비트 환경에서는 Launch configuration에서 `Debug executable 'basm' (amd64-win)`를 선택하여 실행하시면 디버깅이 가능합니다. 단, Visual Studio Code를 `x64 Native Tools Command Prompt for Visual Studio 2022` 등에서 실행하셔야 합니다(로컬 환경에 따라 연도는 2022가 아닐 수 있음). 해당 명령 프롬프트에서 `code`라고 입력하여 Visual Studio Code를 실행하신 다음 1-5를 동일하게 진행하시면 됩니다.
+3. 디버깅이 완료된 후에는 위의 "사용법"에 기술된 대로 `release.sh` 등을 실행하시면 Release 모드로 최종 프로그램을 빌드하실 수 있습니다.
 
 ## 주의사항
 
