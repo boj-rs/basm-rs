@@ -8,10 +8,9 @@ const wasm_svc_write_stdio = (fd, buf, count) =>
   fs.writeSync(fd, new Uint8Array(wasm_memory.buffer, buf, count))
 WebAssembly.instantiate(code, { env: { wasm_svc_read_stdio, wasm_svc_write_stdio } }).then(
   (wasm) => {
-    const { _start, __heap_base, memory } = wasm.instance.exports
-    memory.grow(999)
+    const { _start, memory } = wasm.instance.exports
     wasm_memory = memory
-    _start(__heap_base.value)
+    _start()
   }
 )
 

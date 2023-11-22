@@ -42,8 +42,8 @@ pub fn init(platform_data_by_loader: usize) {
 #[cfg(not(test))]
 pub fn try_exit() {
     let pd = services::platform_data();
-    #[cfg(not(target_arch = "wasm32"))]
     if pd.env_id == services::ENV_ID_LINUX {
+        #[cfg(not(target_arch = "wasm32"))]
         unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
     }
 }
