@@ -6,8 +6,9 @@ import re
 with open("src/solution.rs", encoding='utf8') as f:
     sol = f.readlines()
 
+prefix = "//" if "/*" in "".join(sol) else ""
 sol = [line.replace("\ufeff", "") for line in sol]
-sol = [line.rstrip() + "\n" for line in sol]
+sol = [prefix + line.rstrip() + "\n" for line in sol]
 if len(sol) > 0:
     sol[-1] = sol[-1].rstrip()
 sol = "".join(sol)
