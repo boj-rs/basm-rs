@@ -226,8 +226,10 @@ unsafe extern "cdecl" fn _start() -> ! {
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 extern "C" fn _start() {
-    let mut pd: platform::services::PlatformData = Default::default();
-    pd.env_id = platform::services::ENV_ID_WASM;
+    let mut pd = platform::services::PlatformData {
+        env_id: platform::services::ENV_ID_WASM,
+        .. Default::default()
+    };
     _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
 

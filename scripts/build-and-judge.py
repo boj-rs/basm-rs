@@ -35,7 +35,7 @@ if __name__ == '__main__':
     sol_path = sys.argv[5]
     indata_path = sys.argv[6]
     outdata_path = sys.argv[7]
-    src_ext = {"C": "c", "Rust": "rs"}[language]
+    src_ext = {"C": "c", "Rust": "rs", "JavaScript": "js"}[language]
 
     # Prepare environment
     os.makedirs(tmp_dir, exist_ok=True)
@@ -80,20 +80,23 @@ if __name__ == '__main__':
         os.rename("src/solution_old.rs", "src/solution.rs")
 
     # Compile the source code
+    run_cmd = [bin_path]
     if language == "C":
         if platform.system() == "Windows":
             os.system("cl {0} /F268435456 /Fe{1} /link /SUBSYSTEM:CONSOLE".format(src_path, bin_path))
         else:
             os.system("gcc -o {1} {2} {0}".format(src_path, bin_path, "-O3 -m32" if bits == 32 else "-O3"))
-    else: # language == "Rust"
+    elif language == "Rust":
         if platform.system() == "Windows":
             os.system("rustc -C opt-level=3 -o {1} --crate-type=bin {0}".format(src_path, bin_path))
         else:
             os.system("rustc -C opt-level=3 -o {1} {0}".format(src_path, bin_path))
+    else: # language == "JavaScript"
+        run_cmd = ["node", src_path]
 
     # Run the binary
     with open(indata_path, mode="r", encoding="utf8") as f:
-        completed_process = subprocess.run([bin_path], shell=False, stdin=f, capture_output=True, text=True)
+        completed_process = subprocess.run(run_cmd, shell=False, stdin=f, capture_output=True, text=True)
     if completed_process.returncode != 0:
         raise Exception("Program {0} exited with non-zero code {3} (hex {3:X}) for input {1} and output {2}"
             .format(sol_path, indata_path, outdata_path, completed_process.returncode))

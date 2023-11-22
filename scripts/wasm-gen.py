@@ -2,8 +2,6 @@ import base64
 import os
 import re
 
-os.system("cargo build --release --bin=basm-submit --target=wasm32-unknown-unknown")
-
 # solution_src
 with open("src/solution.rs", encoding='utf8') as f:
     sol = f.readlines()
