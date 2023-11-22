@@ -6,9 +6,15 @@ import re
 with open("src/solution.rs", encoding='utf8') as f:
     sol = f.readlines()
 
+if "/*" in "".join(sol):
+    prefix, begin, end = "//", "", ""
+else:
+    prefix, begin, end = "", "/*\n", "*/\n"
 prefix = "//" if "/*" in "".join(sol) else ""
 sol = [line.replace("\ufeff", "") for line in sol]
 sol = [prefix + line.rstrip() + "\n" for line in sol]
+if len(begin) > 0:
+    sol = [begin] + sol + [end]
 if len(sol) > 0:
     sol[-1] = sol[-1].rstrip()
 sol = "".join(sol)
