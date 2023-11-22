@@ -1,10 +1,13 @@
 #![cfg(not(test))]
 
+#[cfg(not(target_arch = "wasm32"))]
 use core::arch::asm;
 
 use crate::solution;
 use basm::platform;
-use basm::platform::{allocator, loader};
+use basm::platform::allocator;
+#[cfg(not(target_arch = "wasm32"))]
+use basm::platform::loader;
 
 #[global_allocator]
 static ALLOC: allocator::Allocator = allocator::Allocator;
@@ -45,7 +48,7 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
  *     have done a good job of marking sections needing relocations as writable.
  */
 
-#[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86")))]
+#[cfg(all(not(target_arch = "x86_64"), not(target_arch = "x86"), not(target_arch = "wasm32")))]
 compile_error!("The target architecture is not supported.");
 
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
@@ -218,6 +221,16 @@ unsafe extern "cdecl" fn _start() -> ! {
         sym _get_dynamic_section_offset,
         options(noreturn)
     );
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+extern "C" fn _start() {
+    let mut pd = platform::services::PlatformData {
+        env_id: platform::services::ENV_ID_WASM,
+        .. Default::default()
+    };
+    _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
 
 /* We prevent inlining solution::main, since if the user allocates

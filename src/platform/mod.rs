@@ -17,13 +17,20 @@ pub fn init(platform_data_by_loader: usize) {
     let pd = services::platform_data();
     unsafe {
         match pd.env_id {
+            #[cfg(not(target_arch = "wasm32"))]
             services::ENV_ID_WINDOWS => {
                 /* use OS APIs directly */
                 os::windows::init();
             },
+            #[cfg(not(target_arch = "wasm32"))]
             services::ENV_ID_LINUX => {
                 /* use syscalls directly */
                 os::linux::init();
+            },
+            #[cfg(target_arch = "wasm32")]
+            services::ENV_ID_WASM => {
+                /* wasm32-specific */
+                os::wasm32::init();
             },
             _ => {
                 /* use loader services for allocation */
@@ -36,6 +43,7 @@ pub fn init(platform_data_by_loader: usize) {
 pub fn try_exit() {
     let pd = services::platform_data();
     if pd.env_id == services::ENV_ID_LINUX {
+        #[cfg(not(target_arch = "wasm32"))]
         unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
     }
 }

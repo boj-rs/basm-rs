@@ -58,6 +58,7 @@ typedef struct {
 #define ENV_ID_UNKNOWN              0
 #define ENV_ID_WINDOWS              1
 #define ENV_ID_LINUX                2
+#define ENV_ID_WASM                 3
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001  // disables __chkstk in binaries compiled with Windows target
 #define ENV_FLAGS_NATIVE                0x0002  // indicates the binary is running without the loader
 
