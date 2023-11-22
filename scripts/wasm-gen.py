@@ -6,11 +6,12 @@ import re
 with open("src/solution.rs", encoding='utf8') as f:
     sol = f.readlines()
 
-if "/*" in "".join(sol):
+sol_all = "".join(sol)
+sol_has_block_comment = "/*" in sol_all or "*/" in sol_all
+if sol_has_block_comment:
     prefix, begin, end = "//", "", ""
 else:
     prefix, begin, end = "", "/*\n", "*/\n"
-prefix = "//" if "/*" in "".join(sol) else ""
 sol = [line.replace("\ufeff", "") for line in sol]
 sol = [prefix + line.rstrip() + "\n" for line in sol]
 if len(begin) > 0:
