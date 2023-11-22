@@ -27,6 +27,11 @@ pub fn init(platform_data_by_loader: usize) {
                 /* use syscalls directly */
                 os::linux::init();
             },
+            #[cfg(target_arch = "wasm32")]
+            services::ENV_ID_WASM => {
+                /* wasm32-specific */
+                os::wasm32::init();
+            },
             _ => {
                 /* use loader services for allocation */
                 os::unknown::init();

@@ -224,12 +224,7 @@ unsafe extern "cdecl" fn _start() -> ! {
 #[no_mangle]
 extern "C" fn _start(platform_data: usize) {
     let mut pd: platform::services::PlatformData = Default::default();
-    extern "C" {
-        fn wasm_svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize;
-        fn wasm_svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize;
-    }
-    pd.fn_table[5] = wasm_svc_read_stdio as usize;
-    pd.fn_table[6] = wasm_svc_write_stdio as usize;
+    pd.env_id = platform::services::ENV_ID_WASM;
     _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
 
