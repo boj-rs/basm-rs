@@ -2,76 +2,76 @@
 <html>
   <head>
     <title>basm webhost</title>
-  <script type="module">
-    function base64ToBytes(base64) {
-      const binString = atob(base64);
-      return Uint8Array.from(binString, (m) => m.codePointAt(0));
-    }
-    function concatenate_bytes(list) {
-      let totalSize = 0;
-      for (const array of list) {
-        totalSize += array.byteLength;
+    <script type="module">
+      function base64ToBytes(base64) {
+        const binString = atob(base64);
+        return Uint8Array.from(binString, (m) => m.codePointAt(0));
       }
-      const concatenated = new Uint8Array(totalSize);
-      let offset = 0;
-      for (const array of list) {
-        concatenated.set(array, offset);
-        offset += array.byteLength;
-      }
-      return concatenated;
-    }
-    async function get_wasm() {
-      const compressed_code = base64ToBytes('$$$$binary_base64$$$$');
-      const ds = new DecompressionStream("deflate-raw");
-      const writer = ds.writable.getWriter();
-      writer.write(compressed_code);
-      writer.close();
-      const output = [];
-      const reader = ds.readable.getReader();
-      while (true) {
-        const x = await reader.read();
-        const { value, done } = x;
-        if (done) {
-          break;
+      function concatenate_bytes(list) {
+        let totalSize = 0;
+        for (const array of list) {
+          totalSize += array.byteLength;
         }
-        output.push(value);
+        const concatenated = new Uint8Array(totalSize);
+        let offset = 0;
+        for (const array of list) {
+          concatenated.set(array, offset);
+          offset += array.byteLength;
+        }
+        return concatenated;
       }
-      return concatenate_bytes(output);
-    }
-    async function run_wasm(stdin) {
-      let exports = null;
-      let stdin_offset = 0;
-      let stdout = [];
-      const svc_read_stdio = (fd, buf, count) => {
-        if (fd != 0) return 0;
-        const bytesRead = Math.min(count, stdin.length - stdin_offset);
-        const dst = new Uint8Array(exports.memory.buffer, buf, count);
-        dst.set(stdin.slice(0, stdin_offset + bytesRead), stdin_offset);
-        stdin_offset += bytesRead;
-        return bytesRead;
-      };
-      const svc_write_stdio = (fd, buf, count) => {
-        if (fd != 1) return 0;
-        const src = new Uint8Array(exports.memory.buffer, buf, count);
-        const dst = new Uint8Array(count);
-        dst.set(src);
-        stdout.push(dst);
-        return count;
+      async function get_wasm() {
+        const compressed_code = base64ToBytes('$$$$binary_base64$$$$');
+        const ds = new DecompressionStream("deflate-raw");
+        const writer = ds.writable.getWriter();
+        writer.write(compressed_code);
+        writer.close();
+        const output = [];
+        const reader = ds.readable.getReader();
+        while (true) {
+          const x = await reader.read();
+          const { value, done } = x;
+          if (done) {
+            break;
+          }
+          output.push(value);
+        }
+        return concatenate_bytes(output);
       }
-      const code = await get_wasm();
-      const wasm = await WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } });
-      exports = wasm.instance.exports;
-      exports._start();
-      return concatenate_bytes(stdout);
-    }
-    async function run() {
-      const stdin_str = document.querySelector('#stdin').value;
-      const stdin = new TextEncoder('utf8').encode(stdin_str);
-      const stdout = await run_wasm(stdin);
-      const stdout_str = new TextDecoder('utf8').decode(stdout);
-      document.querySelector('#stdout').value = stdout_str;
-    }  
-    document.querySelector('#run').addEventListener('click', async() => { await run(); });
+      async function run_wasm(stdin) {
+        let exports = null;
+        let stdin_offset = 0;
+        let stdout = [];
+        const svc_read_stdio = (fd, buf, count) => {
+          if (fd != 0) return 0;
+          const bytesRead = Math.min(count, stdin.length - stdin_offset);
+          const dst = new Uint8Array(exports.memory.buffer, buf, count);
+          dst.set(stdin.slice(0, stdin_offset + bytesRead), stdin_offset);
+          stdin_offset += bytesRead;
+          return bytesRead;
+        };
+        const svc_write_stdio = (fd, buf, count) => {
+          if (fd != 1) return 0;
+          const src = new Uint8Array(exports.memory.buffer, buf, count);
+          const dst = new Uint8Array(count);
+          dst.set(src);
+          stdout.push(dst);
+          return count;
+        }
+        const code = await get_wasm();
+        const wasm = await WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } });
+        exports = wasm.instance.exports;
+        exports._start();
+        return concatenate_bytes(stdout);
+      }
+      async function run() {
+        const stdin_str = document.querySelector('#stdin').value;
+        const stdin = new TextEncoder('utf8').encode(stdin_str);
+        const stdout = await run_wasm(stdin);
+        const stdout_str = new TextDecoder('utf8').decode(stdout);
+        document.querySelector('#stdout').value = stdout_str;
+      }  
+      document.querySelector('#run').addEventListener('click', async() => { await run(); });
     </script>
   </head>
   <body>
