@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>basm webhost</title>
+  <script type="module">
+    var Base64Binary = {_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",decodeArrayBuffer:function(e){var r=e.length/4*3,t=new ArrayBuffer(r);return this.decode(e,t),t},removePaddingChars:function(e){return 64==this._keyStr.indexOf(e.charAt(e.length-1))?e.substring(0,e.length-1):e},decode:function(e,r){e=this.removePaddingChars(e);var t,n,i,a,h,d,s,c,f=parseInt((e=this.removePaddingChars(e)).length/4*3,10),o=0,g=0;for(o=0,t=new Uint8Array(r?r:f),e=e.replace(/[^A-Za-z0-9\+\/\=]/g,"");o<f;o+=3)h=this._keyStr.indexOf(e.charAt(g++)),d=this._keyStr.indexOf(e.charAt(g++)),s=this._keyStr.indexOf(e.charAt(g++)),c=this._keyStr.indexOf(e.charAt(g++)),n=h<<2|d>>4,i=(15&d)<<4|s>>2,a=(3&s)<<6|c,t[o]=n,64!=s&&(t[o+1]=i),64!=c&&(t[o+2]=a);return t}};
+    function concatenate_bytes(list) {
+      let totalSize = 0;
+      for (const array of list) {
+        totalSize += array.byteLength;
+      }
+      const concatenated = new Uint8Array(totalSize);
+      let offset = 0;
+      for (const array of list) {
+        concatenated.set(array, offset);
+        offset += array.byteLength;
+      }
+      return concatenated;
+    }
+    async function get_wasm() {
+      const compressed_code = Base64Binary.decode('$$$$binary_base64$$$$');
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(compressed_code);
+      writer.close();
+      const output = [];
+      const reader = ds.readable.getReader();
+      while (true) {
+        const x = await reader.read();
+        const { value, done } = x;
+        if (done) {
+          break;
+        }
+        output.push(value);
+      }
+      return concatenate_bytes(output);
+    }
+    async function run_wasm(stdin) {
+      let exports = null;
+      let stdin_offset = 0;
+      let stdout = [];
+      const svc_read_stdio = (fd, buf, count) => {
+        if (fd != 0) return 0;
+        const bytesRead = Math.min(count, stdin.length - stdin_offset);
+        const dst = new Uint8Array(exports.memory.buffer, buf, count);
+        dst.set(stdin.slice(0, stdin_offset + bytesRead), stdin_offset);
+        stdin_offset += bytesRead;
+        return bytesRead;
+      };
+      const svc_write_stdio = (fd, buf, count) => {
+        if (fd != 1) return 0;
+        const src = new Uint8Array(exports.memory.buffer, buf, count);
+        const dst = new Uint8Array(count);
+        dst.set(src);
+        stdout.push(dst);
+        return count;
+      }
+      const code = await get_wasm();
+      const wasm = await WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } });
+      exports = wasm.instance.exports;
+      exports._start();
+      return concatenate_bytes(stdout);
+    }
+    async function run() {
+      const stdin_str = document.querySelector('#stdin').value;
+      const stdin = new TextEncoder('utf8').encode(stdin_str);
+      const stdout = await run_wasm(stdin);
+      const stdout_str = new TextDecoder('utf8').decode(stdout);
+      document.querySelector('#stdout').value = stdout_str;
+    }  
+    document.querySelector('#run').addEventListener('click', async() => { await run(); });
+    </script>
+  </head>
+  <body>
+    <h1>basm webhost (powered by Rust and WebAssembly)</h1>
+    Standard input:<br>
+    <textarea id="stdin" cols="50" rows="10"></textarea><br>
+    <button id="run">Run program</button><br><br>
+    Standard output:<br>
+    <textarea id="stdout" cols="50" rows="10" readonly></textarea>
+  </body>
+</html>

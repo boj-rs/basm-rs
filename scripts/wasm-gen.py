@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import re
+import sys
 import zlib
 
 # solution_src
@@ -31,7 +32,7 @@ code = cobj.flush()
 code = base64.b64encode(code).decode('ascii')
 
 # template
-with open("scripts/wasm-template.js", "r") as f:
+with open(sys.argv[1], "r") as f:
     template = f.read()
 
 # putting it all together

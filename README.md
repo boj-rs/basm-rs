@@ -2,7 +2,7 @@
 
 basm.rs는 Rust 코드를 BOJ에 제출 가능한 C 프로그램으로 성능 저하 없이 변환해 주는 프로젝트입니다.
 
-C 외에 Rust (메모리 사용량 감소), JavaScript (wasm32)도 지원합니다.
+C 외에 Rust (메모리 사용량 감소), JavaScript (wasm32), HTML도 지원합니다.
 
 > 156KB의 자유를 누리십시오!
 
@@ -95,6 +95,8 @@ Windows 환경에서 빌드하는 방법입니다.
 
 * `release-wasm32.cmd`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
 
+* `release-html.cmd`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
+
 * VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
 * VS Code의 `build-release-amd64-win-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
@@ -110,6 +112,8 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 * `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
 
 * `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
+
+* `release-html.sh`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
 
 * VS Code의 `build-release-amd64-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
