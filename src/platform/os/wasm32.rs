@@ -29,8 +29,8 @@ unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_
 }
 
 extern "C" {
-    fn wasm_svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize;
-    fn wasm_svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize;
+    fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize;
+    fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize;
 }
 
 pub unsafe fn init() {
@@ -40,6 +40,6 @@ pub unsafe fn init() {
         dlmalloc_dealloc,
         dlmalloc_realloc,
     );
-    services::install_single_service(5, wasm_svc_read_stdio as usize);
-    services::install_single_service(6, wasm_svc_write_stdio as usize);
+    services::install_single_service(5, svc_read_stdio as usize);
+    services::install_single_service(6, svc_write_stdio as usize);
 }
