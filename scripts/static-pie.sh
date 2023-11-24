@@ -11,7 +11,11 @@ shift
 if [[ "$target_name" == "x86_64-unknown-linux-gnu" ]]; then
   stub="static-pie-stub-amd64.bin"
   if [[ "$lang_name" == "C" ]]; then
-    template="static-pie-template-amd64.c"
+    if [[ "$*" == *"short"* ]]; then
+      template="static-pie-template-amd64-short.c"
+    else
+      template="static-pie-template-amd64.c"
+    fi
   elif [[ "$lang_name" == "Rust" ]]; then
     if [[ "$*" == *"short"* ]]; then
       template="static-pie-template-amd64-short.rs"
