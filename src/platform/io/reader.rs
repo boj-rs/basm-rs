@@ -228,6 +228,7 @@ impl<const N: usize> Reader<N> {
         buf
     }
 
+    #[cfg(not(feature = "short"))]
     fn noskip_u64(&mut self) -> u64 {
         const POW10: [u32; 9] = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000];
         let mut out = 0;
@@ -245,6 +246,21 @@ impl<const N: usize> Reader<N> {
             out += c;
         }
     }
+    #[cfg(feature = "short")]
+    fn noskip_u64(&mut self) -> u64 {
+        let mut n = 0;
+        while self.off < self.len {
+            let b = unsafe { self.buf[self.off].assume_init() };
+            if b > 32 {
+                n *= 10;
+                n += b as u64 & 0x0F;
+                self.off += 1;
+            } else {
+                break;
+            }
+        }
+        n
+    }    
     fn noskip_u128(&mut self) -> u128 {
         let mut n = 0;
         while self.off < self.len {

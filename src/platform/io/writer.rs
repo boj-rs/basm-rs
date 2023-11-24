@@ -18,8 +18,10 @@ impl<const N: usize> Drop for Writer<N> {
     }
 }
 
+#[cfg(not(feature = "short"))]
 #[repr(align(16))]
 struct B128([u8; 16]);
+#[cfg(not(feature = "short"))]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
@@ -67,6 +69,7 @@ unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
     offset
 }
+#[cfg(not(feature = "short"))]
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
 unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
     let mut offset = 16;
@@ -159,6 +162,7 @@ impl<const N: usize> Writer<N> {
             self.u32(n as u32);
         }
     }
+    #[cfg(not(feature = "short"))]
     pub fn u32(&mut self, n: u32) {
         self.try_flush(11);
         let mut b128 = B128([0u8; 16]);
@@ -180,6 +184,10 @@ impl<const N: usize> Writer<N> {
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&b128.0[off..]); }
         self.off += len;
     }
+    #[cfg(feature = "short")]
+    pub fn u32(&mut self, n: u32) {
+        self.u64(n as u64)
+    }
     pub fn i64(&mut self, n: i64) {
         if n < 0 {
             self.byte(b'-');
@@ -188,6 +196,7 @@ impl<const N: usize> Writer<N> {
             self.u64(n as u64);
         }
     }
+    #[cfg(not(feature = "short"))]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21);
         let mut hi128 = B128([0u8; 16]);
@@ -224,6 +233,19 @@ impl<const N: usize> Writer<N> {
         let len = 16 - looff;
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&lo128.0[looff..]); }
         self.off += len;
+    }
+    #[cfg(feature = "short")]
+    pub fn u64(&mut self, mut n: u64) {
+        let mut buf: [MaybeUninit<u8>; 20] = MaybeUninit::uninit_array();
+        let mut offset = buf.len() - 1;
+        buf[offset].write(b'0' + (n % 10) as u8);
+        n /= 10;
+        while n > 0 {
+            offset -= 1;
+            buf[offset].write(b'0' + (n % 10) as u8);
+            n /= 10;
+        }
+        self.bytes(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
     }
     pub fn i128(&mut self, n: i128) {
         if n < 0 {
