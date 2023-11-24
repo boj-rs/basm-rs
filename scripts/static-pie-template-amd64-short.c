@@ -1,4 +1,9 @@
-﻿#include <unistd.h>
+﻿// Generated with https://github.com/kiwiyou/basm-rs
+// Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
+// SOLUTION BEGIN
+$$$$solution_src$$$$
+// SOLUTION END
+#include <unistd.h>
 typedef unsigned char u8;
 typedef unsigned int u32;
 typedef unsigned long long u64;
