@@ -129,13 +129,12 @@ impl<const N: usize> Writer<N> {
     }
     // This function ensures an extra byte in the buffer to make sure that
     // println() can safely use `byte_unchecked`.
-    pub fn bytes(&mut self, s: &[u8]) {
-        let mut i = 0;
-        while i < s.len() {
-            let rem = s[i..].len().min(self.buf[self.off..].len());
-            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[i..i + rem]); }
+    pub fn bytes(&mut self, mut s: &[u8]) {
+        while !s.is_empty() {
+            let rem = s.len().min(self.buf[self.off..].len());
+            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[..rem]); }
             self.off += rem;
-            i += rem;
+            s = &s[rem..];
             self.try_flush(1);
         }
     }
