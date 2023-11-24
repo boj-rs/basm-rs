@@ -13,7 +13,11 @@ if [[ "$target_name" == "x86_64-unknown-linux-gnu" ]]; then
   if [[ "$lang_name" == "C" ]]; then
     template="static-pie-template-amd64.c"
   elif [[ "$lang_name" == "Rust" ]]; then
-    template="static-pie-template-amd64.rs"
+    if [[ "$*" == *"short"* ]]; then
+      template="static-pie-template-amd64-short.rs"
+    else
+      template="static-pie-template-amd64.rs"
+    fi
   else
     >&2 echo "Language ${lang_name} is not supported for target ${target_name}"
     exit
