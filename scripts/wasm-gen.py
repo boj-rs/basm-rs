@@ -27,8 +27,8 @@ sol = "".join(sol)
 with open("target/wasm32-unknown-unknown/release/basm-submit.wasm", "rb") as f:
     code = f.read()
 cobj = zlib.compressobj(level=9, wbits=-15)
-cobj.compress(code)
-code = cobj.flush()
+code = cobj.compress(code)
+code += cobj.flush()
 code = base64.b64encode(code).decode('ascii')
 
 # template
