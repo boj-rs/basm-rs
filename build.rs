@@ -18,7 +18,7 @@ fn main() {
             link_args_basm.push("/EMITPOGOPHASEINFO");
             link_args_basm_submit.push("/ALIGN:128");
         },
-        "x86_64-unknown-linux-gnu" | "i686-unknown-linux-gnu" => {
+        "x86_64-unknown-linux-gnu" | "x86_64-unknown-linux-gnu-short" | "i686-unknown-linux-gnu" => {
             link_args_basm.push("-nostartfiles");
             link_args_basm.push("-nostdlib");
             link_args_basm.push("-static-pie");
@@ -27,12 +27,12 @@ fn main() {
             link_args_basm.push("-fno-unwind-tables");
             link_args_basm.push("-fno-stack-protector");
             link_args_basm.push("-fno-plt");
-            if target == "x86_64-unknown-linux-gnu" {
-                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro");
-            } else {
+            if target == "i686-unknown-linux-gnu" {
                 // Prevent linker from putting data into text, which is non-writable and hence not relocatable.
                 // This prevents the hack for getting the _DYNAMIC symbol in the entrypoint.
                 link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro,-z,notext");
+            } else {
+                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro");
             }
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
         },

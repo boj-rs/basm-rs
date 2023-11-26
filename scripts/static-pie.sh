@@ -56,13 +56,23 @@ else
   >&2 echo "Unknown build mode ${build_mode}"
   exit
 fi
+
+if [[ "$target_name" == "x86_64-unknown-linux-gnu" && "$*" == *"short"* ]]; then
+  target_name_cargo=".cargo/x86_64-unknown-linux-gnu-short.json"
+  target_name="x86_64-unknown-linux-gnu-short"
+  extra_config='-Zbuild-std=core,compiler_builtins,alloc -Zbuild-std-features=compiler-builtins-mem'
+else
+  target_name_cargo="$target_name"
+  extra_config=""
+fi
+
 >&2 echo "Building project for target ${target_name}, language ${lang_name}, build mode ${build_mode}"
 
 binary_path=basm.bin
 if [[ "$build_mode" == "Debug" ]]; then
-  cargo +nightly build --target "$target_name" --bin basm-submit "$@"
+  cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit "$@"
 else
-  cargo +nightly build --target "$target_name" --bin basm-submit --release "$@"
+  cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit --release "$@"
 fi
 
 if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
