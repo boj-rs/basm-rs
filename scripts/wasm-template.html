@@ -20,8 +20,8 @@
         }
         return concatenated;
       }
-      async function get_wasm() {
-        const compressed_code = base64ToBytes('$$$$binary_base64$$$$');
+      async function deflate(data) {
+        const compressed_code = base64ToBytes(data);
         const ds = new DecompressionStream("deflate-raw");
         const writer = ds.writable.getWriter();
         writer.write(compressed_code);
@@ -58,7 +58,7 @@
           stdout.push(dst);
           return count;
         }
-        const code = await get_wasm();
+        const code = await deflate('$$$$binary_base64$$$$');
         const wasm = await WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } });
         exports = wasm.instance.exports;
         exports._start();
@@ -70,16 +70,23 @@
         const stdout = await run_wasm(stdin);
         const stdout_str = new TextDecoder('utf8').decode(stdout);
         document.querySelector('#stdout').value = stdout_str;
-      }  
+      }
       document.querySelector('#run').addEventListener('click', async() => { await run(); });
+      window.addEventListener('load', async() => {
+        const sol = await deflate('$$$$solution_src_base64$$$$');
+        const sol_str = new TextDecoder('utf8').decode(sol);
+        document.querySelector('#solution_src').value = sol_str;
+      });
     </script>
   </head>
   <body>
     <h1>basm webhost (powered by Rust and WebAssembly)</h1>
     Standard input:<br>
-    <textarea id="stdin" cols="50" rows="10"></textarea><br>
+    <textarea id="stdin" cols="100" rows="10"></textarea><br>
     <button id="run">Run program</button><br><br>
     Standard output:<br>
-    <textarea id="stdout" cols="50" rows="10" readonly></textarea>
+    <textarea id="stdout" cols="100" rows="10" readonly></textarea><br><br>
+    Source code:<br>
+    <textarea id="solution_src" cols="100" rows="50" readonly></textarea>
   </body>
 </html>
