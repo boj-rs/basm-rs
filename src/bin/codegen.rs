@@ -59,6 +59,7 @@ unsafe extern "win64" fn _start() -> ! {
     //   on the 16-byte boundary BEFORE `call` instruction.
     // However, when called as the entrypoint by the Linux OS,
     //   RSP will be 16-byte aligned AFTER `call` instruction.
+    #[cfg(not(feature = "short"))]
     asm!(
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
@@ -76,6 +77,21 @@ unsafe extern "win64" fn _start() -> ! {
         "call   {1}",
         "pop    rcx",                       // short form of "add rsp, 8"
         "ret",
+        sym loader::amd64_elf::relocate,
+        sym _start_rust,
+        options(noreturn)
+    );
+    // For "short", we always assume we are running with loader on Linux,
+    // since "short" is only meaningful when submitting to online judges (not local test runs).
+    #[cfg(feature = "short")]
+    asm!(
+        "clc",                              // Not needed but packager wants it
+        "mov    rbx, rcx",                  // Save PLATFORM_DATA table
+        "lea    rdi, [rip + __ehdr_start]",
+        "lea    rsi, [rip + _DYNAMIC]",
+        "call   {0}",
+        "mov    rdi, rbx",
+        "call   {1}",                       // This won't return since on Linux we invoke SYS_exitgroup in binary
         sym loader::amd64_elf::relocate,
         sym _start_rust,
         options(noreturn)
