@@ -14,7 +14,7 @@ section .text
 ; Align stack to 16 byte boundary
 ; [rsp+ 32, rsp+120): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    enter   56, 0
+    enter   48, 0
     push    1
     pop     rcx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
     call    _t
@@ -72,7 +72,7 @@ _t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
     push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
     inc     ecx
     push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
-    sub     rsp, 32                 ; shadow space
+    sub     rsp, 40                 ; shadow space + compensation
     call    rbx                     ; svc_alloc_rwx
 
 ; Current state: rax = new buffer, rdi = pointer to VirtualAlloc
@@ -83,8 +83,4 @@ _t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
 ; Current state: rdi = stub memory (by the previous instruction)
 ;                rsi = STUB_BASE91 (by the Rust template)
     xor     ecx, ecx
-    call    rbx
-
-; Call stub (it will perform the below operations)
-    pop     rax
-    call    rax                     ; This will jump to the start of the new buffer (stub)
+    jmp     rbx                     ; This will jump to the start of the new buffer (stub) upon the ret instruction
