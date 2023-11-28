@@ -27,7 +27,6 @@ pub const ENV_ID_LINUX: u64 = 2;
 pub const ENV_ID_WASM: u64 = 3;
 pub const ENV_FLAGS_LINUX_STYLE_CHKSTK: u64 = 0x0001;   // disables __chkstk in binaries compiled with Windows target
 pub const ENV_FLAGS_NATIVE: u64 = 0x0002;               // indicates the binary is running without the loader
-pub const ENV_FLAGS_BREAKPOINT: u64 = 0x0004;           // breakpoint at entrypoint or startup routine
 
 #[repr(C, packed)]
 #[allow(non_snake_case)]
