@@ -1,4 +1,4 @@
-use super::super::{allocator, services};
+use super::super::allocator;
 use super::super::malloc::{dlmalloc, dlmalloc_linux};
 
 
@@ -209,6 +209,7 @@ unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_
     }
 }
 
+#[cfg(not(all(feature = "short", target_os = "linux")))]
 #[cfg(target_arch = "x86_64")]
 mod services_override {
     #[inline(always)]
@@ -220,6 +221,7 @@ mod services_override {
         super::syscall::write(fd, buf, count)
     }
 }
+#[cfg(not(all(feature = "short", target_os = "linux")))]
 #[cfg(target_arch = "x86")]
 mod services_override {
     #[inline(always)]
@@ -242,6 +244,7 @@ pub unsafe fn init() {
      * Thus, instead of parsing the ELF section, we just invoke
      * the kernel APIs directly. */
     #[cfg(not(feature = "short"))] {
+        use super::super::services;
         let pd = services::platform_data();
         if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
             let mut rlim: syscall::RLimit = Default::default();
@@ -259,6 +262,11 @@ pub unsafe fn init() {
         dlmalloc_dealloc,
         dlmalloc_realloc,
     );
-    services::install_single_service(5, services_override::svc_read_stdio as usize);
-    services::install_single_service(6, services_override::svc_write_stdio as usize);
+
+    /* "short" on "Linux" will use syscalls directly to reduce code size */
+    #[cfg(not(all(feature = "short", target_os = "linux")))] {
+        use super::super::services;
+        services::install_single_service(5, services_override::svc_read_stdio as usize);
+        services::install_single_service(6, services_override::svc_write_stdio as usize);
+    }
 }
