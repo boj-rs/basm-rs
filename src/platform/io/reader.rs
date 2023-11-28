@@ -57,7 +57,9 @@ impl<const N: usize> Reader<N> {
                  * is used (which is >100K), this will not happen often and hence shouldn't affect
                  * performance by a noticeable amount. */
                 let rem = self.len - self.off;
-                core::ptr::copy(self.buf.as_ptr().add(self.off), self.buf.as_mut_ptr(), rem);
+                for i in 0..rem {
+                    *self.buf[i].assume_init_mut() = self.buf[self.off + i].assume_init();
+                }
                 self.len = rem;
                 self.off = 0;
 

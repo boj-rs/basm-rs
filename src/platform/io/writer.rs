@@ -124,11 +124,12 @@ impl<const N: usize> Writer<N> {
         self.off += 1;
     }
     pub fn byte(&mut self, b: u8) {
-        self.try_flush(1);
+        self.try_flush(2);
         self.byte_unchecked(b);
     }
     // This function ensures an extra byte in the buffer to make sure that
     // println() can safely use `byte_unchecked`.
+    #[cfg(not(feature = "short"))]
     pub fn bytes(&mut self, mut s: &[u8]) {
         while !s.is_empty() {
             let rem = s.len().min(self.buf[self.off..].len());
@@ -136,6 +137,15 @@ impl<const N: usize> Writer<N> {
             self.off += rem;
             s = &s[rem..];
             self.try_flush(1);
+        }
+    }
+    // This function ensures an extra byte in the buffer to make sure that
+    // println() can safely use `byte_unchecked`. This is achieved by
+    // calling `self.try_flush(2)` (instead of `self.try_flush(1)`) in byte().
+    #[cfg(feature = "short")]
+    pub fn bytes(&mut self, s: &[u8]) {
+        for x in s {
+            self.byte(*x);
         }
     }
     pub fn str(&mut self, s: &str) {
