@@ -35,7 +35,10 @@ pub fn init(platform_data_by_loader: usize) {
             },
             _ => {
                 /* use loader services for allocation */
+                #[cfg(not(feature = "short"))]
                 os::unknown::init();
+                #[cfg(feature = "short")]
+                unreachable!();
             }
         }
     }
