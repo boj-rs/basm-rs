@@ -50,20 +50,23 @@ impl<const N: usize> Reader<N> {
         if end <= self.len {
             /* data already available */
         } else {
-            /* secure space by discarding the already-consumed buffer contents at front */
-            if end > Self::BUF_LEN {
+            unsafe {
+                /* Secure space by discarding the already-consumed buffer contents at front.
+                 * Note that we expect `readahead` to be small (<100 bytes), so we unconditionally
+                 * copy the contents to the front to reduce code size. When the default buffer size
+                 * is used (which is >100K), this will not happen often and hence shouldn't affect
+                 * performance by a noticeable amount. */
                 let rem = self.len - self.off;
-                unsafe { core::ptr::copy(self.buf.as_ptr().add(self.off), self.buf.as_mut_ptr(), rem); }
+                core::ptr::copy(self.buf.as_ptr().add(self.off), self.buf.as_mut_ptr(), rem);
                 self.len = rem;
                 self.off = 0;
-            }
-            unsafe {
+
                 /* Although the buffer currently falls short of what has been requested,
-                * it may still be possible that a full token (which is short)
-                * is available within the remains. Thus, we check if we can return
-                * without invoking read_stdio. This is crucial for cases where
-                * the standard input is a pipe, which includes the local testing
-                * console environment. */
+                 * it may still be possible that a full token (which is short)
+                 * is available within the remains. Thus, we check if we can return
+                 * without invoking read_stdio. This is crucial for cases where
+                 * the standard input is a pipe, which includes the local testing
+                 * console environment. */
                 let mut white_pos = self.off;
                 while white_pos < self.len {
                     if self.buf[white_pos].assume_init() <= b' ' {
@@ -73,11 +76,11 @@ impl<const N: usize> Reader<N> {
                 }
                 if white_pos == self.len {
                     /* No whitespace has been found. We have to read.
-                    * We try to read as much as possible at once. */
+                     * We try to read as much as possible at once. */
                     self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..Self::BUF_LEN]));
                 }
                 /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
-                This is safe since we spare 8 bytes at the end of the buffer. */
+                 * This is safe since we spare 8 bytes at the end of the buffer. */
                 *self.buf[self.len].assume_init_mut() = 0u8;
             }
         }
