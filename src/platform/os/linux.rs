@@ -44,6 +44,60 @@ pub mod syscall {
 
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
+    pub unsafe fn syscall1(
+        call_id: usize,
+        arg0: usize,
+    ) -> usize {
+        let out;
+        asm!(
+            "syscall",
+            in("rax") call_id,
+            in("rdi") arg0,
+            lateout("rax") out,
+            out("rcx") _,
+            out("r11") _
+        );
+        out
+    }
+    #[cfg(target_arch = "x86")]
+    pub unsafe fn syscall1(
+        call_id: usize,
+        arg0: usize,
+    ) -> usize {
+        syscall(call_id, arg0, 0, 0, 0, 0, 0)
+    }
+    #[cfg(target_arch = "x86_64")]
+    #[inline(always)]
+    pub unsafe fn syscall3(
+        call_id: usize,
+        arg0: usize,
+        arg1: usize,
+        arg2: usize,
+    ) -> usize {
+        let out;
+        asm!(
+            "syscall",
+            in("rax") call_id,
+            in("rdi") arg0,
+            in("rsi") arg1,
+            in("rdx") arg2,
+            lateout("rax") out,
+            out("rcx") _,
+            out("r11") _
+        );
+        out
+    }
+    #[cfg(target_arch = "x86")]
+    unsafe extern "cdecl" fn syscall3(
+        call_id: usize,
+        arg0: usize,
+        arg1: usize,
+        arg2: usize,
+    ) -> usize {
+        syscall(call_id, arg0, arg1, arg2, 0, 0, 0)
+    }
+    #[cfg(target_arch = "x86_64")]
+    #[inline(always)]
     pub unsafe fn syscall(
         call_id: usize,
         arg0: usize,
@@ -149,7 +203,7 @@ pub mod syscall {
         buf: *mut u8,
         count: usize
     ) -> usize {
-        syscall(id_list::READ, fd, buf as usize, count, 0, 0, 0)
+        syscall3(id_list::READ, fd, buf as usize, count)
     }
     #[inline(always)]
     pub unsafe fn write(
@@ -157,13 +211,13 @@ pub mod syscall {
         buf: *const u8,
         count: usize
     ) -> usize {
-        syscall(id_list::WRITE, fd, buf as usize, count, 0, 0, 0)
+        syscall3(id_list::WRITE, fd, buf as usize, count)
     }
     #[inline(always)]
     pub unsafe fn exit_group(
         status: usize
     ) -> ! {
-        syscall(id_list::EXIT_GROUP, status, 0, 0, 0, 0, 0);
+        syscall1(id_list::EXIT_GROUP, status);
         unreachable!()
     }
     #[inline(always)]
