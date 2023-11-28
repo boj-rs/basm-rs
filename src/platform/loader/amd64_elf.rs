@@ -99,9 +99,9 @@ pub unsafe extern "sysv64" fn relocate(
     if ptr_rela == 0 {
         return;
     }
+    relasz += ptr_rela;
 
-    let mut j = 0;
-    while j < relasz {
+    while ptr_rela < relasz {
         let pst_rela = ptr_rela as *mut Elf64Rela;
         let ul_offset = (*pst_rela).r_offset;
         let ul_info = (*pst_rela).r_info;
@@ -116,7 +116,6 @@ pub unsafe extern "sysv64" fn relocate(
             /* not implemented */
             panic!();
         }
-        j += relaent;
         ptr_rela += relaent;
     }
 }
