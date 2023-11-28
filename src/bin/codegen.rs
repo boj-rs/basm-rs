@@ -86,6 +86,7 @@ unsafe extern "win64" fn _start() -> ! {
     #[cfg(feature = "short")]
     asm!(
         "clc",                              // Not needed but packager wants it
+        "push   rcx",                       // Align stack
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
