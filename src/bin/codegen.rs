@@ -234,11 +234,11 @@ extern "C" fn _start() {
 }
 
 /* We prevent inlining solution::main, since if the user allocates
- * a large amount of stack memory there, it will be zero-initialized
+ * a large amount of stack memory there, it will be zero-initialized (or probed)
  * *before* we increase the stack limits if it is inlined into _start_rust.
  * This will cause stack overflow, thus we prevent it.
  */
-#[inline(never)]
+#[cfg_attr(not(feature = "short"), inline(never))]
 fn _call_main() {
     solution::main();
 }
