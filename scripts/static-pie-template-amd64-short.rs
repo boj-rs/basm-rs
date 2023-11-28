@@ -5,4 +5,4 @@
 $$$$solution_src$$$$
 }
 // SOLUTION END
-#[no_link]extern crate std;static mut P:[u8;$$$$binary_base91_len$$$$]=*br$$$$binary_base91$$$$;#[no_mangle]unsafe fn _start(){std::arch::asm!("stc;.quad 19510173000030c8h,4ce8d9f7c9h,459927e36758096ah,870d74ff8548c931h,4100003000b841cah,0b2ce8956e7ff40b1h,41ff6a5a41226a07h,0c11fb0c35e050f58h,99f572242cac0de0h,15bc06b242cac92h,10c4f608e8c1aad0h,5052535be3ebf775h,20ec834851c1ff51h,0c93197485750d3ffh,90c9d0ff585fd3ffh",in("r14")P.as_mut_ptr(),in("rsi")r$$$$stub_base91$$$$.as_ptr())}
+#[no_link]extern crate std;static mut P:[u8;$$$$binary_base91_len$$$$]=*br$$$$binary_base91$$$$;#[no_mangle]unsafe fn _start(){std::arch::asm!(".quad 0e859016a000038c8h,6758096a0000003ch,3156c931459917e3h,41226a07b2ce89ffh,5e050f5841ff6a5ah,2cac0de0c11fb0c3h,242cac9299f57224h,0e8c1aad0015bc06bh,0e3ebf77510c4f608h,51c1ff515052535bh,4850d3ff20ec8348h,0d0ff58d3ffc93197h",in("r14")P.as_mut_ptr(),in("rsi")r$$$$stub_base91$$$$.as_ptr())}
