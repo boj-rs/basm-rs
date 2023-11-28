@@ -20,6 +20,7 @@ impl<const N: usize> Drop for Writer<N> {
 
 #[repr(align(16))]
 struct B128([u8; 16]);
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     #[cfg(target_arch = "x86_64")]
@@ -65,6 +66,27 @@ unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     let ascii = _mm_add_epi8(t6, ascii0);
     _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
     offset
+}
+#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
+    let mut offset = 16;
+    loop {
+        offset -= 1;
+        out.0[offset] = b'0' + (n % 10) as u8;
+        n /= 10;
+        if n == 0 {
+            /* The remaining space must be filled with b'0',
+             * as this function is also used to convert the lower part
+             * of an integer that is larger than 10^8.
+             */
+            let mut i = offset;
+            while i > 8 {
+                i -= 1;
+                out.0[i] = b'0';
+            }
+            break offset;
+        }
+    }
 }
 
 impl<const N: usize> Writer<N> {

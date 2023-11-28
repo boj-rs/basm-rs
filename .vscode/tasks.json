@@ -43,5 +43,21 @@
                 "$rustc"
             ],
         },
+        {
+            "label": "build-release-wasm32-submit",
+            "type": "shell",
+            "command": "mkdir -p ./target/wasm32-unknown-unknown/release; ./release-wasm32.sh > ./target/wasm32-unknown-unknown/release/loader.js; code --reuse-window ./target/wasm32-unknown-unknown/release/loader.js",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-wasm32-win-submit",
+            "type": "shell",
+            "command": "mkdir -p ./target/wasm32-unknown-unknown/release; ./release-wasm32.cmd > ./target/wasm32-unknown-unknown/release/loader.js; code --reuse-window ./target/wasm32-unknown-unknown/release/loader.js",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
     ],
 }

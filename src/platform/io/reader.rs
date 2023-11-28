@@ -16,15 +16,15 @@ impl<const N: usize> Default for Reader<N> {
 }
 
 mod position {
-    #[target_feature(enable = "avx2")]
+    #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), target_feature(enable = "avx2"))]
     pub unsafe fn white(s: &[u8]) -> Option<usize> {
         s.iter().position(|&c| c <= b' ')
     }
-    #[target_feature(enable = "avx2")]
+    #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), target_feature(enable = "avx2"))]
     pub unsafe fn newline(s: &[u8]) -> Option<usize> {
         s.iter().position(|&c| c == b'\n')
     }
-    #[target_feature(enable = "avx2,sse4.2")]
+    #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), target_feature(enable = "avx2,sse4.2"))]
     pub unsafe fn memchr(s: &[u8], delim: u8) -> Option<usize> {
         s.iter().position(|&b| b == delim)
     }
