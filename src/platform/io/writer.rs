@@ -245,16 +245,21 @@ impl<const N: usize> Writer<N> {
     }
     #[cfg(feature = "short")]
     pub fn u64(&mut self, mut n: u64) {
-        let mut buf: [MaybeUninit<u8>; 20] = MaybeUninit::uninit_array();
-        let mut offset = buf.len() - 1;
-        buf[offset].write(b'0' + (n % 10) as u8);
-        n /= 10;
-        while n > 0 {
-            offset -= 1;
-            buf[offset].write(b'0' + (n % 10) as u8);
+        self.try_flush(21);
+        let mut i = self.off;
+        loop {
+            self.buf[i].write(b'0' + (n % 10) as u8);
             n /= 10;
+            i += 1;
+            if n == 0 { break; }
         }
-        self.bytes(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
+        let mut j = self.off;
+        self.off = i;
+        while j < i {
+            i -= 1;
+            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i); }
+            j += 1;
+        }
     }
     pub fn i128(&mut self, n: i128) {
         if n < 0 {
