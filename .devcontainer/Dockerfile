@@ -4,4 +4,4 @@ WORKDIR /home/
 
 COPY . .
 
-RUN bash ../setup.sh
+RUN bash ./setup.sh
