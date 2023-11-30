@@ -121,7 +121,7 @@ stub_b85 = '"' + stub_b85 + '"'
 
 # template
 template_candidates = [template_path]
-if lang_name == "Rust" and "x86_64" in target_name and "short" in template_path:
+if lang_name == "Rust" and "x86_64" in target_name and "short" in template_path and len(memory_bin) <= 4096:
     template_candidates.append(template_path.replace("short", "shorter"))
 
 out = None
