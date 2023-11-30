@@ -18,8 +18,10 @@ impl<const N: usize> Drop for Writer<N> {
     }
 }
 
+#[cfg(not(feature = "short"))]
 #[repr(align(16))]
 struct B128([u8; 16]);
+#[cfg(not(feature = "short"))]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
@@ -67,6 +69,7 @@ unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
     _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
     offset
 }
+#[cfg(not(feature = "short"))]
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
 unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
     let mut offset = 16;
@@ -121,19 +124,28 @@ impl<const N: usize> Writer<N> {
         self.off += 1;
     }
     pub fn byte(&mut self, b: u8) {
-        self.try_flush(1);
+        self.try_flush(2);
         self.byte_unchecked(b);
     }
     // This function ensures an extra byte in the buffer to make sure that
     // println() can safely use `byte_unchecked`.
-    pub fn bytes(&mut self, s: &[u8]) {
-        let mut i = 0;
-        while i < s.len() {
-            let rem = s[i..].len().min(self.buf[self.off..].len());
-            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[i..i + rem]); }
+    #[cfg(not(feature = "short"))]
+    pub fn bytes(&mut self, mut s: &[u8]) {
+        while !s.is_empty() {
+            let rem = s.len().min(self.buf[self.off..].len());
+            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[..rem]); }
             self.off += rem;
-            i += rem;
+            s = &s[rem..];
             self.try_flush(1);
+        }
+    }
+    // This function ensures an extra byte in the buffer to make sure that
+    // println() can safely use `byte_unchecked`. This is achieved by
+    // calling `self.try_flush(2)` (instead of `self.try_flush(1)`) in byte().
+    #[cfg(feature = "short")]
+    pub fn bytes(&mut self, s: &[u8]) {
+        for x in s {
+            self.byte(*x);
         }
     }
     pub fn str(&mut self, s: &str) {
@@ -159,6 +171,7 @@ impl<const N: usize> Writer<N> {
             self.u32(n as u32);
         }
     }
+    #[cfg(not(feature = "short"))]
     pub fn u32(&mut self, n: u32) {
         self.try_flush(11);
         let mut b128 = B128([0u8; 16]);
@@ -180,6 +193,10 @@ impl<const N: usize> Writer<N> {
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&b128.0[off..]); }
         self.off += len;
     }
+    #[cfg(feature = "short")]
+    pub fn u32(&mut self, n: u32) {
+        self.u64(n as u64)
+    }
     pub fn i64(&mut self, n: i64) {
         if n < 0 {
             self.byte(b'-');
@@ -188,6 +205,7 @@ impl<const N: usize> Writer<N> {
             self.u64(n as u64);
         }
     }
+    #[cfg(not(feature = "short"))]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21);
         let mut hi128 = B128([0u8; 16]);
@@ -224,6 +242,24 @@ impl<const N: usize> Writer<N> {
         let len = 16 - looff;
         unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&lo128.0[looff..]); }
         self.off += len;
+    }
+    #[cfg(feature = "short")]
+    pub fn u64(&mut self, mut n: u64) {
+        self.try_flush(21);
+        let mut i = self.off;
+        loop {
+            self.buf[i].write(b'0' + (n % 10) as u8);
+            n /= 10;
+            i += 1;
+            if n == 0 { break; }
+        }
+        let mut j = self.off;
+        self.off = i;
+        while j < i {
+            i -= 1;
+            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i); }
+            j += 1;
+        }
     }
     pub fn i128(&mut self, n: i128) {
         if n < 0 {

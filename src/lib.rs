@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 #![feature(fn_align)]
 #![feature(maybe_uninit_slice)]
 #![feature(maybe_uninit_uninit_array)]

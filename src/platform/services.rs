@@ -27,7 +27,6 @@ pub const ENV_ID_LINUX: u64 = 2;
 pub const ENV_ID_WASM: u64 = 3;
 pub const ENV_FLAGS_LINUX_STYLE_CHKSTK: u64 = 0x0001;   // disables __chkstk in binaries compiled with Windows target
 pub const ENV_FLAGS_NATIVE: u64 = 0x0002;               // indicates the binary is running without the loader
-pub const ENV_FLAGS_BREAKPOINT: u64 = 0x0004;           // breakpoint at entrypoint or startup routine
 
 #[repr(C, packed)]
 #[allow(non_snake_case)]
@@ -40,66 +39,64 @@ pub struct PlatformData {
     pub fn_table: [usize; 7],
 }
 
-#[inline(always)]
 pub fn install(platform_data_by_loader: usize) {
     unsafe {
         PLATFORM_DATA = platform_data_by_loader;
     }
 }
-#[inline(always)]
 unsafe fn addr(fn_id: usize) -> usize {
     core::ptr::read((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize)
 }
-#[inline(always)]
 pub unsafe fn install_single_service(fn_id: usize, fn_ptr: usize) {
     core::ptr::write((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize, fn_ptr)
 }
-//#[inline(always)]
 pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(1));
     fn_ptr(size, align)
 }
-//#[inline(always)]
 pub unsafe fn alloc_zeroed(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(2));
     fn_ptr(size, align)
 }
-//#[inline(always)]
 pub unsafe fn dealloc(ptr: *mut u8, size: usize, align: usize) {
     let fn_ptr: native_func::B = core::mem::transmute(addr(3));
     fn_ptr(ptr, size, align)
 }
-//#[inline(always)]
 pub unsafe fn realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
     let fn_ptr: native_func::C = core::mem::transmute(addr(4));
     fn_ptr(ptr, old_size, old_align, new_size)
 }
-#[inline(always)]
 pub fn read_stdio(fd: usize, buf: &mut [u8]) -> usize {
+    #[cfg(not(all(feature = "short", target_os = "linux")))]
     unsafe {
         let fn_ptr: native_func::E = core::mem::transmute(addr(5));
         fn_ptr(fd, buf.as_mut_ptr(), buf.len())
     }
+    #[cfg(all(feature = "short", target_os = "linux"))]
+    unsafe {
+        super::os::linux::syscall::read(fd, buf.as_mut_ptr(), buf.len())
+    }
 }
-#[inline(always)]
 pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
+    #[cfg(not(all(feature = "short", target_os = "linux")))]
     unsafe {
         let fn_ptr: native_func::F = core::mem::transmute(addr(6));
         fn_ptr(fd, buf.as_ptr(), buf.len())
     }
+    #[cfg(all(feature = "short", target_os = "linux"))]
+    unsafe {
+        super::os::linux::syscall::write(fd, buf.as_ptr(), buf.len())
+    }
 }
-#[inline(always)]
 pub fn platform_data() -> PlatformData {
     unsafe {
         let pd: *const PlatformData = PLATFORM_DATA as *const PlatformData;
         core::ptr::read_unaligned(pd)
     }
 }
-#[inline(always)]
 pub fn get_exit_status() -> i32 {
     unsafe { EXIT_CODE }
 }
-#[inline(always)]
 pub fn set_exit_status(code: i32) {
     unsafe { EXIT_CODE = code; }
 }

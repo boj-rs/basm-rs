@@ -18,6 +18,7 @@ pub fn init(platform_data_by_loader: usize) {
     unsafe {
         match pd.env_id {
             #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(not(feature = "short"))]
             services::ENV_ID_WINDOWS => {
                 /* use OS APIs directly */
                 os::windows::init();
@@ -34,7 +35,10 @@ pub fn init(platform_data_by_loader: usize) {
             },
             _ => {
                 /* use loader services for allocation */
+                #[cfg(not(feature = "short"))]
                 os::unknown::init();
+                #[cfg(feature = "short")]
+                unreachable!();
             }
         }
     }

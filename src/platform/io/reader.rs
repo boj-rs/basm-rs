@@ -46,42 +46,48 @@ impl<const N: usize> Reader<N> {
     pub fn try_refill(&mut self, readahead: usize) -> usize {
         /* readahead cannot exceed the buffer size */
         assert!(readahead <= Self::BUF_LEN);
-        let end = self.off + readahead;
-        if end <= self.len {
-            /* data already available */
-        } else {
-            /* secure space by discarding the already-consumed buffer contents at front */
-            if end > Self::BUF_LEN {
-                let rem = self.len - self.off;
-                unsafe { core::ptr::copy(self.buf.as_ptr().add(self.off), self.buf.as_mut_ptr(), rem); }
-                self.len = rem;
-                self.off = 0;
-            }
-            unsafe {
-                /* Although the buffer currently falls short of what has been requested,
-                * it may still be possible that a full token (which is short)
-                * is available within the remains. Thus, we check if we can return
-                * without invoking read_stdio. This is crucial for cases where
-                * the standard input is a pipe, which includes the local testing
-                * console environment. */
-                let mut white_pos = self.off;
-                while white_pos < self.len {
-                    if self.buf[white_pos].assume_init() <= b' ' {
-                        break;
+        unsafe {
+            let mut rem = self.len - self.off;
+            if rem < readahead {
+                /* Secure space by discarding the already-consumed buffer contents at front.
+                 * Note that we expect `readahead` to be small (<100 bytes), so we unconditionally
+                 * copy the contents to the front to reduce code size. When the default buffer size
+                 * is used (which is >100K), this will not happen often and hence shouldn't affect
+                 * performance by a noticeable amount. */
+                let mut white_cnt = 0u32;
+                let mut j = self.off;
+                for i in 0..rem {
+                    let c = self.buf[j].assume_init();
+                    if c <= b' ' {
+                        white_cnt += 1;
                     }
-                    white_pos += 1;
+                    *self.buf[i].assume_init_mut() = c;
+                    j += 1;
                 }
-                if white_pos == self.len {
+
+                /* Although the buffer currently falls short of what has been requested,
+                 * it may still be possible that a full token (which is short)
+                 * is available within the remains. Thus, we check if we can return
+                 * without invoking read_stdio. This is crucial for cases where
+                 * the standard input is a pipe, which includes the local testing
+                 * console environment. */
+                if white_cnt == 0 {
                     /* No whitespace has been found. We have to read.
-                    * We try to read as much as possible at once. */
-                    self.len += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[self.len..Self::BUF_LEN]));
+                     * We try to read as much as possible at once. */
+                    rem += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[rem..Self::BUF_LEN]));
                 }
                 /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
-                This is safe since we spare 8 bytes at the end of the buffer. */
-                *self.buf[self.len].assume_init_mut() = 0u8;
+                 * This is safe since we spare 8 bytes at the end of the buffer. */
+                *self.buf[rem].assume_init_mut() = 0u8;
+
+                /* Save the new data length */
+                self.len = rem;
+                self.off = 0;
+            } else {
+                /* data already available */
             }
+            rem
         }
-        self.len - self.off
     }
     pub fn try_consume(&mut self, bytes: usize) -> usize {
         let mut consumed = 0;
@@ -228,6 +234,7 @@ impl<const N: usize> Reader<N> {
         buf
     }
 
+    #[cfg(not(feature = "short"))]
     fn noskip_u64(&mut self) -> u64 {
         const POW10: [u32; 9] = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000];
         let mut out = 0;
@@ -245,6 +252,20 @@ impl<const N: usize> Reader<N> {
             out += c;
         }
     }
+    #[cfg(feature = "short")]
+    fn noskip_u64(&mut self) -> u64 {
+        let mut n = 0;
+        loop {
+            let b = unsafe { self.buf[self.off].assume_init() };
+            if b > 32 {
+                n *= 10;
+                n += (b - b'0') as u64;
+                self.off += 1;
+            } else {
+                break n;
+            }
+        }
+    }    
     fn noskip_u128(&mut self) -> u128 {
         let mut n = 0;
         while self.off < self.len {

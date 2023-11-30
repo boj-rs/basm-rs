@@ -1,5 +1,8 @@
+import sys
+
 # read prestub
-with open("static-pie-prestub-amd64.bin", "rb") as f:
+fname = "static-pie-prestub-amd64.bin" if len(sys.argv) <= 1 else sys.argv[1]
+with open(fname, "rb") as f:
     prestub = f.read()
 prestub = bytearray(prestub)
 if len(prestub) > 0 and prestub[-1] == 0:
