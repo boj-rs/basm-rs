@@ -14,7 +14,7 @@ section .text
 ; Align stack to 16 byte boundary
 ; [rsp+ 32, rsp+120): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    enter   48, 0
+    enter   56, 0
     push    1
     pop     rcx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
     call    _t
