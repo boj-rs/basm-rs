@@ -34,7 +34,7 @@ _svc_alloc_rwx:
 
 ; Base91 decoder
 _decode:
-    mov     al, 0x1f                ; syscall preserves rax; hence at this point rax=9
+    mov     al, 0x1f                ; syscall preserves all registers except rcx, r11, rax; hence at this point rax=(previous rdi)=0
 _decode_loop:
     shl     eax, 13
 _decode_loop_2:
