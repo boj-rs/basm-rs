@@ -64,4 +64,4 @@ _decode_zeros:
 ; Jump to entrypoint
 _jump_to_entrypoint:
     sub     rdi, qword [rdi-8]
-    jmp     rdi
+    call    rdi
