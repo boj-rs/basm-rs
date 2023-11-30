@@ -11,11 +11,6 @@ BITS 64
 ORG 0
 section .text
 
-; Align stack to 16 byte boundary
-; [rsp+ 32, rsp+120): PLATFORM_DATA
-; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    enter   56, 0
-
 ; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
     push    9
@@ -34,15 +29,7 @@ _svc_alloc_rwx:
     syscall
     pop     rsi                     ; restore rsi
 
-; PLATFORM_DATA
-_t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
-    push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
-    push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
-    push    1                       ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
-    push    2                       ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
-
 ; Current state: rax = new buffer
-    push    rax
     xchg    rax, rdi                ; rdi = new buffer
 
 ; Base91 decoder
@@ -78,8 +65,5 @@ _decode_zeros:
 
 ; Jump to entrypoint
 _jump_to_entrypoint:
-    pop     rax
-    add     rax, qword [rdi-8]
-    push    rsp
-    pop     rcx
-    call    rax
+    sub     rdi, qword [rdi-8]
+    jmp     rdi

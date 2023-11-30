@@ -86,12 +86,14 @@ unsafe extern "win64" fn _start() -> ! {
     #[cfg(feature = "short")]
     asm!(
         "clc",                              // Not needed but packager wants it
-        "push   rcx",                       // Align stack
-        "mov    rbx, rcx",                  // Save PLATFORM_DATA table
+        "sub    rsp, 80",                   // 16 + 80 = 96 = 16*6 -> stack alignment preserved
+        "push   1",                         // env_flags = 1 (ENV_FLAGS_LINUX_STYLE_CHKSTK)
+        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "call   {0}",
-        "mov    rdi, rbx",
+        "push   rsp",
+        "pop    rcx",
         "call   {1}",                       // This won't return since on Linux we invoke SYS_exitgroup in binary
         sym loader::amd64_elf::relocate,
         sym _start_rust,
