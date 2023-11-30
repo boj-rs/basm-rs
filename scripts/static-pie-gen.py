@@ -68,7 +68,9 @@ if len(sol) > 0:
 sol = "".join(sol)
 
 # binary (raw)
-code_raw_b91 = base91.encode(memory_bin[:-4], use_rle=True).decode('ascii')
+code_raw = memory_bin[:-8]
+code_raw += (len(code_raw) + 8 - loader_fdict['entrypoint_offset']).to_bytes(8, byteorder='little')
+code_raw_b91 = base91.encode(code_raw, use_rle=True).decode('ascii')
 code_raw_b91_len = len(code_raw_b91)
 code_raw_b91 = '"' + code_raw_b91 + '"'
 
@@ -121,7 +123,7 @@ stub_b85 = '"' + stub_b85 + '"'
 
 # template
 template_candidates = [template_path]
-if lang_name == "Rust" and "x86_64" in target_name and "short" in template_path:
+if lang_name == "Rust" and "x86_64" in target_name and "short" in template_path and len(code_raw) <= 4096:
     template_candidates.append(template_path.replace("short", "shorter"))
 
 out = None

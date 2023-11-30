@@ -49,6 +49,8 @@ There are currently three files licensed under GPLv2+:
 
 #![allow(clippy::cmp_null)]
 
+use core::mem::MaybeUninit;
+
 // Dynamic section entry types
 const DT_RELA:      u64 = 7;
 const DT_RELASZ:    u64 = 8;
@@ -78,14 +80,14 @@ pub unsafe extern "sysv64" fn relocate(
     ) {
     let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
     let mut ptr_rela = 0;
-    let mut relasz = 0;
-    let mut relaent = 0;
+    let mut relasz = MaybeUninit::<u64>::uninit();
+    let mut relaent = MaybeUninit::<u64>::uninit();
     loop {
         match (*ptr_dyn).d_tag {
             0 => { break; }
             DT_RELA => { ptr_rela = addr_image_base + (*ptr_dyn).d_val_or_ptr; },
-            DT_RELASZ => { relasz = (*ptr_dyn).d_val_or_ptr; },
-            DT_RELAENT => { relaent = (*ptr_dyn).d_val_or_ptr; },
+            DT_RELASZ => { relasz.write((*ptr_dyn).d_val_or_ptr); },
+            DT_RELAENT => { relaent.write((*ptr_dyn).d_val_or_ptr); },
             _ => ()
         }
         ptr_dyn = ptr_dyn.add(1);
@@ -99,9 +101,9 @@ pub unsafe extern "sysv64" fn relocate(
     if ptr_rela == 0 {
         return;
     }
-    relasz += ptr_rela;
+    relasz.write(relasz.assume_init() + ptr_rela);
 
-    while ptr_rela < relasz {
+    while ptr_rela < relasz.assume_init() {
         let pst_rela = ptr_rela as *mut Elf64Rela;
         let ul_offset = (*pst_rela).r_offset;
         let ul_info = (*pst_rela).r_info;
@@ -116,6 +118,6 @@ pub unsafe extern "sysv64" fn relocate(
             /* not implemented */
             panic!();
         }
-        ptr_rela += relaent;
+        ptr_rela += relaent.assume_init();
     }
 }
