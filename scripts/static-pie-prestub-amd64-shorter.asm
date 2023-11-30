@@ -56,11 +56,9 @@ _decode_output:
     jnz     _decode_output
     jmp     _decode_loop
 _decode_zeros:
-    xchg    eax, edx
     movzx   ecx, byte [rdi-1]
     dec     rdi
-    rep     stosb
-    xchg    eax, edx
+    rep     stosb                   ; the fact we jumped to here ensures al=0
     jmp     _decode_loop_2
 
 ; Jump to entrypoint
