@@ -47,10 +47,13 @@ _decode:
     mov     al, 0x1f
 _decode_loop:
     shl     eax, 13
+_decode_loop_2:
     lodsb
-    sub     al, 0x24
-    jc      _ret
+    sub     al, 0x23
     cdq
+    jc      _ret
+    jz      _decode_zeros
+    dec     al
     xchg    eax, edx
     lodsb
     sub     al, 0x24
@@ -62,6 +65,13 @@ _decode_output:
     test    ah, 16
     jnz     _decode_output
     jmp     _decode_loop
+_decode_zeros:
+    xchg    eax, edx
+    movzx   ecx, byte [rdi-1]
+    dec     rdi
+    rep     stosb
+    xchg    eax, edx
+    jmp     _decode_loop_2
 
 ; PLATFORM_DATA
 _t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
