@@ -14,23 +14,18 @@ section .text
 ; Align stack to 16 byte boundary
 ; [rsp+ 32, rsp+120): PLATFORM_DATA
 ; [rsp+  0, rsp+ 32): (shadow space for win64 calling convention)
-    enter   48, 0
-    push    1
-    pop     rcx                     ; Enable ENV_FLAGS_LINUX_STYLE_CHKSTK outside Windows
-    call    _t
+    enter   56, 0
 
-; svc_alloc_rwx for Windows and Linux
-; rcx = size
-; rdi = pointer to VirtualAlloc (must be supplied before prepending the mov instruction)
+; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
     push    9
     pop     rax                     ; syscall id of x64 mmap
-    jecxz  _decode
     cdq                             ; rdx=0
     xor     r9d, r9d                ; offset
     push    rsi                     ; save rsi
     xor     edi, edi                ; rdi=0
-    mov     esi, ecx                ; size
+    push    1
+    pop     rsi                     ; size
     mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
     push    0x22
     pop     r10                     ; flags
@@ -38,20 +33,28 @@ _svc_alloc_rwx:
     pop     r8                      ; fd
     syscall
     pop     rsi                     ; restore rsi
-_ret:
-    ret
-_svc_alloc_rwx_end:
+
+; PLATFORM_DATA
+_t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
+    push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
+    push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
+    push    1                       ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
+    push    2                       ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
+
+; Current state: rax = new buffer
+    push    rax
+    xchg    rax, rdi                ; rdi = new buffer
 
 ; Base91 decoder
 _decode:
-    mov     al, 0x1f
+    mov     al, 0x1f                ; syscall preserves rax; hence at this point rax=9
 _decode_loop:
     shl     eax, 13
 _decode_loop_2:
     lodsb
     sub     al, 0x23
     cdq
-    jc      _ret
+    jc      _jump_to_entrypoint
     jz      _decode_zeros
     dec     al
     xchg    eax, edx
@@ -73,31 +76,11 @@ _decode_zeros:
     xchg    eax, edx
     jmp     _decode_loop_2
 
-; PLATFORM_DATA
-_t:                                 ; PLATFORM_DATA[32..39] = ptr_alloc_rwx
-    pop     rbx
-    push    rbx
-    push    rdx                     ; PLATFORM_DATA[24..31] = win_GetProcAddress
-    push    rax                     ; PLATFORM_DATA[16..23] = win_kernel32
-    push    rcx                     ; PLATFORM_DATA[ 8..15] = env_flags (0=None, 1=ENV_FLAGS_LINUX_STYLE_CHKSTK)
-    inc     ecx
-    push    rcx                     ; PLATFORM_DATA[ 0.. 7] = env_id (1=Windows, 2=Linux)
-    push    rsp
-    call    rbx                     ; svc_alloc_rwx
-
-; Current state: rax = new buffer
-    push    rax
-    xchg    rax, rdi                ; rdi = new buffer
-
-; Decode stub (rsi -> rdi)
-; Current state: rdi = target memory (by the previous instruction)
-;                rsi = STUB_BASE91 (by the Rust template)
-    xor     ecx, ecx
-    call    rbx
-
 ; Jump to entrypoint
+_jump_to_entrypoint:
     mov     eax, dword [rdi-4]
     pop     rcx
     add     rax, rcx
+    push    rsp
     pop     rcx
     call    rax
