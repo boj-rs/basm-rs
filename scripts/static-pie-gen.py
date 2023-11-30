@@ -68,7 +68,7 @@ if len(sol) > 0:
 sol = "".join(sol)
 
 # binary (raw)
-code_raw_b91 = base91.encode(memory_bin[:-4], use_rle=True).decode('ascii')
+code_raw_b91 = base91.encode(memory_bin, use_rle=True).decode('ascii')
 code_raw_b91_len = len(code_raw_b91)
 code_raw_b91 = '"' + code_raw_b91 + '"'
 
