@@ -56,8 +56,8 @@ _decode_output:
     jnz     _decode_output
     jmp     _decode_loop
 _decode_zeros:
-    movzx   ecx, byte [rdi-1]
     dec     rdi
+    movzx   ecx, byte [rdi]
     rep     stosb                   ; the fact we jumped to here ensures al=0
     jmp     _decode_loop_2
 
