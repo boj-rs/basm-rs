@@ -19,8 +19,7 @@ _svc_alloc_rwx:
     xor     r9d, r9d                ; offset
     push    rsi                     ; save rsi
     xor     edi, edi                ; rdi=0
-    push    1
-    pop     rsi                     ; size
+    mov     esi, eax                ; size (anything in [1, 4096])
     mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
     push    0x22
     pop     r10                     ; flags
@@ -39,16 +38,15 @@ _decode_loop:
     shl     eax, 13
 _decode_loop_2:
     lodsb
+    xor     ecx, ecx                ; ecx = 0
     sub     al, 0x23
-    cdq
-    jc      _jump_to_entrypoint
-    jz      _decode_zeros
+    jbe     _decode_zeros
     dec     al
-    xchg    eax, edx
+    xchg    eax, ecx
     lodsb
     sub     al, 0x24
     imul    eax, eax, 91
-    add     eax, edx
+    add     eax, ecx
 _decode_output:
     stosb
     shr     eax, 8
@@ -56,10 +54,9 @@ _decode_output:
     jnz     _decode_output
     jmp     _decode_loop
 _decode_zeros:
-    dec     rdi
-    movzx   ecx, byte [rdi]
-    rep     stosb                   ; the fact we jumped to here ensures al=0
-    jmp     _decode_loop_2
+    xchg    byte [rdi-1], cl        ; ecx = cl = ((number of zeros) - 1), byte [rdi-1] = 0
+    rep     stosb                   ; we have made sure the last byte is zero (in the packager)
+    jz      _decode_loop_2
 
 ; Jump to entrypoint
 _jump_to_entrypoint:
