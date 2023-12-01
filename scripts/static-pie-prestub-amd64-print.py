@@ -22,9 +22,14 @@ table_part = prestub[j:]
 prestub = prestub[:j]
 
 # settings
-SPECIFIER = ".quad"
-CHUNK_SIZE = 8
-ENTRIES_PER_LINE = 4
+if "--octa" in sys.argv:
+    SPECIFIER = ".octa"
+    CHUNK_SIZE = 16
+    ENTRIES_PER_LINE = 10
+else:
+    SPECIFIER = ".quad"
+    CHUNK_SIZE = 8
+    ENTRIES_PER_LINE = 4
 
 # pad to align at `CHUNK_SIZE`-byte boundary
 while len(prestub) % CHUNK_SIZE != 0:

@@ -13,11 +13,11 @@ def encode(x_in, use_rle=False):
                 i += 1
             if len(x) > 0 and x[-1] == 0:
                 zeros_cnt = 1
-                while i - 1 + zeros_cnt < len(x_in) and zeros_cnt < 255 and x_in[i - 1 + zeros_cnt] == 0:
+                while i - 1 + zeros_cnt < len(x_in) and zeros_cnt < 256 and x_in[i - 1 + zeros_cnt] == 0:
                     zeros_cnt += 1
                 if zeros_cnt >= 2:
                     x.pop()
-                    x.append(zeros_cnt)
+                    x.append(zeros_cnt - 1)
                     sharp_insertion_points.append((current_bits // 13 * 2) + len(sharp_insertion_points))
                     i += zeros_cnt - 1
         sharp_insertion_points = list(reversed(sharp_insertion_points))

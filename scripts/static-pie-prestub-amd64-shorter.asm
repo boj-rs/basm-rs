@@ -31,6 +31,7 @@ _svc_alloc_rwx:
 
 ; Current state: rax = new buffer
     xchg    rax, rdi                ; rdi = new buffer
+    xor     ecx, ecx                ; ecx = 0
 
 ; Base91 decoder
 _decode:
@@ -56,8 +57,7 @@ _decode_output:
     jnz     _decode_output
     jmp     _decode_loop
 _decode_zeros:
-    dec     rdi
-    movzx   ecx, byte [rdi]
+    xchg    byte [rdi-1], cl        ; ecx = cl = ((number of zeros) - 1), byte [rdi-1] = 0
     rep     stosb                   ; the fact we jumped to here ensures al=0
     jmp     _decode_loop_2
 
