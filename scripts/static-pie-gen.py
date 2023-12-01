@@ -74,6 +74,10 @@ code_raw += (len(code_raw) + 8 - loader_fdict['entrypoint_offset']).to_bytes(8, 
 code_raw_b91 = base91.encode(code_raw, use_rle=True).decode('ascii')
 code_raw_b91_len = len(code_raw_b91)
 code_raw_b91 = '"' + code_raw_b91 + '"'
+if lang_name == "C":
+    # Escape '\' and '?'
+    code_raw_b91 = code_raw_b91.replace('\\', '\\\\')
+    code_raw_b91 = code_raw_b91.replace('?', '\\?')
 
 # binary
 with open(compressed_binary_path, "rb") as f:
@@ -124,7 +128,7 @@ stub_b85 = '"' + stub_b85 + '"'
 
 # template
 template_candidates = [template_path]
-if lang_name == "Rust" and "x86_64" in target_name and "short" in template_path and len(code_raw) <= 4096 - 256:
+if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in template_path and len(code_raw) <= 4096 - 256:
     template_candidates.append(template_path.replace("short", "shorter"))
 
 out = None
