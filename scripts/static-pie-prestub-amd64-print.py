@@ -30,6 +30,14 @@ else:
     SPECIFIER = ".quad"
     CHUNK_SIZE = 8
     ENTRIES_PER_LINE = 4
+if "--c" in sys.argv:
+    PREFIX = "0x"
+    SUFFIX = ""
+    SPECIFIER = ""
+    ENTRIES_PER_LINE = 100
+else:
+    PREFIX = ""
+    SUFFIX = "h"
 
 # pad to align at `CHUNK_SIZE`-byte boundary
 while len(prestub) % CHUNK_SIZE != 0:
@@ -48,8 +56,8 @@ for i in range(0, len(prestub), CHUNK_SIZE):
         nonzero_idx = len(out)
         while nonzero_idx > 1 and out[nonzero_idx-1] == '0':
             nonzero_idx -= 1
-        out2 = out[:nonzero_idx] + "h<<" + str((len(out) - nonzero_idx) * 4)
-        out = out + "h"
+        out2 = PREFIX + out[:nonzero_idx] + SUFFIX + "<<" + str((len(out) - nonzero_idx) * 4)
+        out = PREFIX + out + SUFFIX
         if len(out2) < len(out):
             out = out2
         if ord(out[0]) >= ord('a'):
