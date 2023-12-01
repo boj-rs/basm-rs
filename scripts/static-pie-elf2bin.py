@@ -160,7 +160,28 @@ def load_elf64(elf):
             continue        # since bytearray is zero-initialized
 
         dst_off, src_off, cnt = sh_dict['sh_addr'], sh_dict['sh_offset'], sh_dict['sh_size']
-        memory_bin[dst_off:dst_off+cnt] = elf[src_off:src_off+cnt]
+        blob = elf[src_off:src_off+cnt]
+
+        if sh_dict['sh_type'] == SHT_DYNAMIC:
+            # Trim the DYNAMIC section, leaving only relocation-related entries
+            # 16 == sizeof(Elf64_Dyn)
+            dst = 0 
+            for src in range(0, len(blob), 16):
+                # Included entries:
+                #   DT_PLTRELSZ = 2, DT_RELA = 7, DT_RELASZ = 8, DT_RELAENT = 9,
+                #   DT_REL = 17, DT_RELSZ = 18, DT_RELENT = 19, DT_PLTREL = 20,
+                #   DT_TEXT_REL = 22, DT_JMPREL = 23.
+                #
+                # Note: DT_RELACOUNT = 0x6fff_fff9 and DT_RELCOUNT = 0x6fff_fffa
+                #   are not included since they are redundant since
+                #   DT_RELACOUNT = DT_RELASZ/DT_RELAENT and
+                #   DT_RELCOUNT = DT_RELSZ/DT_RELENT.
+                if b2i(blob[src:src+8]) in [2, 7, 8, 9, 17, 18, 19, 20, 22, 23]:
+                    blob[dst:dst+16] = blob[src:src+16]
+                    dst += 16
+            blob[dst:] = bytearray(len(blob[dst:])) # fill remaining part with zeros
+
+        memory_bin[dst_off:dst_off+cnt] = blob
 
     entrypoint_offset = b2i(elf[24:32])
     return memory_bin, pos_begin, entrypoint_offset
