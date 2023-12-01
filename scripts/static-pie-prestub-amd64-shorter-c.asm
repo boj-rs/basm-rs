@@ -1,11 +1,11 @@
 ; -*- tab-width: 4 -*-
 ; 
-; The prestub for amd64-rust target
+; The prestub for amd64-C target
 ; (prestub: the code that runs before the stub and sets the stage)
 ;
 ; build: nasm -f bin -O9 static-pie-prestub-amd64-shorter-c.asm -o static-pie-prestub-amd64-shorter-c.bin
 ; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter-c.bin --c
-;       to obtain the form that can be embedded in Rust as inline assembly.
+;       to obtain the form that can be embedded in C.
 
 BITS 64
 ORG 0
