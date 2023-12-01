@@ -42,8 +42,7 @@ _decode_loop_2:
     lodsb
     sub     al, 0x23
     cdq
-    jc      _jump_to_entrypoint
-    jz      _decode_zeros
+    jbe     _decode_zeros
     dec     al
     xchg    eax, edx
     lodsb
@@ -59,7 +58,7 @@ _decode_output:
 _decode_zeros:
     xchg    byte [rdi-1], cl        ; ecx = cl = ((number of zeros) - 1), byte [rdi-1] = 0
     rep     stosb                   ; the fact we jumped to here ensures al=0
-    jmp     _decode_loop_2
+    jz      _decode_loop_2
 
 ; Jump to entrypoint
 _jump_to_entrypoint:
