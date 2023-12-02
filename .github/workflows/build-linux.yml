@@ -54,6 +54,7 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
@@ -63,6 +64,7 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
@@ -72,6 +74,7 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
@@ -81,6 +84,7 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
@@ -90,6 +94,7 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
@@ -99,6 +104,7 @@ jobs:
         run: |
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
           python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
