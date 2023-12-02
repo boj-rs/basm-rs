@@ -4,7 +4,7 @@
 ; (prestub: the code that runs before the stub and sets the stage)
 ;
 ; build: nasm -f bin -O9 static-pie-prestub-amd64-shorter.asm -o static-pie-prestub-amd64-shorter.bin
-; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter.bin
+; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter.bin --octa
 ;       to obtain the form that can be embedded in Rust as inline assembly.
 
 BITS 64
@@ -61,4 +61,5 @@ _decode_zeros:
 ; Jump to entrypoint
 _jump_to_entrypoint:
     sub     rdi, qword [rdi-8]
+    and     rsp, 0xfffffffffffffff0
     call    rdi
