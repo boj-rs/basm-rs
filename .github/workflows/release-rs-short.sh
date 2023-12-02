@@ -1,0 +1,1 @@
+./release-rs.sh --features short
