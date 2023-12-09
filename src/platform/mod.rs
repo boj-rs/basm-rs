@@ -18,6 +18,7 @@ pub fn init(platform_data_by_loader: usize) {
     unsafe {
         match pd.env_id {
             #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(not(feature = "short"))]
             services::ENV_ID_WINDOWS => {
                 /* use OS APIs directly */
                 os::windows::init();
@@ -34,16 +35,24 @@ pub fn init(platform_data_by_loader: usize) {
             },
             _ => {
                 /* use loader services for allocation */
+                #[cfg(not(feature = "short"))]
                 os::unknown::init();
+                #[cfg(feature = "short")]
+                unreachable!();
             }
         }
     }
 }
 #[cfg(not(test))]
 pub fn try_exit() {
-    let pd = services::platform_data();
-    if pd.env_id == services::ENV_ID_LINUX {
-        #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(all(target_arch = "x86_64", feature = "short")))] {
+        let pd = services::platform_data();
+        if pd.env_id == services::ENV_ID_LINUX {
+            #[cfg(not(target_arch = "wasm32"))]
+            unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
+        }
+    }
+    #[cfg(all(target_arch = "x86_64", feature = "short"))] {
         unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
     }
 }

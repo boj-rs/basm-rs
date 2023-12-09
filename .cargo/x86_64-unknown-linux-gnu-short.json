@@ -1,0 +1,50 @@
+{
+  "arch": "x86_64",
+  "cpu": "x86-64",
+  "crt-objects-fallback": "false",
+  "crt-static-respected": true,
+  "data-layout": "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
+  "dynamic-linking": true,
+  "eh-frame-header": false,
+  "env": "gnu",
+  "has-rpath": true,
+  "has-thread-local": true,
+  "is-builtin": false,
+  "linker-flavor": "gnu-cc",
+  "llvm-target": "x86_64-unknown-linux-gnu",
+  "max-atomic-width": 64,
+  "os": "linux",
+  "plt-by-default": false,
+  "position-independent-executables": true,
+  "pre-link-args": {
+    "gnu-cc": [
+      "-m64"
+    ],
+    "gnu-lld-cc": [
+      "-m64"
+    ]
+  },
+  "relro-level": "off",
+  "stack-probes": {
+    "kind": "none"
+  },
+  "static-position-independent-executables": true,
+  "supported-sanitizers": [
+    "address",
+    "cfi",
+    "leak",
+    "memory",
+    "thread",
+    "safestack"
+  ],
+  "supported-split-debuginfo": [
+    "packed",
+    "unpacked",
+    "off"
+  ],
+  "supports-xray": true,
+  "target-family": [
+    "unix"
+  ],
+  "target-pointer-width": "64"
+}

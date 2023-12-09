@@ -49,6 +49,8 @@ There are currently three files licensed under GPLv2+:
 
 #![allow(clippy::cmp_null)]
 
+use core::mem::MaybeUninit;
+
 // Dynamic section entry types
 const DT_RELA:      u64 = 7;
 const DT_RELASZ:    u64 = 8;
@@ -72,35 +74,37 @@ struct Elf64Rela {
 }
 
 
-unsafe fn find_tag(mut ptr: *const Elf64Dyn, tag: u64) -> *const Elf64Dyn {
-    while (*ptr).d_tag != 0 {
-        if (*ptr).d_tag == tag {
-            return ptr;
-        }
-        ptr = ptr.add(1);
-    }
-    core::ptr::null()
-}
-
 pub unsafe extern "sysv64" fn relocate(
     addr_image_base: u64,
     addr_dynamic_section: u64
     ) {
-    let ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
-    let ptr_rela = find_tag(ptr_dyn, DT_RELA);
-    let ptr_relasz = find_tag(ptr_dyn, DT_RELASZ);
-    let ptr_relaent = find_tag(ptr_dyn, DT_RELAENT);
-
-    /* do not use .is_null() since the method itself requires relocations, at least in debug mode */
-    if ptr_rela == core::ptr::null() ||
-        ptr_relasz == core::ptr::null() ||
-        ptr_relaent == core::ptr::null() {
-        return;
+    let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
+    let mut ptr_rela = 0;
+    let mut relasz = MaybeUninit::<u64>::uninit();
+    let mut relaent = MaybeUninit::<u64>::uninit();
+    loop {
+        match (*ptr_dyn).d_tag {
+            0 => { break; }
+            DT_RELA => { ptr_rela = addr_image_base + (*ptr_dyn).d_val_or_ptr; },
+            DT_RELASZ => { relasz.write((*ptr_dyn).d_val_or_ptr); },
+            DT_RELAENT => { relaent.write((*ptr_dyn).d_val_or_ptr); },
+            _ => ()
+        }
+        ptr_dyn = ptr_dyn.add(1);
     }
 
-    let mut j = 0;
-    while j < (*ptr_relasz).d_val_or_ptr {
-        let pst_rela = (addr_image_base + (*ptr_rela).d_val_or_ptr + j) as *mut Elf64Rela;
+    /* 1) Do not use .is_null() since the method itself requires relocations, at least in debug mode.
+     * 2) When DT_RELA is present, the other entries DT_RELASZ and DT_RELAENT must exist.
+     *    Source: https://docs.oracle.com/cd/E19683-01/817-3677/chapter6-42444/index.html
+     *    ("This element requires the DT_RELASZ and DT_RELAENT elements also be present.")
+     */
+    if ptr_rela == 0 {
+        return;
+    }
+    relasz.write(relasz.assume_init() + ptr_rela);
+
+    while ptr_rela < relasz.assume_init() {
+        let pst_rela = ptr_rela as *mut Elf64Rela;
         let ul_offset = (*pst_rela).r_offset;
         let ul_info = (*pst_rela).r_info;
         let l_addend = (*pst_rela).r_addend;
@@ -114,6 +118,6 @@ pub unsafe extern "sysv64" fn relocate(
             /* not implemented */
             panic!();
         }
-        j += (*ptr_relaent).d_val_or_ptr;
+        ptr_rela += relaent.assume_init();
     }
 }

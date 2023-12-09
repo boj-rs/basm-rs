@@ -1,4 +1,4 @@
-use super::super::{allocator, services};
+use super::super::allocator;
 use super::super::malloc::{dlmalloc, dlmalloc_linux};
 
 
@@ -42,6 +42,60 @@ pub mod syscall {
         pub rlim_max: usize,
     }
 
+    #[cfg(target_arch = "x86_64")]
+    #[inline(always)]
+    pub unsafe fn syscall1(
+        call_id: usize,
+        arg0: usize,
+    ) -> usize {
+        let out;
+        asm!(
+            "syscall",
+            in("rax") call_id,
+            in("rdi") arg0,
+            lateout("rax") out,
+            out("rcx") _,
+            out("r11") _
+        );
+        out
+    }
+    #[cfg(target_arch = "x86")]
+    pub unsafe fn syscall1(
+        call_id: usize,
+        arg0: usize,
+    ) -> usize {
+        syscall(call_id, arg0, 0, 0, 0, 0, 0)
+    }
+    #[cfg(target_arch = "x86_64")]
+    #[inline(always)]
+    pub unsafe fn syscall3(
+        call_id: usize,
+        arg0: usize,
+        arg1: usize,
+        arg2: usize,
+    ) -> usize {
+        let out;
+        asm!(
+            "syscall",
+            in("rax") call_id,
+            in("rdi") arg0,
+            in("rsi") arg1,
+            in("rdx") arg2,
+            lateout("rax") out,
+            out("rcx") _,
+            out("r11") _
+        );
+        out
+    }
+    #[cfg(target_arch = "x86")]
+    unsafe extern "cdecl" fn syscall3(
+        call_id: usize,
+        arg0: usize,
+        arg1: usize,
+        arg2: usize,
+    ) -> usize {
+        syscall(call_id, arg0, arg1, arg2, 0, 0, 0)
+    }
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     pub unsafe fn syscall(
@@ -149,7 +203,7 @@ pub mod syscall {
         buf: *mut u8,
         count: usize
     ) -> usize {
-        syscall(id_list::READ, fd, buf as usize, count, 0, 0, 0)
+        syscall3(id_list::READ, fd, buf as usize, count)
     }
     #[inline(always)]
     pub unsafe fn write(
@@ -157,13 +211,13 @@ pub mod syscall {
         buf: *const u8,
         count: usize
     ) -> usize {
-        syscall(id_list::WRITE, fd, buf as usize, count, 0, 0, 0)
+        syscall3(id_list::WRITE, fd, buf as usize, count)
     }
     #[inline(always)]
     pub unsafe fn exit_group(
         status: usize
     ) -> ! {
-        syscall(id_list::EXIT_GROUP, status, 0, 0, 0, 0, 0);
+        syscall1(id_list::EXIT_GROUP, status);
         unreachable!()
     }
     #[inline(always)]
@@ -209,6 +263,7 @@ unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_
     }
 }
 
+#[cfg(not(all(feature = "short", target_os = "linux")))]
 #[cfg(target_arch = "x86_64")]
 mod services_override {
     #[inline(always)]
@@ -220,6 +275,7 @@ mod services_override {
         super::syscall::write(fd, buf, count)
     }
 }
+#[cfg(not(all(feature = "short", target_os = "linux")))]
 #[cfg(target_arch = "x86")]
 mod services_override {
     #[inline(always)]
@@ -241,13 +297,16 @@ pub unsafe fn init() {
      * by the runtime startup code (e.g., glibc).
      * Thus, instead of parsing the ELF section, we just invoke
      * the kernel APIs directly. */
-    let pd = services::platform_data();
-    if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
-        let mut rlim: syscall::RLimit = Default::default();
-        let ret = syscall::getrlimit(syscall::RLIMIT_STACK, &mut rlim);
-        if ret == 0 && rlim.rlim_cur < 256 * 1024 * 1024 {
-            rlim.rlim_cur = 256 * 1024 * 1024;
-            syscall::setrlimit(syscall::RLIMIT_STACK, &rlim);
+    #[cfg(not(feature = "short"))] {
+        use super::super::services;
+        let pd = services::platform_data();
+        if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
+            let mut rlim: syscall::RLimit = Default::default();
+            let ret = syscall::getrlimit(syscall::RLIMIT_STACK, &mut rlim);
+            if ret == 0 && rlim.rlim_cur < 256 * 1024 * 1024 {
+                rlim.rlim_cur = 256 * 1024 * 1024;
+                syscall::setrlimit(syscall::RLIMIT_STACK, &rlim);
+            }
         }
     }
 
@@ -257,6 +316,11 @@ pub unsafe fn init() {
         dlmalloc_dealloc,
         dlmalloc_realloc,
     );
-    services::install_single_service(5, services_override::svc_read_stdio as usize);
-    services::install_single_service(6, services_override::svc_write_stdio as usize);
+
+    /* "short" on "Linux" will use syscalls directly to reduce code size */
+    #[cfg(not(all(feature = "short", target_os = "linux")))] {
+        use super::super::services;
+        services::install_single_service(5, services_override::svc_read_stdio as usize);
+        services::install_single_service(6, services_override::svc_write_stdio as usize);
+    }
 }

@@ -67,6 +67,18 @@ if len(sol) > 0:
     sol[-1] = sol[-1].rstrip()
 sol = "".join(sol)
 
+# binary (raw)
+# Since we append a little-endian 8-byte nonnegative integer, we can practically ensure that the last byte is zero.
+code_raw = memory_bin[:-8]
+code_raw += (len(code_raw) + 8 - loader_fdict['entrypoint_offset']).to_bytes(8, byteorder='little')
+code_raw_b91 = base91.encode(code_raw, use_rle=True).decode('ascii')
+code_raw_b91_len = len(code_raw_b91)
+code_raw_b91 = '"' + code_raw_b91 + '"'
+if lang_name == "C":
+    # Escape '\' and '?'
+    code_raw_b91 = code_raw_b91.replace('\\', '\\\\')
+    code_raw_b91 = code_raw_b91.replace('?', '\\?')
+
 # binary
 with open(compressed_binary_path, "rb") as f:
     code = f.read()
@@ -115,29 +127,39 @@ if lang_name == "C":
 stub_b85 = '"' + stub_b85 + '"'
 
 # template
-with open(template_path, encoding='utf8') as f:
-    template = f.read()
-template = template.replace("\ufeff", "")
+template_candidates = [template_path]
+if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in template_path and len(code_raw) <= 4096 - 256:
+    template_candidates.append(template_path.replace("short", "shorter"))
 
-# putting it all together
-# reference: https://stackoverflow.com/a/15448887
-def multiple_replace(string, rep_dict):
-    pattern = re.compile("|".join([re.escape(k) for k in sorted(rep_dict,key=len,reverse=True)]), flags=re.DOTALL)
-    return pattern.sub(lambda x: rep_dict[x.group(0)], string)
+out = None
+for each_template_path in template_candidates:
+    with open(each_template_path, encoding='utf8') as f:
+        template = f.read()
+    template = template.replace("\ufeff", "")
 
-out = multiple_replace(template, {
-    "$$$$solution_src$$$$": sol,
-    "$$$$stub_raw$$$$": stub_raw,
-    "$$$$stub_base85$$$$": stub_b85,
-    "$$$$stub_len$$$$": str(len(stub)),
-    "$$$$stub_base85_len$$$$": str(stub_b85_len),
-    "$$$$stub_base91$$$$": stub_b91,
-    "$$$$stub_base91_len$$$$": str(stub_b91_len),
-    "$$$$binary_base85$$$$": r,
-    "$$$$binary_base85_len$$$$": str(len(code_b85)),
-    "$$$$binary_base91$$$$": code_b91,
-    "$$$$binary_base91_len$$$$": str(code_b91_len),
-    "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
-    "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
-})
+    # putting it all together
+    # reference: https://stackoverflow.com/a/15448887
+    def multiple_replace(string, rep_dict):
+        pattern = re.compile("|".join([re.escape(k) for k in sorted(rep_dict,key=len,reverse=True)]), flags=re.DOTALL)
+        return pattern.sub(lambda x: rep_dict[x.group(0)], string)
+
+    out_candidate = multiple_replace(template, {
+        "$$$$solution_src$$$$": sol,
+        "$$$$stub_raw$$$$": stub_raw,
+        "$$$$stub_base85$$$$": stub_b85,
+        "$$$$stub_len$$$$": str(len(stub)),
+        "$$$$stub_base85_len$$$$": str(stub_b85_len),
+        "$$$$stub_base91$$$$": stub_b91,
+        "$$$$stub_base91_len$$$$": str(stub_b91_len),
+        "$$$$binary_base85$$$$": r,
+        "$$$$binary_base85_len$$$$": str(len(code_b85)),
+        "$$$$binary_base91$$$$": code_b91,
+        "$$$$binary_base91_len$$$$": str(code_b91_len),
+        "$$$$binary_raw_base91$$$$": code_raw_b91,
+        "$$$$binary_raw_base91_len$$$$": str(code_raw_b91_len),
+        "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
+        "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
+    })
+    if out is None or len(out_candidate) < len(out):
+        out = out_candidate
 print(out)

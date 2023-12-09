@@ -1,5 +1,8 @@
+import sys
+
 # read prestub
-with open("static-pie-prestub-amd64.bin", "rb") as f:
+fname = "static-pie-prestub-amd64.bin" if len(sys.argv) <= 1 else sys.argv[1]
+with open(fname, "rb") as f:
     prestub = f.read()
 prestub = bytearray(prestub)
 if len(prestub) > 0 and prestub[-1] == 0:
@@ -19,9 +22,22 @@ table_part = prestub[j:]
 prestub = prestub[:j]
 
 # settings
-SPECIFIER = ".quad"
-CHUNK_SIZE = 8
-ENTRIES_PER_LINE = 4
+if "--octa" in sys.argv:
+    SPECIFIER = ".octa"
+    CHUNK_SIZE = 16
+    ENTRIES_PER_LINE = 10
+else:
+    SPECIFIER = ".quad"
+    CHUNK_SIZE = 8
+    ENTRIES_PER_LINE = 4
+if "--c" in sys.argv:
+    PREFIX = "0x"
+    SUFFIX = ""
+    SPECIFIER = ""
+    ENTRIES_PER_LINE = 100
+else:
+    PREFIX = ""
+    SUFFIX = "h"
 
 # pad to align at `CHUNK_SIZE`-byte boundary
 while len(prestub) % CHUNK_SIZE != 0:
@@ -40,8 +56,8 @@ for i in range(0, len(prestub), CHUNK_SIZE):
         nonzero_idx = len(out)
         while nonzero_idx > 1 and out[nonzero_idx-1] == '0':
             nonzero_idx -= 1
-        out2 = out[:nonzero_idx] + "h<<" + str((len(out) - nonzero_idx) * 4)
-        out = out + "h"
+        out2 = PREFIX + out[:nonzero_idx] + SUFFIX + "<<" + str((len(out) - nonzero_idx) * 4)
+        out = PREFIX + out + SUFFIX
         if len(out2) < len(out):
             out = out2
         if ord(out[0]) >= ord('a'):

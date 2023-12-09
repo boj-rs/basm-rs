@@ -24,9 +24,20 @@ bench = false
 path = "src/bin/basm-submit.rs"
 
 [dependencies]
-compiler_builtins = { version = "0.1.101", features = ["mem"] }
 libm = "0.2.7"
 ryu = "1.0"
+
+[target.x86_64-pc-windows-msvc.dependencies]
+compiler_builtins = { version = "0.1.103", features = ["mem"] }
+[target.x86_64-unknown-linux-gnu.dependencies]
+compiler_builtins = { version = "0.1.103", features = ["mem"] }
+[target.i686-unknown-linux-gnu.dependencies]
+compiler_builtins = { version = "0.1.103", features = ["mem"] }
+[target.wasm32-unknown-unknown.dependencies]
+compiler_builtins = { version = "0.1.103", features = ["mem"] }
+
+[features]
+short = []
 
 [profile.dev]
 panic = "abort"

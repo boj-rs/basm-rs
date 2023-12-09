@@ -28,9 +28,25 @@
             ],
         },
         {
+            "label": "build-release-amd64-short-submit",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu-short/release; ./release.sh --features short > ./target/x86_64-unknown-linux-gnu-short/release/loader.c; code --reuse-window ./target/x86_64-unknown-linux-gnu-short/release/loader.c",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
             "label": "build-release-amd64-rs-submit",
             "type": "shell",
             "command": "mkdir -p ./target/x86_64-unknown-linux-gnu/release; ./release-rs.sh > ./target/x86_64-unknown-linux-gnu/release/loader.rs; code --reuse-window ./target/x86_64-unknown-linux-gnu/release/loader.rs",
+            "problemMatcher": [
+                "$rustc"
+            ],
+        },
+        {
+            "label": "build-release-amd64-rs-short-submit",
+            "type": "shell",
+            "command": "mkdir -p ./target/x86_64-unknown-linux-gnu-short/release; ./release-rs.sh --features short > ./target/x86_64-unknown-linux-gnu-short/release/loader.rs; code --reuse-window ./target/x86_64-unknown-linux-gnu-short/release/loader.rs",
             "problemMatcher": [
                 "$rustc"
             ],
