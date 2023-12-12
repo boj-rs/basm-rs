@@ -95,7 +95,7 @@ impl<const N: usize> Reader<N> {
             if self.off == self.len && self.try_refill(1) == 0 { break; }
             let delta = core::cmp::min(self.len - self.off, bytes - consumed);
             self.off += delta;
-            consumed -= delta;
+            consumed += delta;
         }
         consumed
     }
