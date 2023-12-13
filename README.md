@@ -121,8 +121,6 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
-~~`release-asm.sh`를 실행하면 제출 가능한 64bit Assembly 코드가 출력됩니다.~~ 추후 구현 예정입니다.
-
 ## 디버깅
 
 > Windows 11 64비트, Windows Subsystems for Linux 2 (WSL2)에서 테스트되었습니다. 다른 환경에서 작동에 문제가 있을 시 이슈를 남겨주세요.
@@ -151,15 +149,9 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 - `libc`를 사용할 수 없습니다.
 
-- ~~백준 채점 환경인 Ubuntu 16.04를 기준으로 동작합니다.~~ 백준 온라인 저지, 코드포스, 코드포스 폴리곤에서 테스트되었으며, 네이티브 64비트 Windows 환경도 지원합니다.
-
 ## 문제 해결
 
-- ~~이유를 알 수 없는 Segmentation Fault가 로컬에서 발생하는 경우~~ 이 버그는 현재 해결된 상태입니다.
-
 - 생성되는 코드가 느리다면 Cargo.toml에서 opt-level을 기본값인 "z" (크기 우선 최적화)에서 3 (속도 우선 최적화)으로 변경해보세요. 다만 생성되는 코드의 길이가 늘어날 수 있습니다.
-
-- ~~생성되는 코드의 크기는 추후 줄일 예정입니다.~~ 현재 LZMA compression이 적용되어 있습니다.
 
 - 메모리 할당을 C runtime 없이 구현하기 위해 [dlmalloc](https://github.com/alexcrichton/dlmalloc-rs)이 적용되어 있습니다. 대부분의 경우 잘 작동하지만, 만약 실행시간이나 메모리 사용량이 2-3배 이상 과도하게 증가하는 등의 문제를 겪으신다면 꼭(!) 이슈를 남겨주세요.
 
@@ -174,8 +166,6 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 - 현재 ARM은 32비트/64비트 둘 다 지원되지 않습니다. 지원이 필요하시면 이슈를 남겨주세요.
 
 - 기타 빌드 및 실행 또는 디버깅 등에 문제가 있는 경우 이슈를 남겨주세요.
-
-- 문의사항이 있으시면 원본 저장소인 [https://github.com/kiwiyou/basm-rs](https://github.com/kiwiyou/basm-rs)에 이슈를 남겨주세요.
 
 ## 예제: 큰 수 A+B ([BOJ 10757](https://www.acmicpc.net/problem/10757))
 
