@@ -1,0 +1,111 @@
+name: Check
+
+on:
+  - push
+  - pull_request
+
+env:
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  build:
+    name: CI (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+          - wasm32-unknown-unknown
+    env:
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+          profile: default
+          override: true
+          components: clippy
+      - name: Install node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+      - name: Install System packages
+        run: |
+          sudo apt update
+          sudo apt install gcc-multilib nasm
+          rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+      - name: Clippy
+        run: cargo clippy
+        env:
+          RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+      - name: Test
+        if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
+        run: cargo test --lib -- --test-threads 1
+        env:
+          RUSTFLAGS: ""
+      - name: Check C (x86_64)
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
+        run: |
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release.sh C 64 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
+      - name: Check C (x86_64) - short
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
+        run: |
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
+      - name: Check C (x86)
+        if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
+        run: |
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-32bit.sh C 32 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
+      - name: Check Rust (x86_64)
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
+        run: |
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-rs.sh Rust 64 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
+      - name: Check Rust (x86_64) - short
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
+        run: |
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out
+      - name: Check wasm32
+        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+        run: |
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./src/solution.rs ./tests/boj_1000.in ./tests/boj_1000.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_1001.rs ./tests/boj_1001.in ./tests/boj_1001.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_2587.rs ./tests/boj_2587.in ./tests/boj_2587.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_2751.rs ./tests/boj_2751.in.zip ./tests/boj_2751.out.zip
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_3745.rs ./tests/boj_3745.in ./tests/boj_3745.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/boj_14939.rs ./tests/boj_14939.in ./tests/boj_14939.out
+          python ./scripts/build-and-judge.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/reloc.rs ./tests/reloc.in ./tests/reloc.out

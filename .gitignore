@@ -1,3 +1,6 @@
 /target
 basm.bin
-no-got
+Cargo.lock
+/[Tt]mp
+*.obj
+*.pyc
