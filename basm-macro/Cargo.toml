@@ -1,0 +1,12 @@
+[package]
+name = "basm-macro"
+version = "0.1.0"
+edition = "2021"
+autobins = false
+
+[lib]
+name = "basm_macro"
+test = false
+bench = false
+path = "src/lib.rs"
+proc-macro = true

@@ -13,7 +13,7 @@ def deflate_raw(input_bytes):
     return output_bytes
 
 # solution_src
-with open("src/solution.rs", encoding='utf8') as f:
+with open("basm/src/solution.rs", encoding='utf8') as f:
     sol = f.readlines()
 
 sol_all = "".join(sol)
