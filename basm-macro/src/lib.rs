@@ -13,7 +13,7 @@ use std::collections::HashSet;
 use std::fmt::Write;
 
 fn mangle(input: &str) -> String {
-    String::from("_basm_export_") + &HEXLOWER.encode(input.as_bytes())
+    HEXLOWER.encode(input.as_bytes())
 }
 
 fn check_type(input: &str) -> bool {
@@ -70,7 +70,7 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         if !check_type(&o_ty) {
             panic!("Unsupported output type \"{}\"", &o_ty);
         }
-        "_to_".to_owned() + &o_ty
+        "_".to_owned() + &mangle(&o_ty)
     } else {
         String::new()
     };
@@ -78,8 +78,9 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     /* name mangling */
     let fn_name = &fn_in.sig.ident;
     let mut fn_name_out = String::new();
-    write!(&mut fn_name_out, "{0}_{1}{2}", &fn_name, &quote!{#inputs}.to_string(), &output_type).unwrap();
-    let fn_name_out = mangle(&fn_name_out);
+    write!(&mut fn_name_out, "{0}_{1}{2}",
+        &mangle(&fn_name.to_string()), &mangle(&quote!{#inputs}.to_string()), &output_type).unwrap();
+    let fn_name_out = String::from("_basm_export_") + &fn_name_out;
     let fn_name_out: TokenStream2 = fn_name_out.parse().unwrap();
 
     let fn_export = quote!{
