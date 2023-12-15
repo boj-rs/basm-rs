@@ -47,7 +47,7 @@ fn main() {
 > basm에서는 `main()` 함수가 반드시 `pub`으로 선언되어야 컴파일이 가능함에 주의해 주세요.
 
 ```rust
-// src/solution.rs
+// basm/src/solution.rs
 use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader: Reader = Default::default();
@@ -62,7 +62,7 @@ pub fn main() {
   - C의 경우 156KB부터, Rust의 경우 2188KB부터 시작합니다.
   - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
 ```rust
-// src/solution.rs
+// basm/src/solution.rs
 use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
@@ -99,7 +99,7 @@ pub fn main() {
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
 
-`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
+`basm/src/solution.rs` main() 에 원하는 코드를 삽입하시고, 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
 
 > cargo run 및 cargo run --release로 프로그램을 실행할 수 있고 cargo test나 cargo bench를 이용하여 테스트 및 성능 측정을 할 수 있습니다. 다만 로컬 환경에서 개발이 끝난 후 온라인 저지에 제출할 수 있는 형태로 빌드하기 위해서는 반드시 아래에 설명된 전용 스크립트를 사용해야 합니다.
 
@@ -195,7 +195,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
 ```
 
-src/solution.rs를 다음과 같이 수정합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
 use basm::platform::io::{Reader, Writer};
@@ -273,7 +273,7 @@ nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
 dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
 ```
 
-src/solution.rs를 다음과 같이 수정합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
@@ -346,7 +346,7 @@ pub fn main() {
 
 이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
 
-src/solution.rs를 다음과 같이 수정합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
 use basm::platform::io::{Reader, Writer, Print};
