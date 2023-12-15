@@ -78,6 +78,15 @@ if __name__ == '__main__':
     with open(binary_path, "wb") as f:
         f.write(bytes(memory_bin))
 
+    # Process exports
+    exports = dict()
+    for e in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+        e_name = None if e.name is None else e.name.decode('utf8')
+        if e_name.startswith("_basm_export_"):
+            assert e.address >= pos_begin
+            exports[e_name] = e.address - pos_begin
+
     fdict = {}
     fdict['entrypoint_offset'] = entrypoint_offset
+    fdict['exports'] = exports
     print(json.dumps(fdict))    # callers of this script can capture stdout to get this value
