@@ -61,12 +61,14 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_export = quote!{
         #[cfg(target_arch = "x86_64")]
         #[no_mangle]
-        unsafe extern "win64" fn #fn_name_out(#inputs) #output {
+        #[inline(never)]
+        pub unsafe extern "win64" fn #fn_name_out(#inputs) #output {
             #fn_name(#input_names)
         }
         #[cfg(not(target_arch = "x86_64"))]
         #[no_mangle]
-        unsafe extern "C" fn #fn_name_out(#inputs) #output {
+        #[inline(never)]
+        pub unsafe extern "C" fn #fn_name_out(#inputs) #output {
             #fn_name(#input_names)
         }
     };
