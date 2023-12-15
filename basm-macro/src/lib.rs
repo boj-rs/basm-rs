@@ -8,7 +8,12 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, ItemFn};
 
+use data_encoding::HEXLOWER;
 use std::fmt::Write;
+
+fn mangle(input: &str) -> String {
+    String::from("_basm_export_") + &HEXLOWER.encode(input.as_bytes())
+}
 
 #[proc_macro_attribute]
 pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -36,10 +41,8 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 } else {
                     panic!();
                 }
-                match *a.ty {
-                    syn::Type::Path(tp) => { input_types.push(quote!{#tp}.to_string()); },
-                    _ => { panic!(); }
-                }
+                let a_ty = &a.ty;
+                input_types.push(quote!{#a_ty}.to_string());
             }
         }
     }
@@ -55,7 +58,8 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     /* name mangling */
     let fn_name = &fn_in.sig.ident;
     let mut fn_name_out = String::new();
-    write!(&mut fn_name_out, "_basm_export_{0}_{1}{2}", &fn_name, input_types.join("_"), &output_type).unwrap();
+    write!(&mut fn_name_out, "{0}_{1}{2}", &fn_name, input_types.join("_"), &output_type).unwrap();
+    let fn_name_out = mangle(&fn_name_out);
     let fn_name_out: TokenStream2 = fn_name_out.parse().unwrap();
 
     let fn_export = quote!{
