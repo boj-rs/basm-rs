@@ -13,7 +13,6 @@ use std::fmt::Write;
 #[proc_macro_attribute]
 pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_in = parse_macro_input!(item as ItemFn);
-    let fn_name = &fn_in.sig.ident;
 
     /* verify the function signature is compatible with basm-export */
     assert!(fn_in.sig.asyncness.is_none());
@@ -25,27 +24,40 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     assert!(fn_in.sig.generics.where_clause.is_none());
     assert!(fn_in.sig.variadic.is_none());
 
-    let mut fn_name_out = String::new();
-    write!(&mut fn_name_out, "_basm_export_{0}", &fn_name).unwrap();
-    let fn_name_out: TokenStream2 = fn_name_out.parse().unwrap();
     let inputs = &fn_in.sig.inputs;
-    let input_names: syn::punctuated::Punctuated::<syn::Ident, syn::token::Comma> = {
-        let mut ret = vec![];
-        for tok in inputs.iter() {
-            match tok.clone() {
-                syn::FnArg::Receiver(_) => { panic!(); }
-                syn::FnArg::Typed(a) => {
-                    if let syn::Pat::Ident(g) = *a.pat {
-                        ret.push(g.ident);
-                    } else {
-                        panic!();
-                    }
+    let mut input_names = vec![];
+    let mut input_types = vec![];
+    for tok in inputs.iter() {
+        match tok.clone() {
+            syn::FnArg::Receiver(_) => { panic!(); }
+            syn::FnArg::Typed(a) => {
+                if let syn::Pat::Ident(g) = *a.pat {
+                    input_names.push(g.ident);
+                } else {
+                    panic!();
+                }
+                match *a.ty {
+                    syn::Type::Path(tp) => { input_types.push(quote!{#tp}.to_string()); },
+                    _ => { panic!(); }
                 }
             }
         }
-        syn::punctuated::Punctuated::from_iter(ret)
-    };
+    }
+    let input_names: syn::punctuated::Punctuated::<syn::Ident, syn::token::Comma> =
+        syn::punctuated::Punctuated::from_iter(input_names);
     let output = &fn_in.sig.output;
+    let output_type = if let syn::ReturnType::Type(_, x) = output {
+        "_to_".to_owned() + &quote!{#x}.to_string()
+    } else {
+        String::new()
+    };
+
+    /* name mangling */
+    let fn_name = &fn_in.sig.ident;
+    let mut fn_name_out = String::new();
+    write!(&mut fn_name_out, "_basm_export_{0}_{1}{2}", &fn_name, input_types.join("_"), &output_type).unwrap();
+    let fn_name_out: TokenStream2 = fn_name_out.parse().unwrap();
+
     let fn_export = quote!{
         #[cfg(target_arch = "x86_64")]
         #[no_mangle]
