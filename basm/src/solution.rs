@@ -4,5 +4,11 @@ pub fn main() {
     let mut writer: Writer = Default::default();
     let a = reader.i64();
     let b = reader.i64();
-    writer.println(a + b);
+    writer.println(unsafe { _basm_export_sum(a, b) });
+}
+
+use basm_macro::basm_export;
+#[basm_export]
+fn sum(a: i64, b: i64) -> i64 {
+    a + b
 }
