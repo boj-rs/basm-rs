@@ -24,6 +24,8 @@ $$$$solution_src$$$$
 #include <stdio.h>
 #endif
 
+$$$$exports_cpp$$$$
+
 #ifndef UINT32_MAX
 typedef unsigned char uint8_t;
 typedef unsigned int uint32_t;
