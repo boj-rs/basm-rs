@@ -178,7 +178,6 @@ size_t load_module() {
         stub(&g_pd, payload);
         g_loaded = 1;
     }
-    printf("Loaded at %p\n", g_pd.ptr_alloc_rwx);
     return (size_t) g_pd.ptr_alloc_rwx;
 }
 
