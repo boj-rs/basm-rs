@@ -87,6 +87,7 @@ typedef struct {
 #define ENV_ID_WASM                 3
 #define ENV_FLAGS_LINUX_STYLE_CHKSTK    0x0001  // disables __chkstk in binaries compiled with Windows target
 #define ENV_FLAGS_NATIVE                0x0002  // indicates the binary is running without the loader
+#define ENV_FLAGS_NO_EXIT               0x0004  // do not call SYS_exitgroup on Linux (support fn-impl scenarios)
 
 #if !defined(_WIN32) && !defined(__linux__)
 BASMCALL void *svc_alloc(size_t size, size_t align) {
