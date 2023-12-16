@@ -1,16 +1,16 @@
 def convert_type(x):
     conv_dict = dict()
     base_types = {
-        "i8": "std::int8_t",
-        "i16": "std::int16_t",
-        "i32": "std::int32_t",
-        "i64": "std::int64_t",
-        "isize": "std::make_signed_t<std::size_t>",
-        "u8": "std::uint8_t",
-        "u16": "std::uint16_t",
-        "u32": "std::uint32_t",
-        "u64": "std::uint64_t",
-        "usize": "std::size_t"
+        "i8": "int8_t",
+        "i16": "int16_t",
+        "i32": "int32_t",
+        "i64": "int64_t",
+        "isize": "intptr_t",
+        "u8": "uint8_t",
+        "u16": "uint16_t",
+        "u32": "uint32_t",
+        "u64": "uint64_t",
+        "usize": "size_t"
     }
     for k, v in base_types.items():
         conv_dict[k] = v
@@ -53,7 +53,7 @@ def synthesize(e_name, e_offset):
     template = "\n".join([
         "#if defined(BASM_LOADER_IMAGEBASE)",
         "{4} {0}({1}) {{",
-        "    return (({4} (*)({2}))(BASM_LOADER_IMAGEBASE + {5}))({3});",
+        "    return (({4} (BASMCALL *)({2}))(BASM_LOADER_IMAGEBASE + {5}))({3});",
         "}}",
         "#endif"
     ])

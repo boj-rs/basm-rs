@@ -72,6 +72,7 @@ unsafe extern "win64" fn _start() -> ! {
         "push   rcx",                       // short form of "sub rsp, 8"
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
+        "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
         "call   {0}",
         "mov    rdi, rbx",
         "call   {1}",
@@ -139,6 +140,7 @@ unsafe extern "win64" fn _start() -> ! {
         "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
         "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
         "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
+        "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
         "call   {0}",
         "2:",
         "bt     QWORD PTR [rbx + 8], 0",

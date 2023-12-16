@@ -84,7 +84,7 @@ if __name__ == '__main__':
         e_name = None if e.name is None else e.name.decode('utf8')
         if e_name.startswith("_basm_export_"):
             assert e.address >= pos_begin
-            exports[e_name] = e.address - pos_begin
+            exports[e_name] = e.address
 
     fdict = {}
     fdict['entrypoint_offset'] = entrypoint_offset

@@ -16,6 +16,9 @@ if [[ "$target_name" == "x86_64-unknown-linux-gnu" ]]; then
     else
       template="static-pie-template-amd64.c"
     fi
+  elif [[ "$lang_name" == "CFnImpl" ]]; then
+    template="static-pie-template-amd64-fn-impl.c"
+    lang_name="C"
   elif [[ "$lang_name" == "Rust" ]]; then
     if [[ "$*" == *"short"* ]]; then
       template="static-pie-template-amd64-short.rs"
@@ -38,6 +41,8 @@ elif [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
   stub="static-pie-stub-amd64.bin"
   if [[ "$lang_name" == "C" ]]; then
     template="static-pie-template-amd64.c"
+  elif [[ "$lang_name" == "CFnImpl" ]]; then
+    template="static-pie-template-amd64-fn-impl.c"
   elif [[ "$lang_name" == "Rust" ]]; then
     template="static-pie-template-amd64.rs"
   else
