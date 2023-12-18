@@ -8,19 +8,31 @@ def emit_thunk_for_plain(arg_name, arg_type, is_output_type):
         invocation.append("{0}".format(arg_name))
         return (fn_decl, fn_ptr_decl, prologue, invocation)
     else:
-        return arg_type
+        epilogue = ["return out;"]
+        return (arg_type, arg_type, epilogue)
 
 def emit_thunk_for_vector(arg_name, arg_type, is_output_type):
-    assert is_output_type == False, "Returning a vector is not yet implemented."
-    fn_decl, fn_ptr_decl, prologue, invocation = [], [], [], []
-
     p = re.compile('\<([A-Za-z0-9_]+)\>')
-    fn_decl.append("{1} {0}".format(arg_name, arg_type))
-    fn_ptr_decl.append("{1}{0} *".format(p.search(arg_type).group(1), "const " if "const" in arg_type else ""))
-    fn_ptr_decl.append("size_t")
-    invocation.append("{0}.data()".format(arg_name))
-    invocation.append("{0}.size()".format(arg_name))
-    return (fn_decl, fn_ptr_decl, prologue, invocation)
+    arg_type_inner = p.search(arg_type).group(1)
+    if not is_output_type:
+        fn_decl, fn_ptr_decl, prologue, invocation = [], [], [], []
+
+
+        fn_decl.append("{1} {0}".format(arg_name, arg_type))
+        fn_ptr_decl.append("{1}{0} *".format(arg_type_inner, "const " if "const" in arg_type else ""))
+        fn_ptr_decl.append("size_t")
+        invocation.append("{0}.data()".format(arg_name))
+        invocation.append("{0}.size()".format(arg_name))
+        return (fn_decl, fn_ptr_decl, prologue, invocation)
+    else:
+        #assert is_output_type == False, "Returning a vector is not yet implemented."
+        epilogue = [
+            "{0} ret;".format(arg_type),
+            "for (size_t i = 0; i < out.p[1]; i++) ret.push_back(((const {0} *) out.p[0])[i]);".format(arg_type_inner),
+            "((void (BASMCALL *)()) out.p[2])();",
+            "return ret;"
+        ]
+        return (arg_type, "ThreePtr", epilogue)
 
 def convert_type(x):
     conv_dict = dict()
@@ -80,9 +92,12 @@ def synthesize(e_name, e_offset):
 
     # return type
     return_type = "void"
+    ptr_return_type = "void"
+    epilogue = []
     if len(e_name) == 3:
         arg_type, emit_thunk = convert_type(e_name[2])
-        return_type = emit_thunk(None, arg_type, True)
+        return_type, ptr_return_type, epilogue = emit_thunk(None, arg_type, True)
+    epilogue = "" if len(epilogue) == 0 else ("    " + "\n    ".join(epilogue) + "\n")
 
     # Substitute the informations into the template
     # Note: The loader template should define the macro
@@ -92,8 +107,8 @@ def synthesize(e_name, e_offset):
     template = "\n".join([
         "#if defined(BASM_LOADER_IMAGEBASE)",
         "{5} {0}({1}) {{",
-        "    {3}return (({5} (BASMCALL *)({2}))(BASM_LOADER_IMAGEBASE + {6}))({4});",
-        "}}",
+        "    {3}auto out = (({8} (BASMCALL *)({2}))(BASM_LOADER_IMAGEBASE + {6}))({4});",
+        "{7}}}",
         "#endif"
     ])
-    return template.format(method_name, fn_decl, fn_ptr_decl, prologue, invocation, return_type, e_offset)
+    return template.format(method_name, fn_decl, fn_ptr_decl, prologue, invocation, return_type, e_offset, epilogue, ptr_return_type)

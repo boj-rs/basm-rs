@@ -25,7 +25,7 @@ fn check_type(input: &str, is_output_type: bool) -> bool {
         derived_types.insert(x);
         let x = format!("* mut {0}", &ty).to_string();
         derived_types.insert(x);
-        let x = format!("Vec::<{0}>", &ty).to_string();
+        let x = format!("Vec :: < {0} >", &ty).to_string();
         derived_types.insert(x);
         if !is_output_type {
             let x = format!("& Vec :: < {0} >", &ty).to_string();
@@ -95,18 +95,17 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let inputs_thunk: TokenStream2 = inputs_thunk.join(", ").parse().unwrap();
     let prologue: TokenStream2 = prologue.join("\n").parse().unwrap();
-    //panic!("{0}\n{1}", inputs_thunk, prologue);
     let input_names: syn::punctuated::Punctuated::<syn::Ident, syn::token::Comma> =
         syn::punctuated::Punctuated::from_iter(input_names);
     let output = &fn_in.sig.output;
-    let output_type = if let syn::ReturnType::Type(_, x) = output {
+    let (o_ty, output_type) = if let syn::ReturnType::Type(_, x) = output {
         let o_ty = quote!{#x}.to_string();
         if !check_type(&o_ty, true) {
             panic!("Unsupported output type \"{}\"", &o_ty);
         }
-        "_".to_owned() + &mangle(&o_ty)
+        (quote!{#x}, "_".to_owned() + &mangle(&o_ty))
     } else {
-        String::new()
+        (TokenStream2::new(), String::new())
     };
 
     /* name mangling */
@@ -117,20 +116,60 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_name_out = String::from("_basm_export_") + &fn_name_out;
     let fn_name_out: TokenStream2 = fn_name_out.parse().unwrap();
 
+    /* output epilogue */
+    let mut output = {
+        let tmp = &fn_in.sig.output;
+        quote!{#tmp}
+    };
+    let mut global_var = TokenStream2::new();
+    let mut epilogue = quote!{
+        out
+    };
+    if output.to_string().contains("Vec") {
+        let vec_name: TokenStream2 = format!("BASM_EXPORT_{0}_VECTOR_REF_HOLDER", &fn_in.sig.ident).to_string().parse().unwrap();
+        let dealloc_name: TokenStream2 = format!("basm_export_{0}_dealloc", &fn_in.sig.ident).to_string().parse().unwrap();
+        global_var = quote!{
+            static mut #vec_name: alloc::vec::Vec::<alloc::rc::Rc::<#o_ty>> = alloc::vec::Vec::<alloc::rc::Rc::<#o_ty>>::new();
+            #[cfg(target_arch = "x86_64")]
+            #[inline(never)]
+            extern "win64" fn #dealloc_name() {
+                unsafe { #vec_name.clear(); }
+            }
+            #[cfg(not(target_arch = "x86_64"))]
+            #[inline(never)]
+            extern "C" fn #dealloc_name() {
+                unsafe { #vec_name.clear(); }
+            }
+        };
+        epilogue = quote!{
+            let out_len = out.len();
+            #vec_name.push(alloc::rc::Rc::<#o_ty>::new(out));
+            let ptr: &mut #o_ty = alloc::rc::Rc::get_mut(&mut #vec_name[#vec_name.len() - 1]).unwrap();
+            [ptr.as_ptr() as usize, out_len, #dealloc_name as usize]
+        };
+        output = quote!{
+            -> [usize; 3]
+        };
+    }
+
     /* emit original function along with a thunk */
     let fn_export = quote!{
+        #global_var
         #[cfg(target_arch = "x86_64")]
         #[no_mangle]
         #[inline(never)]
         pub unsafe extern "win64" fn #fn_name_out(#inputs_thunk) #output {
             #prologue
-            #fn_name(#input_names)
+            let out = #fn_name(#input_names);
+            #epilogue
         }
         #[cfg(not(target_arch = "x86_64"))]
         #[no_mangle]
         #[inline(never)]
         pub unsafe extern "C" fn #fn_name_out(#inputs) #output {
-            #fn_name(#input_names)
+            #prologue
+            let out = #fn_name(#input_names);
+            #epilogue
         }
     };
 

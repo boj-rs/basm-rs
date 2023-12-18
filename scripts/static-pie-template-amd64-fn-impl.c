@@ -186,4 +186,10 @@ size_t load_module() {
 
 #define BASM_LOADER_IMAGEBASE (load_module())
 
+#pragma pack(push, 1)
+struct ThreePtr {
+    size_t p[3];
+};
+#pragma pack(pop)
+
 $$$$exports_cpp$$$$
