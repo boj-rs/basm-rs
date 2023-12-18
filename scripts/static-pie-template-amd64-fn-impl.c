@@ -27,6 +27,9 @@ $$$$solution_src$$$$
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#if defined(__cplusplus)
+#include <vector>
+#endif
 
 #ifndef UINT32_MAX
 typedef unsigned char uint8_t;
