@@ -86,6 +86,9 @@ ET_EXEC         = 2
 ET_DYN          = 3
 ET_CORE         = 4
 
+# shn
+SHN_UNDEF       = 0
+
 # sh_type
 SHT_NULL        = 0
 SHT_PROGBITS    = 1
@@ -134,10 +137,12 @@ def load_elf64(elf):
     e_shoff = b2i(elf[40:48])
     e_shentsize = b2i(elf[58:60])
     e_shnum = b2i(elf[60:62])
+    e_shstrndx = b2i(elf[62:64])
     for i in range(e_shnum):
         sh_offset = e_shoff + i*e_shentsize
         pstSectionHeader = elf[sh_offset:sh_offset+e_shentsize]
         sh_dict = {
+            'sh_name'   : b2i(pstSectionHeader[ 0: 4]),
             'sh_type'   : b2i(pstSectionHeader[ 4: 8]),
             'sh_flags'  : b2i(pstSectionHeader[ 8:16]),
             'sh_addr'   : b2i(pstSectionHeader[16:24]),
@@ -146,6 +151,19 @@ def load_elf64(elf):
         }
         sh.append(sh_dict)
 
+    shstrtab = b''
+    if e_shstrndx != SHN_UNDEF:
+        sh_dict = sh[e_shstrndx]
+        src_off, cnt = sh_dict['sh_offset'], sh_dict['sh_size']
+        shstrtab = bytes(elf[src_off:src_off+cnt])
+    def resolve_sh_name(sh_name):
+        if sh_name >= len(shstrtab):
+            return b''
+        i = sh_name
+        while i < len(shstrtab) and shstrtab[i] != 0:
+            i += 1
+        return shstrtab[sh_name:i]
+
     pos_begin, pos_end = len(elf), 0
     for sh_dict in sh:
         if (sh_dict['sh_flags'] & SHF_ALLOC) != 0:
@@ -153,12 +171,9 @@ def load_elf64(elf):
             pos_end = max(pos_end, sh_dict['sh_addr'] + sh_dict['sh_size'])
 
     memory_bin = bytearray(pos_end)
+    dynsym = []
+    dynstr = b''
     for sh_dict in sh:
-        if (sh_dict['sh_flags'] & SHF_ALLOC) == 0 or sh_dict['sh_size'] == 0:
-            continue
-        if sh_dict['sh_type'] == SHT_NOBITS:
-            continue        # since bytearray is zero-initialized
-
         dst_off, src_off, cnt = sh_dict['sh_addr'], sh_dict['sh_offset'], sh_dict['sh_size']
         blob = elf[src_off:src_off+cnt]
 
@@ -180,11 +195,43 @@ def load_elf64(elf):
                     blob[dst:dst+16] = blob[src:src+16]
                     dst += 16
             blob[dst:] = bytearray(len(blob[dst:])) # fill remaining part with zeros
+        elif sh_dict['sh_type'] == SHT_DYNSYM:
+            for i in range(0, sh_dict['sh_size'], 24):
+                st_entry = blob[i:][:24]
+                st_dict = {
+                    'st_name'   : b2i(st_entry[ 0: 4]),
+                    'st_info'   : b2i(st_entry[ 4: 5]),
+                    'st_other'  : b2i(st_entry[ 5: 6]),
+                    'st_shndx'  : b2i(st_entry[ 6: 8]),
+                    'st_value'  : b2i(st_entry[ 8:16]),
+                    'st_size'   : b2i(st_entry[16:24]),
+                }
+                dynsym.append(st_dict)
+        elif sh_dict['sh_type'] == SHT_STRTAB and resolve_sh_name(sh_dict['sh_name']) == b'.dynstr':
+            dynstr = bytes(blob)
 
+        if (sh_dict['sh_flags'] & SHF_ALLOC) == 0 or sh_dict['sh_size'] == 0:
+            continue
+        if sh_dict['sh_type'] == SHT_NOBITS:
+            continue        # since bytearray is zero-initialized
         memory_bin[dst_off:dst_off+cnt] = blob
 
+    def resolve_st_name(st_name):
+        if st_name >= len(dynstr):
+            return b''
+        i = st_name
+        while i < len(dynstr) and dynstr[i] != 0:
+            i += 1
+        return dynstr[st_name:i]
+
+    exports = dict()
+    for st_dict in dynsym:
+        st_name_str = resolve_st_name(st_dict['st_name']).decode('utf8')
+        if st_name_str.startswith("_basm_export_"):
+            exports[st_name_str] = st_dict['st_value']
+
     entrypoint_offset = b2i(elf[24:32])
-    return memory_bin, pos_begin, entrypoint_offset
+    return memory_bin, pos_begin, entrypoint_offset, exports
 
 def load_elf32(elf):
     sh = []
@@ -221,7 +268,8 @@ def load_elf32(elf):
         memory_bin[dst_off:dst_off+cnt] = elf[src_off:src_off+cnt]
 
     entrypoint_offset = b2i(elf[24:28])
-    return memory_bin, pos_begin, entrypoint_offset
+    exports = dict()        # TBD
+    return memory_bin, pos_begin, entrypoint_offset, exports
 
 
 if __name__ == '__main__':
@@ -239,9 +287,9 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if elf[EI_CLASS] == ELFCLASS64:
-        memory_bin, pos_begin, entrypoint_offset = load_elf64(elf)
+        memory_bin, pos_begin, entrypoint_offset, exports = load_elf64(elf)
     elif elf[EI_CLASS] == ELFCLASS32:
-        memory_bin, pos_begin, entrypoint_offset = load_elf32(elf)
+        memory_bin, pos_begin, entrypoint_offset, exports = load_elf32(elf)
     else:
         print(f"Unsupported EI_CLASS value: {elf[EI_CLASS]}", file=sys.stderr)
         sys.exit(1)
@@ -262,9 +310,15 @@ if __name__ == '__main__':
     assert memory_bin[entrypoint_offset:entrypoint_offset+1] == b"\xf8"
     memory_bin[entrypoint_offset:entrypoint_offset+1] = b"\xf9"
 
+    # Write to file
     with open(binary_path, "wb") as f:
         f.write(bytes(memory_bin))
 
+    # Process exports
+    for k, v in exports.items():
+        assert v >= pos_begin
+
     fdict = {}
     fdict['entrypoint_offset'] = entrypoint_offset
+    fdict['exports'] = exports
     print(json.dumps(fdict))    # callers of this script can capture stdout to get this value
