@@ -30,9 +30,9 @@ fn main() {
             if target == "i686-unknown-linux-gnu" {
                 // Prevent linker from putting data into text, which is non-writable and hence not relocatable.
                 // This prevents the hack for getting the _DYNAMIC symbol in the entrypoint.
-                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro,-z,notext");
+                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro,-z,notext");
             } else {
-                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro");
+                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro");
             }
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
         },
