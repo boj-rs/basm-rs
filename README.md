@@ -415,7 +415,7 @@ fn sum(a: &mut Vec::<i32>) -> i64 {
 다음 스크립트를 실행하면 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C/C++ 코드가 출력됩니다.
 
 ```
-./release-64bit-fn-impl.sh > output.c
+./release-64bit-fn-impl.sh > output.cpp
 ```
 
 현재 함수 구현은 정수 자료형과 Vec 자료형만 지원하고 있습니다. 사용상 문제점 및 추가로 필요하신 기능 등이 있으면 이슈를 남겨주세요.
