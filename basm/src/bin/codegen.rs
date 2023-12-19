@@ -59,16 +59,19 @@ unsafe extern "win64" fn _start() -> ! {
     //   on the 16-byte boundary BEFORE `call` instruction.
     // However, when called as the entrypoint by the Linux OS,
     //   RSP will be 16-byte aligned AFTER `call` instruction.
-    #[cfg(not(feature = "short"))]
     asm!(
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
-        "jc     1f",
+        "jnc    1f",
+        "test   rbx, rbx",
+        "jz     1f",
+        "jmp    2f",
+        "1:",
         "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
-        "1:",
+        "2:",
         "push   rcx",                       // short form of "sub rsp, 8"
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
@@ -78,22 +81,6 @@ unsafe extern "win64" fn _start() -> ! {
         "call   {1}",
         "pop    rcx",                       // short form of "add rsp, 8"
         "ret",
-        sym loader::amd64_elf::relocate,
-        sym _start_rust,
-        options(noreturn)
-    );
-    // For "short", we always assume we are running with loader on Linux,
-    // since "short" is only meaningful when submitting to online judges (not local test runs).
-    // Note that the stub will ensure that stack is aligned before caling _start.
-    // Also, for "short" on x86_64 Linux, we don't need PLATFORM_DATA, so we don't fabricate it.
-    #[cfg(feature = "short")]
-    asm!(
-        "clc",                              // Not needed but packager wants it
-        "push   rax",                       // Align stack
-        "lea    rdi, [rip + __ehdr_start]",
-        "lea    rsi, [rip + _DYNAMIC]",
-        "call   {0}",
-        "call   {1}",                       // This won't return since on Linux we invoke SYS_exitgroup in binary
         sym loader::amd64_elf::relocate,
         sym _start_rust,
         options(noreturn)

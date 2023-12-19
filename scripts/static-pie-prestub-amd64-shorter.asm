@@ -62,4 +62,6 @@ _decode_zeros:
 _jump_to_entrypoint:
     sub     rdi, qword [rdi-8]
     and     rsp, 0xfffffffffffffff0
+    xor     ecx, ecx
+    push    rcx
     call    rdi

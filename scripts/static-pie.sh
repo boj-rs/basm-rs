@@ -18,7 +18,6 @@ if [[ "$target_name" == "x86_64-unknown-linux-gnu" ]]; then
     fi
   elif [[ "$lang_name" == "CFnImpl" ]]; then
     template="static-pie-template-amd64-fn-impl.c"
-    lang_name="C"
   elif [[ "$lang_name" == "Rust" ]]; then
     if [[ "$*" == *"short"* ]]; then
       template="static-pie-template-amd64-short.rs"
@@ -69,6 +68,10 @@ if [[ "$target_name" == "x86_64-unknown-linux-gnu" && "$*" == *"short"* ]]; then
 else
   target_name_cargo="$target_name"
   extra_config=""
+fi
+
+if [[ "$lang_name" == "CFnImpl" ]]; then
+  lang_name="C"
 fi
 
 >&2 echo "Building project for target ${target_name}, language ${lang_name}, build mode ${build_mode}"
