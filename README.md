@@ -435,6 +435,162 @@ fn sum(a: &mut Vec::<i32>) -> i64 {
 
 현재 함수 구현은 정수 자료형과 Vec 자료형만 지원하고 있습니다. 사용상 문제점 및 추가로 필요하신 기능 등이 있으면 이슈를 남겨주세요.
 
+## 예제: IOI 2016 Aliens([BOJ 20090](https://www.acmicpc.net/problem/20090))
+
+이 예제는 basm-rs의 함수 구현 기능 지원을 이용해 IOI 2016에 출제된 Aliens 문제를 해결하는 예시입니다.
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+basm/src/solution.rs를 다음과 같이 수정합니다.
+
+```rust
+use basm::platform::is_local_env;
+use basm::platform::io::{Reader, Writer, Print};
+use basm_macro::basm_export;
+use alloc::vec;
+use alloc::vec::Vec;
+
+pub fn main() {
+    if is_local_env() {
+        let mut reader: Reader = Default::default();
+        let mut writer: Writer = Default::default();
+        let n = reader.i32();
+        let m = reader.i32();
+        let k = reader.i32();
+        let (mut r, mut c) = (vec![], vec![]);
+        for _ in 0..n {
+            r.push(reader.i32());
+            c.push(reader.i32());
+        }
+        let ans = take_photos(n, m, k, r, c);
+        writer.println(ans);
+    }
+}
+
+fn deduplicate(n: i32, r: Vec::<i32>, c: Vec::<i32>) -> Vec::<(i32, i32)> {
+    let mut tmp: Vec<(i32, i32)> = (0..n as usize).map(|i| if r[i] < c[i] { (r[i], c[i]) } else { (c[i], r[i]) }).collect();
+    tmp.sort_unstable();
+    let mut out: Vec<(i32, i32)> = vec![];
+    for (rr, cc) in tmp {
+        if !out.is_empty() && out[out.len() - 1].0 == rr {
+            out.pop();
+        }
+        if !out.is_empty() && out[out.len() - 1].1 >= cc {
+            continue;
+        }
+        out.push((rr, cc));
+    }
+    out
+}
+
+/* minimum hull that expects strictly decreasing slopes */
+struct ConvexHullTrickLinear {
+    v: Vec::<(i64, i64, usize)>,
+    last_m: i64
+}
+
+impl ConvexHullTrickLinear {
+    fn new() -> Self {
+        Self { v: vec![], last_m: i64::MAX }
+    }
+    fn push(&mut self, m: i64, b: i64, user_data: usize) {
+        assert!(m < self.last_m);
+        while self.v.len() >= 2 {
+            let (m1, b1, _) = self.v[self.v.len() - 2];
+            let (m2, b2, _) = self.v[self.v.len() - 1];
+            if (b2 - b1) * (m2 - m) < (b - b2) * (m1 - m2) {
+                break;
+            }
+            self.v.pop();
+        }
+        self.v.push((m, b, user_data));
+        self.last_m = m;
+    }
+    fn query(&self, x: i64) -> (i64, usize) {
+        assert!(!self.v.is_empty());
+        let (mut lo, mut hi) = (0, self.v.len() - 1);
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            let (m1, b1, _) = self.v[mid];
+            let (m2, b2, _) = self.v[mid + 1];
+            if m1 * x + b1 < m2 * x + b2 {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        let (m, b, user_data) = self.v[lo];
+        (m * x + b, user_data)
+    }
+}
+
+fn solve_single(pts: &Vec::<(i32, i32)>, p: i64) -> (i64, usize) {
+    const FACTOR: i64 = 2;
+
+    let l = |i: usize| -> i64 { pts[i - 1].0 as i64 - 1 };
+    let r = |i: usize| -> i64 { pts[i - 1].1 as i64 };
+
+    let n = pts.len();
+    let mut dp = vec![(0, 0)];
+    let mut cht = ConvexHullTrickLinear::new();
+    cht.push(-2 * l(1) * FACTOR, l(1) * l(1) * FACTOR, 0);
+    for i in 1..=n {
+        /* Query CHT */
+        let (val, argmax) = cht.query(r(i));
+        let dp_i = val + r(i) * r(i) * FACTOR;
+        dp.push((dp_i - p, argmax + 1));
+
+        /* Update CHT */
+        if i < n {
+            if l(i+1) <= r(i) {
+                cht.push(-2 * l(i+1) * FACTOR, dp[i].0 - r(i) * r(i) * FACTOR + 2 * l(i+1) * r(i) * FACTOR, dp[i].1);
+            } else {
+                cht.push(-2 * l(i+1) * FACTOR, dp[i].0 + l(i+1) * l(i+1) * FACTOR, dp[i].1);
+            }
+        }
+    }
+    dp[n]
+}
+
+#[basm_export]
+fn take_photos(n: i32, _m: i32, k: i32, r: Vec::<i32>, c: Vec::<i32>) -> i64 {
+    const RANGE: i64 = 1_000_000_000_001;
+
+    let pts = deduplicate(n, r, c);
+    let (mut p_lo, mut p_hi) = (-RANGE, RANGE);
+    while p_lo < p_hi {
+        let p_mid = (p_lo + p_hi + 1 + 2*RANGE) / 2 - RANGE;
+        let p_ans = solve_single(&pts, 2 * p_mid - 1);
+        if p_ans.1 <= k as usize {
+            p_lo = p_mid;
+        } else {
+            p_hi = p_mid - 1;
+        }
+    }
+    let mut p_opt = 2 * p_lo - 1;
+    let ans = solve_single(&pts, p_opt);
+    let mut override_count = false;
+    if p_opt > 0 {
+        p_opt = 0;
+    } else if ans.1 < k as usize {
+        p_opt += 1;
+        override_count = true;
+    }
+    let ans = solve_single(&pts, p_opt);
+    (ans.0 + if override_count { k as i64 } else { ans.1 as i64 } * p_opt) / 2
+}
+```
+
+빌드 및 실행은 이전 함수 구현 예제와 동일합니다. 로컬에서 `cargo run`을 입력하고 아래 테스트 케이스를 입력하면 `25`가 출력되어야 합니다.
+```
+5 7 2
+0 3
+4 4
+4 6
+4 5
+4 6
+```
+
 ## Open Source Attributions
 
 [base85](https://github.com/rafagafe/base85/blob/master/base85.c)
