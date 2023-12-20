@@ -52,10 +52,19 @@ pub fn try_exit() {
         unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
     }
 }
+#[cfg(not(test))]
+pub fn is_local_env() -> bool {
+    let pd = services::platform_data();
+    (pd.env_flags & services::ENV_FLAGS_NATIVE) != 0
+}
 
 #[cfg(test)]
 pub fn init(_platform_data_by_loader: usize) {
 }
 #[cfg(test)]
 pub fn try_exit() {
+}
+#[cfg(test)]
+pub fn is_local_env() -> bool {
+    true
 }

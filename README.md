@@ -385,13 +385,28 @@ pub fn main() {
 
 이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
 
-basm/src/solution.rs를 다음과 같이 수정합니다. 이때, main 함수는 모듈이 로드될 때 정확하게 한 번만 실행됩니다. 따라서 필요한 경우 프로그램의 전역 상태를 초기화하는 루틴을 main 함수에 작성해도 됩니다. 단, main 함수에 작성할 내용이 없더라도 제거하면 컴파일 오류가 발생하므로 빈 함수로 남겨두어야 합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다. 이때, main 함수는 모듈이 로드될 때 정확하게 한 번만 실행됩니다. 따라서 필요한 경우 프로그램의 전역 상태를 초기화하는 루틴을 main 함수에 작성해도 됩니다. 만약 main 함수에 작성할 내용이 없더라도 제거하면 컴파일 오류가 발생하므로 빈 함수로 남겨두어야 합니다.
+
+`is_local_env()`는 프로그램이 로컬에서 `cargo run` 등에 의해 실행되고 있으면 true를, 온라인 저지에 제출하기 위해 템플릿에 적재된 경우 false를 반환합니다. 따라서 이를 이용하면 구현한 함수를 콘솔 입출력으로 테스트하고 코드 수정 없이 온라인 저지 제출용으로 빌드할 수 있습니다.
 
 ```rust
 use alloc::vec::Vec;
+use basm::platform::is_local_env;
+use basm::platform::io::{Reader, Writer, Print};
 use basm_macro::basm_export;
 
 pub fn main() {
+    if is_local_env() {
+        let mut reader: Reader = Default::default();
+        let mut writer: Writer = Default::default();
+        let n = reader.usize();
+        let mut a = Vec::new();
+        for _ in 0..n {
+            a.push(reader.i32());
+        }
+        let ans = sum(&mut a);
+        writer.println(ans);
+    }
 }
 
 #[basm_export]
