@@ -293,7 +293,14 @@ extern "win64" fn __CxxFrameHandler3() -> ! {
 }
 
 #[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
+fn panic(_pi: &core::panic::PanicInfo) -> ! {
+    #[cfg(debug_assertions)]
+    {
+        use alloc::string::ToString;
+        use basm::platform::services::write_stdio;
+        write_stdio(2, _pi.to_string().as_bytes());
+        write_stdio(2, b"\n");
+    }
     unsafe { core::hint::unreachable_unchecked() }
 }
 
