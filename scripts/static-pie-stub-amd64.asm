@@ -53,7 +53,14 @@ LOC _state, 8
 
 ; Does not touch rdi until we call svc_alloc_rwx
 _start:
-    enter   32, 0           ; shadow space
+    push    rdi             ; Save non-volatile registers per win64 calling convention
+    push    rsi
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    enter   40, 0           ; shadow space
     push    rdx             ; LZMA binary
     pop     rsi             ; "mov rsi, rdx": rsi is preserved upon function calls
     push    rcx             ; PLATFORM_DATA table
@@ -354,6 +361,14 @@ _code_end:
     pop     rcx                     ; rcx = PLATFORM_DATA table
     pop     rax                     ; rax = start of the binary
     add     rax, qword [Dest - 8]   ; add entrypoint offset
-    leave
-    jmp     rax                     ; Jump to the entrypoint of the binary
+    call    rax                     ; Jump to the entrypoint of the binary
                                     ; (it will inherit the current stackframe)
+    leave
+    pop     r15                     ; Restore non-volatile registers
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    pop     rsi
+    pop     rdi
+    ret

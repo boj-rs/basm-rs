@@ -61,9 +61,9 @@ if __name__ == '__main__':
         outdata = f.read()
 
     # Replace the solution
-    shutil.copyfile(sol_path, "src/solution_new.rs")
-    os.rename("src/solution.rs", "src/solution_old.rs")
-    os.rename("src/solution_new.rs", "src/solution.rs")
+    shutil.copyfile(sol_path, "basm/src/solution_new.rs")
+    os.rename("basm/src/solution.rs", "basm/src/solution_old.rs")
+    os.rename("basm/src/solution_new.rs", "basm/src/solution.rs")
 
     # Build the project to generate the source code
     try:
@@ -76,8 +76,8 @@ if __name__ == '__main__':
         print(source_code)
     finally:
         # Restore the original solution
-        try_remove("src/solution.rs")
-        os.rename("src/solution_old.rs", "src/solution.rs")
+        try_remove("basm/src/solution.rs")
+        os.rename("basm/src/solution_old.rs", "basm/src/solution.rs")
 
     # Compile the source code
     run_cmd = [bin_path]

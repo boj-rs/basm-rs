@@ -45,16 +45,17 @@ pub fn init(platform_data_by_loader: usize) {
 }
 #[cfg(not(test))]
 pub fn try_exit() {
-    #[cfg(not(all(target_arch = "x86_64", feature = "short")))] {
-        let pd = services::platform_data();
-        if pd.env_id == services::ENV_ID_LINUX {
-            #[cfg(not(target_arch = "wasm32"))]
-            unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
-        }
-    }
-    #[cfg(all(target_arch = "x86_64", feature = "short"))] {
+    let pd = services::platform_data();
+    if pd.env_id == services::ENV_ID_LINUX &&
+       (pd.env_flags & services::ENV_FLAGS_NO_EXIT) == 0 {
+        #[cfg(not(target_arch = "wasm32"))]
         unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
     }
+}
+#[cfg(not(test))]
+pub fn is_local_env() -> bool {
+    let pd = services::platform_data();
+    (pd.env_flags & services::ENV_FLAGS_NATIVE) != 0
 }
 
 #[cfg(test)]
@@ -62,4 +63,8 @@ pub fn init(_platform_data_by_loader: usize) {
 }
 #[cfg(test)]
 pub fn try_exit() {
+}
+#[cfg(test)]
+pub fn is_local_env() -> bool {
+    true
 }

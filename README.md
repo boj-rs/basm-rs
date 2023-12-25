@@ -21,6 +21,7 @@ basm.rs는 Rust 코드를 [백준 온라인 저지](https://www.acmicpc.net/)를
 또한, 다음과 같은 편의 기능을 제공합니다.
 - 백준 온라인 저지 등에 제출 시 **채점 결과로 표시되는 메모리 사용량이 줄어듭니다.**
 - **문제 풀이에 사용하기 편리한 입출력 인터페이스 구현이 내장되어 러스트로 문제 풀이를 하기에 편리합니다.** 러스트는 C/C++에 비해 문제 풀이에 필요한 형태의 입출력을 하기에는 다소 불편한 부분이 있는데 이를 해결해줍니다.
+- **(Experimental) 러스트로 함수 구현 문제를 풀 수 있습니다.** (예제 참고)
 
 러스트의 풍성한 라이브러리 생태계를 활용하셔서 즐거운 문제 풀이를 하실 수 있기를 바랍니다.
 
@@ -47,7 +48,7 @@ fn main() {
 > basm에서는 `main()` 함수가 반드시 `pub`으로 선언되어야 컴파일이 가능함에 주의해 주세요.
 
 ```rust
-// src/solution.rs
+// basm/src/solution.rs
 use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader: Reader = Default::default();
@@ -62,7 +63,7 @@ pub fn main() {
   - C의 경우 156KB부터, Rust의 경우 2188KB부터 시작합니다.
   - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
 ```rust
-// src/solution.rs
+// basm/src/solution.rs
 use basm::platform::io::{Reader, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
@@ -99,7 +100,7 @@ pub fn main() {
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
 
-`src/solution.rs` main() 에 원하는 코드를 삽입하시고, 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
+`basm/src/solution.rs` main() 에 원하는 코드를 삽입하시고, 일반적인 cargo 프로젝트와 같은 방식으로 빌드 / 실행할 수 있습니다.
 
 > cargo run 및 cargo run --release로 프로그램을 실행할 수 있고 cargo test나 cargo bench를 이용하여 테스트 및 성능 측정을 할 수 있습니다. 다만 로컬 환경에서 개발이 끝난 후 온라인 저지에 제출할 수 있는 형태로 빌드하기 위해서는 반드시 아래에 설명된 전용 스크립트를 사용해야 합니다.
 
@@ -195,7 +196,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
 ```
 
-src/solution.rs를 다음과 같이 수정합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
 use basm::platform::io::{Reader, Writer};
@@ -273,7 +274,7 @@ nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
 dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
 ```
 
-src/solution.rs를 다음과 같이 수정합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
@@ -346,7 +347,7 @@ pub fn main() {
 
 이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
 
-src/solution.rs를 다음과 같이 수정합니다.
+basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
 use basm::platform::io::{Reader, Writer, Print};
@@ -377,6 +378,218 @@ pub fn main() {
 ```
 
 이후 실행 과정은 위의 "큰 수 A+B"와 동일하게 진행하면 됩니다.
+
+## 예제: 정수 N개의 합([BOJ 15596](https://www.acmicpc.net/problem/15596))
+
+이 예제는 basm-rs를 이용해 러스트로 함수 구현 문제를 해결하는 방법을 보여줍니다.
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+basm/src/solution.rs를 다음과 같이 수정합니다. 이때, main 함수는 모듈이 로드될 때 정확하게 한 번만 실행됩니다. 따라서 필요한 경우 프로그램의 전역 상태를 초기화하는 루틴을 main 함수에 작성해도 됩니다. 만약 main 함수에 작성할 내용이 없더라도 제거하면 컴파일 오류가 발생하므로 빈 함수로 남겨두어야 합니다.
+
+`is_local_env()`는 프로그램이 로컬에서 `cargo run` 등에 의해 실행되고 있으면 true를, 온라인 저지에 제출하기 위해 템플릿에 적재된 경우 false를 반환합니다. 따라서 이를 이용하면 구현한 함수를 콘솔 입출력으로 테스트하고 코드 수정 없이 온라인 저지 제출용으로 빌드할 수 있습니다.
+
+```rust
+use alloc::vec::Vec;
+use basm::platform::is_local_env;
+use basm::platform::io::{Reader, Writer, Print};
+use basm_macro::basm_export;
+
+pub fn main() {
+    if is_local_env() {
+        let mut reader: Reader = Default::default();
+        let mut writer: Writer = Default::default();
+        let n = reader.usize();
+        let mut a = Vec::new();
+        for _ in 0..n {
+            a.push(reader.i32());
+        }
+        let ans = sum(&mut a);
+        writer.println(ans);
+    }
+}
+
+#[basm_export]
+fn sum(a: &mut Vec::<i32>) -> i64 {
+    a.iter().map(|&x| x as i64).sum()
+}
+```
+
+함수 구현 문제는 일반 프로그램과는 빌드 방법이 다르며, 출력 형식은 64비트(x86-64) C/C++ 코드만 지원됩니다.
+
+### Windows
+
+다음 스크립트를 실행하면 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C/C++ 코드가 출력됩니다.
+
+```
+./release-64bit-windows-fn-impl.cmd > output.cpp
+```
+
+### Linux
+
+다음 스크립트를 실행하면 64비트 환경(백준 온라인 저지 등)에 제출 가능한 C/C++ 코드가 출력됩니다.
+
+```
+./release-64bit-fn-impl.sh > output.cpp
+```
+
+현재 함수 구현은 정수 자료형과 Vec 자료형만 지원하고 있습니다. 사용상 문제점 및 추가로 필요하신 기능 등이 있으면 이슈를 남겨주세요.
+
+## 예제: IOI 2016 Aliens([BOJ 20090](https://www.acmicpc.net/problem/20090))
+
+이 예제는 basm-rs의 함수 구현 기능 지원을 이용해 IOI 2016에 출제된 Aliens 문제를 해결하는 예시입니다.
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+basm/src/solution.rs를 다음과 같이 수정합니다.
+
+```rust
+use basm::platform::is_local_env;
+use basm::platform::io::{Reader, Writer, Print};
+use basm_macro::basm_export;
+use alloc::vec;
+use alloc::vec::Vec;
+
+pub fn main() {
+    if is_local_env() {
+        let mut reader: Reader = Default::default();
+        let mut writer: Writer = Default::default();
+        let n = reader.i32();
+        let m = reader.i32();
+        let k = reader.i32();
+        let (mut r, mut c) = (vec![], vec![]);
+        for _ in 0..n {
+            r.push(reader.i32());
+            c.push(reader.i32());
+        }
+        let ans = take_photos(n, m, k, r, c);
+        writer.println(ans);
+    }
+}
+
+fn deduplicate(n: i32, r: Vec::<i32>, c: Vec::<i32>) -> Vec::<(i32, i32)> {
+    let mut tmp: Vec<(i32, i32)> = (0..n as usize).map(|i| if r[i] < c[i] { (r[i], c[i]) } else { (c[i], r[i]) }).collect();
+    tmp.sort_unstable();
+    let mut out: Vec<(i32, i32)> = vec![];
+    for (rr, cc) in tmp {
+        if !out.is_empty() && out[out.len() - 1].0 == rr {
+            out.pop();
+        }
+        if !out.is_empty() && out[out.len() - 1].1 >= cc {
+            continue;
+        }
+        out.push((rr, cc));
+    }
+    out
+}
+
+/* minimum hull that expects strictly decreasing slopes */
+struct ConvexHullTrickLinear {
+    v: Vec::<(i64, i64, usize)>,
+    last_m: i64
+}
+
+impl ConvexHullTrickLinear {
+    fn new() -> Self {
+        Self { v: vec![], last_m: i64::MAX }
+    }
+    fn push(&mut self, m: i64, b: i64, user_data: usize) {
+        assert!(m < self.last_m);
+        while self.v.len() >= 2 {
+            let (m1, b1, _) = self.v[self.v.len() - 2];
+            let (m2, b2, _) = self.v[self.v.len() - 1];
+            if (b2 - b1) * (m2 - m) < (b - b2) * (m1 - m2) {
+                break;
+            }
+            self.v.pop();
+        }
+        self.v.push((m, b, user_data));
+        self.last_m = m;
+    }
+    fn query(&self, x: i64) -> (i64, usize) {
+        assert!(!self.v.is_empty());
+        let (mut lo, mut hi) = (0, self.v.len() - 1);
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            let (m1, b1, _) = self.v[mid];
+            let (m2, b2, _) = self.v[mid + 1];
+            if m1 * x + b1 < m2 * x + b2 {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        let (m, b, user_data) = self.v[lo];
+        (m * x + b, user_data)
+    }
+}
+
+fn solve_single(pts: &Vec::<(i32, i32)>, p: i64) -> (i64, usize) {
+    const FACTOR: i64 = 2;
+
+    let l = |i: usize| -> i64 { pts[i - 1].0 as i64 - 1 };
+    let r = |i: usize| -> i64 { pts[i - 1].1 as i64 };
+
+    let n = pts.len();
+    let mut dp = vec![(0, 0)];
+    let mut cht = ConvexHullTrickLinear::new();
+    cht.push(-2 * l(1) * FACTOR, l(1) * l(1) * FACTOR, 0);
+    for i in 1..=n {
+        /* Query CHT */
+        let (val, argmax) = cht.query(r(i));
+        let dp_i = val + r(i) * r(i) * FACTOR;
+        dp.push((dp_i - p, argmax + 1));
+
+        /* Update CHT */
+        if i < n {
+            if l(i+1) <= r(i) {
+                cht.push(-2 * l(i+1) * FACTOR, dp[i].0 - r(i) * r(i) * FACTOR + 2 * l(i+1) * r(i) * FACTOR, dp[i].1);
+            } else {
+                cht.push(-2 * l(i+1) * FACTOR, dp[i].0 + l(i+1) * l(i+1) * FACTOR, dp[i].1);
+            }
+        }
+    }
+    dp[n]
+}
+
+#[basm_export]
+fn take_photos(n: i32, _m: i32, k: i32, r: Vec::<i32>, c: Vec::<i32>) -> i64 {
+    const RANGE: i64 = 1_000_000_000_001;
+
+    let pts = deduplicate(n, r, c);
+    let (mut p_lo, mut p_hi) = (-RANGE, RANGE);
+    while p_lo < p_hi {
+        let p_mid = (p_lo + p_hi + 1 + 2*RANGE) / 2 - RANGE;
+        let p_ans = solve_single(&pts, 2 * p_mid - 1);
+        if p_ans.1 <= k as usize {
+            p_lo = p_mid;
+        } else {
+            p_hi = p_mid - 1;
+        }
+    }
+    let mut p_opt = 2 * p_lo - 1;
+    let ans = solve_single(&pts, p_opt);
+    let mut override_count = false;
+    if p_opt > 0 {
+        p_opt = 0;
+    } else if ans.1 < k as usize {
+        p_opt += 1;
+        override_count = true;
+    }
+    let ans = solve_single(&pts, p_opt);
+    (ans.0 + if override_count { k as i64 } else { ans.1 as i64 } * p_opt) / 2
+}
+```
+
+빌드 및 실행은 이전 함수 구현 예제와 동일합니다. 로컬에서 `cargo run`을 입력하고 아래 테스트 케이스를 입력하면 `25`가 출력되어야 합니다.
+```
+5 7 2
+0 3
+4 4
+4 6
+4 5
+4 6
+```
 
 ## Open Source Attributions
 

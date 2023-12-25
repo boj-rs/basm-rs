@@ -9,6 +9,8 @@
 #![cfg_attr(not(test), no_main)]
 extern crate alloc;
 
+extern crate basm_std as basm;
+
 #[cfg_attr(test, allow(dead_code))]
 #[path = "../solution.rs"]
 mod solution;

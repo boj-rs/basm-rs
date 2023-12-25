@@ -93,6 +93,8 @@ _decode_zeros:
 ; Jump to entrypoint
 _jump_to_entrypoint:
     sub     rdi, qword [rdi-8]
+    xor     ecx, ecx
+    push    rcx
     call    rdi
 
 _end:

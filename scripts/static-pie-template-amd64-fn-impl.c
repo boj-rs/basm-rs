@@ -1,4 +1,4 @@
-﻿// Generated with https://github.com/kiwiyou/basm-rs
+// Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 
 // SOLUTION BEGIN
@@ -22,6 +22,13 @@ $$$$solution_src$$$$
 #endif
 #ifdef DEBUG
 #include <stdio.h>
+#endif
+
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
+#if defined(__cplusplus)
+#include <vector>
 #endif
 
 #ifndef UINT32_MAX
@@ -140,71 +147,49 @@ stub_ptr get_stub() {
 #endif
 char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 
-#if defined(__linux__)
-int main() {}
-#ifdef __cplusplus
-extern "C"
-#endif
-int __libc_start_main(
-    void *func_ptr,
-    int argc,
-    char* argv[],
-    void (*init_func)(void),
-    void (*fini_func)(void),
-    void (*rtld_fini_func)(void),
-    void *stack_end) {
-#else
-int main(int argc, char *argv[]) {
-#endif
-    PLATFORM_DATA pd;
-    if (sizeof(size_t) != 8) {
-        // Cannot run amd64 binaries on non-64bit environment
-        return 1;
-    }
-    pd.env_flags            = 0; // necessary since pd is on stack
-#if defined(_WIN32)
-    pd.env_id               = ENV_ID_WINDOWS;
-#elif defined(__linux__)
-    pd.env_id               = ENV_ID_LINUX;
-    // Linux's stack growth works differently than Windows.
-    // Hence, we disable the __chkstk mechanism on Linux.
-    pd.env_flags            |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
-#else
-    pd.env_id               = ENV_ID_UNKNOWN;
-#endif
-#if defined(_WIN32)
-    pd.win_kernel32         = (uint64_t) GetModuleHandleW(L"kernel32");
-    pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
-#endif
-    pd.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
-#if !defined(_WIN32) && !defined(__linux__)
-    pd.ptr_alloc            = (void *) svc_alloc;
-    pd.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
-    pd.ptr_dealloc          = (void *) svc_free;
-    pd.ptr_realloc          = (void *) svc_realloc;
-    pd.ptr_read_stdio       = (void *) svc_read_stdio;
-    pd.ptr_write_stdio      = (void *) svc_write_stdio;
-#endif
+static int g_loaded = 0;
+static PLATFORM_DATA g_pd;
 
-    stub_ptr stub = get_stub();
-#if defined(__linux__)
-    uint8_t stubbuf[68 + $$$$stub_len$$$$] = "QMd~L002n8@6D@;XGJ3cz5oya01pLO>naZmS5~+Q0000n|450>x(5IN07=KfA^-pYO)<bp|Hw@-$qxlyU&9Xz]";
-    b85tobin(stubbuf, (char const *)stubbuf);
-    /* prepend thunk and relocate stub onto stack */
-    for (size_t i = 0; i < $$$$stub_len$$$$; i++) stubbuf[68 + i] = (uint8_t)stub_raw[i];
-    size_t base = ((size_t)stub_raw) & 0xFFFFFFFFFFFFF000ULL; // page-aligned pointer to munmap in thunk
-    size_t len = (((size_t)stub_raw) + sizeof(stub_raw)) - base;
-    len = ((len + 0xFFF) >> 12) << 12;
-    *(uint64_t *)(stubbuf + 0x08) = (uint64_t) base;
-    *(uint32_t *)(stubbuf + 0x11) = (uint32_t) len;
-    base = ((size_t)stubbuf) & 0xFFFFFFFFFFFFF000ULL;
-    len = (((size_t)stubbuf) + 68 + $$$$stub_len$$$$) - base;
-    len = ((len + 0xFFF) >> 12) << 12;
-    syscall(10, base, len, 0x7); // mprotect: make the stub on stack executable
-    pd.ptr_alloc_rwx = (void *) (stubbuf + 0x1c); // thunk implements its own svc_alloc_rwx
-    stub = (stub_ptr) stubbuf;
+size_t load_module() {
+    if (!g_loaded) {
+        g_pd.env_flags            = ENV_FLAGS_NO_EXIT;
+#if defined(_WIN32)
+        g_pd.env_id               = ENV_ID_WINDOWS;
+#elif defined(__linux__)
+        g_pd.env_id               = ENV_ID_LINUX;
+        // Linux's stack growth works differently than Windows.
+        // Hence, we disable the __chkstk mechanism on Linux.
+        g_pd.env_flags            |= ENV_FLAGS_LINUX_STYLE_CHKSTK;
+#else
+        g_pd.env_id               = ENV_ID_UNKNOWN;
 #endif
-    b85tobin(payload, (char const *)payload);
-    return stub(&pd, payload);
+#if defined(_WIN32)
+        g_pd.win_kernel32         = (uint64_t) GetModuleHandleW(L"kernel32");
+        g_pd.win_GetProcAddress   = (uint64_t) GetProcAddress;
+#endif
+        g_pd.ptr_alloc_rwx        = (void *) svc_alloc_rwx;
+#if !defined(_WIN32) && !defined(__linux__)
+        g_pd.ptr_alloc            = (void *) svc_alloc;
+        g_pd.ptr_alloc_zeroed     = (void *) svc_alloc_zeroed;
+        g_pd.ptr_dealloc          = (void *) svc_free;
+        g_pd.ptr_realloc          = (void *) svc_realloc;
+        g_pd.ptr_read_stdio       = (void *) svc_read_stdio;
+        g_pd.ptr_write_stdio      = (void *) svc_write_stdio;
+#endif
+        stub_ptr stub = get_stub();
+        b85tobin(payload, (char const *)payload);
+        stub(&g_pd, payload);
+        g_loaded = 1;
+    }
+    return (size_t) g_pd.ptr_alloc_rwx;
 }
-// LOADER END
+
+#define BASM_LOADER_IMAGEBASE (load_module())
+
+#pragma pack(push, 1)
+struct ThreePtr {
+    size_t p[3];
+};
+#pragma pack(pop)
+
+$$$$exports_cpp$$$$

@@ -1,6 +1,7 @@
 ﻿import array
 import base64
 import base91
+import bindgen_cpp
 import codecs
 import json
 import lzma
@@ -131,6 +132,19 @@ template_candidates = [template_path]
 if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in template_path and len(code_raw) <= 4096 - 256:
     template_candidates.append(template_path.replace("short", "shorter"))
 
+# exports
+exports_dict = loader_fdict.get("exports", dict())
+exports_cpp = []
+for e_name, e_offset in exports_dict.items():
+    prefix = "_basm_export_"
+    assert e_name.startswith(prefix)
+    e_name = e_name[len(prefix):]
+    e_name = e_name.split("_")
+    e_name = [codecs.decode(x, 'hex').decode('utf8') for x in e_name]
+    e_bindgen = bindgen_cpp.synthesize(e_name, e_offset)
+    exports_cpp.append(e_bindgen)
+exports_cpp = "\n".join(exports_cpp)
+
 out = None
 for each_template_path in template_candidates:
     with open(each_template_path, encoding='utf8') as f:
@@ -159,6 +173,7 @@ for each_template_path in template_candidates:
         "$$$$binary_raw_base91_len$$$$": str(code_raw_b91_len),
         "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
         "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
+        "$$$$exports_cpp$$$$": exports_cpp
     })
     if out is None or len(out_candidate) < len(out):
         out = out_candidate
