@@ -108,6 +108,31 @@ impl LinearSieve {
         assert!(x >= 1);
         todo!();
     }
+    /// Returns the positive divisors of x, in ascending order.
+    pub fn divisors(&mut self, mut x: i64) -> Vec<i64> {
+        x = Self::sanitize(x);
+        if x == 1 {
+            vec![1]
+        } else {
+            let lp = self.smallest_prime_factor(x);
+            let mut lp_cnt = 0;
+            while self.smallest_prime_factor(x) == lp {
+                x /= lp;
+                lp_cnt += 1;
+            }
+            let part = self.divisors(x);
+            let mut out = vec![];
+            for d in part {
+                let mut d_times_lp_pow = d;
+                for _ in 0..=lp_cnt {
+                    out.push(d_times_lp_pow);
+                    d_times_lp_pow *= lp;
+                }
+            }
+            out.sort_unstable();
+            out
+        }
+    }
     fn ensure_upto(&mut self, x: i64) {
         if x > self.upto {
             self.upto = Self::next_len(self.upto, x);
@@ -173,5 +198,13 @@ mod test {
         assert_eq!(1648512, ls.phi(5986008));
         assert_eq!(40, ls.phi(100));
         assert_eq!(115200, ls.phi(442800));
+    }
+
+    #[test]
+    fn check_divisors() {
+        let mut ls = LinearSieve::new();
+        assert_eq!(vec![1], ls.divisors(1));
+        assert_eq!(vec![1, 2, 3, 4, 6, 12], ls.divisors(12));
+        assert_eq!(vec![1, 2, 4, 5, 10, 20, 25, 50, 100], ls.divisors(100));
     }
 }
