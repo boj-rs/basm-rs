@@ -144,3 +144,34 @@ impl Default for LinearSieve {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn check_mu() {
+        let mut ls = LinearSieve::new();
+        assert_eq!(1, ls.mu(1));
+        assert_eq!(-1, ls.mu(2));
+        assert_eq!(-1, ls.mu(3));
+        assert_eq!(0, ls.mu(4));
+        assert_eq!(1, ls.mu(6));
+        assert_eq!(1, ls.mu(41879491));
+        assert_eq!(-1, ls.mu(30));
+        assert_eq!(0, ls.mu(20443543));
+    }
+
+    #[test]
+    fn check_phi() {
+        let mut ls = LinearSieve::new();
+        assert_eq!(1, ls.phi(1));
+        assert_eq!(1, ls.phi(2));
+        assert_eq!(2, ls.phi(3));
+        assert_eq!(12, ls.phi(36));
+        assert_eq!(72, ls.phi(91));
+        assert_eq!(1648512, ls.phi(5986008));
+        assert_eq!(40, ls.phi(100));
+        assert_eq!(115200, ls.phi(442800));
+    }
+}
