@@ -98,15 +98,37 @@ impl LinearSieve {
         }
         self.phi[x as usize]
     }
-    /// (Not implemented yet) Number of positive divisors of x.
-    pub fn d(&mut self, x: i64) -> i64 {
-        assert!(x >= 1);
-        todo!();
+    /// Number of positive divisors of x.
+    /// Note: This function can be slow. Performance optimization will be done later.
+    pub fn d(&mut self, mut x: i64) -> i64 {
+        x = Self::sanitize(x);
+        let mut ans = 1;
+        while x > 1 {
+            let lp = self.smallest_prime_factor(x);
+            let mut lp_cnt = 0;
+            while x % lp == 0 {
+                x /= lp;
+                lp_cnt += 1;
+            }
+            ans *= lp_cnt + 1;
+        }
+        ans
     }
-    /// (Not implemented yet) Sum of positive divisors of x.
-    pub fn s(&mut self, x: i64) -> i64 {
-        assert!(x >= 1);
-        todo!();
+    /// Sum of positive divisors of x.
+    /// Note: This function can be slow. Performance optimization will be done later.
+    pub fn s(&mut self, mut x: i64) -> i64 {
+        x = Self::sanitize(x);
+        let mut ans = 1;
+        while x > 1 {
+            let lp = self.smallest_prime_factor(x);
+            let mut lp_mul = 1;
+            while x % lp == 0 {
+                x /= lp;
+                lp_mul = lp_mul * lp + 1;
+            }
+            ans *= lp_mul;
+        }
+        ans
     }
     /// Returns the positive divisors of x, in ascending order.
     pub fn divisors(&mut self, mut x: i64) -> Vec<i64> {
@@ -116,7 +138,7 @@ impl LinearSieve {
         } else {
             let lp = self.smallest_prime_factor(x);
             let mut lp_cnt = 0;
-            while self.smallest_prime_factor(x) == lp {
+            while x % lp == 0 {
                 x /= lp;
                 lp_cnt += 1;
             }
@@ -198,6 +220,13 @@ mod test {
         assert_eq!(1648512, ls.phi(5986008));
         assert_eq!(40, ls.phi(100));
         assert_eq!(115200, ls.phi(442800));
+    }
+
+    #[test]
+    fn check_d_and_s() {
+        let mut ls = LinearSieve::new();
+        assert_eq!(9, ls.d(100));
+        assert_eq!(217, ls.s(100));
     }
 
     #[test]
