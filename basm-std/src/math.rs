@@ -1,5 +1,7 @@
 pub mod miller_rabin;
 pub use miller_rabin::*;
+mod pollard_rho;
+pub use pollard_rho::factorize;
 
 // reference: https://nyaannyaan.github.io/library/trial/fast-gcd.hpp.html
 

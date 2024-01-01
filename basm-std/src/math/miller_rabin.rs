@@ -11,7 +11,7 @@ pub fn is_prime_u32(x: u32) -> bool {
         x != 1
     } else {
         is_sprp_u32(
-            U32_BASE[((0x00AF_F7B4usize * x as usize) >> 7) & 1023] as u32,
+            U32_BASE[((0x00AF_F7B4usize.wrapping_mul(x as usize)) >> 7) & 1023] as u32,
             x,
         )
     }
@@ -28,11 +28,11 @@ pub fn is_prime_u64(x: u64) -> bool {
         x != 1
     } else {
         let mut h = x;
-        h = ((h >> 32) ^ h) * 0x045d_9f3b_3335_b369;
-        h = ((h >> 32) ^ h) * 0x0333_5b36_945d_9f3b;
+        h = ((h >> 32) ^ h).wrapping_mul(0x045d_9f3b_3335_b369);
+        h = ((h >> 32) ^ h).wrapping_mul(0x0333_5b36_945d_9f3b);
         h = (h >> 32) ^ h;
         let b = U64_BASE[h as usize & 16383] as u64;
-        is_sprp_u64(x, b & 4095) && is_sprp_u64(x, b >> 12)
+        is_sprp_u64(b & 4095, x) && is_sprp_u64(b >> 12, x)
     }
 }
 
@@ -65,6 +65,9 @@ fn pow_mod_u64(mut a: u64, mut e: u64, n: u64) -> u64 {
 }
 
 fn is_sprp_u32(a: u32, n: u32) -> bool {
+    if n == a { return true; }
+    if n % a == 0 { return false; }
+
     let mut d = 0u32;
     let mut t = n - 1;
     while t & 1 == 0 {
@@ -89,6 +92,9 @@ fn is_sprp_u32(a: u32, n: u32) -> bool {
 }
 
 fn is_sprp_u64(a: u64, n: u64) -> bool {
+    if n == a { return true; }
+    if n % a == 0 { return false; }
+
     let mut d = 0u64;
     let mut t = n - 1;
     while t & 1 == 0 {
@@ -1706,3 +1712,23 @@ const U64_BASE: [u32; 16384] = [
     1446165, 2363643, 3043585, 1355805, 3265033, 643075, 987219, 561279, 2330773, 167941, 3838349,
     2674881, 176157, 3592305, 610365,
 ];
+
+mod test {
+    #[cfg(test)]
+    use super::*;
+
+    #[test]
+    fn check_is_prime_u32() {
+        assert_eq!(true, is_prime_u32(101));
+        assert_eq!(false, is_prime_u32(906810173));
+        assert_eq!(false, is_prime_u32(598963177));
+    }
+
+    #[test]
+    fn check_is_prime_u64() {
+        assert_eq!(true, is_prime_u64(101));
+        assert_eq!(false, is_prime_u64(906810173));
+        assert_eq!(false, is_prime_u64(598963177));
+        assert_eq!(false, is_prime_u64(162319020967));
+    }
+}
