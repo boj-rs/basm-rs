@@ -1,5 +1,7 @@
 pub mod miller_rabin;
 pub use miller_rabin::*;
+mod sieve;
+pub use sieve::LinearSieve;
 mod pollard_rho;
 pub use pollard_rho::factorize;
 
