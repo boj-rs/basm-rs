@@ -73,10 +73,6 @@ fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
     }
 }
 
-fn mac3mod_u64(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
-    mac3mod_three_primes(acc, b, c, modulo)
-}
-
 /// Multiplies two polynomials given by coefficients `x` and `y`, modulo `modulo`.
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// If either of the inputs is empty, the result will be an empty Vec.
@@ -85,8 +81,39 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
     if x.is_empty() || y.is_empty() {
         Vec::<u64>::new()
     } else {
-        let mut out = vec![0; x.len() + y.len() + 1];
-        mac3mod_u64(&mut out, x, y, modulo);
+        // We estimate the maximum value of the convolution.
+        // If they are small enough, we may reduce the number of
+        // convolutions from 3 to 1 or 2. This will yield huge
+        // savings in running time.
+        let strategy = {
+            let maxx = *x.iter().max().unwrap();
+            let maxy = *y.iter().max().unwrap();
+            let maxxy = maxx as u128 * maxy as u128;
+            let maxlen = min(x.len(), y.len()) as u128;
+            let (maxxylen, overflow) = maxxy.overflowing_mul(maxlen);
+            if overflow || maxxylen >= P2 as u128 * P3 as u128 {
+                3
+            } else if maxxylen >= P3 as u128 {
+                2
+            } else {
+                1
+            }
+        };
+        let mut out = vec![];
+        if strategy == 3 || strategy == 2 {
+            out.resize(x.len() + y.len() + 1, 0);
+            mac3mod_three_primes(&mut out, x, y, modulo);
+        } else { /* strategy == 1 */
+            let min_len = x.len() + y.len();
+            let plan = NttPlan::build::<P3>(min_len);
+            let mut r = vec![0u64; plan.g + plan.n];
+
+            /* convolution with modulo P3 */
+            out.resize(plan.g + plan.n, 0);
+            for i in 0..x.len() { out[plan.g + i] = if x[i] >= P3 { x[i] - P3 } else { x[i] }; }
+            for i in 0..y.len() { r[plan.g + i] = if y[i] >= P3 { y[i] - P3 } else { y[i] }; }
+            conv::<P3>(&plan, &mut out[..plan.g+plan.n], x.len(), &mut r[..plan.g+plan.n], y.len(), 1);
+        }
         out.resize(x.len() + y.len() - 1, 0);
         out
     }
