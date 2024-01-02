@@ -5,6 +5,9 @@ pub use sieve::LinearSieve;
 mod pollard_rho;
 pub use pollard_rho::factorize;
 
+pub mod ntt;
+pub use ntt::*;
+
 // reference: https://nyaannyaan.github.io/library/trial/fast-gcd.hpp.html
 
 macro_rules! define_gcd_lcm {
