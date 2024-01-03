@@ -75,4 +75,14 @@ mod test {
     fn lcm_u64_returns_lcm() {
         assert_eq!(4264971179382324, lcm::<u64>(273652348, 62341452));
     }
+
+    #[test]
+    fn egcd_returns_gcd() {
+        let a: i64 = 823327498201749212;
+        let b: i64 = 734892783927949214;
+        let (g, s, t) = egcd(a, b);
+        let normal = gcd(a as u64, b as u64) as i64;
+        assert_eq!(normal, g);
+        assert_eq!(a as i128 * s as i128 + b as i128 * t as i128, g as i128);
+    }
 }
