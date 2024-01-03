@@ -1,11 +1,3 @@
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_lossless)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::many_single_char_names)]
-#![allow(clippy::needless_range_loop)]
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::similar_names)]
-
 pub mod nttcore;
 pub mod multiply;
 pub use multiply::multiply_u64;
