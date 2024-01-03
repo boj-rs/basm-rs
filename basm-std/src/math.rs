@@ -3,7 +3,7 @@ pub use miller_rabin::*;
 mod sieve;
 pub use sieve::LinearSieve;
 mod pollard_rho;
-use crate::traits::PrimUint;
+use crate::traits::{PrimSint, PrimUint};
 pub use pollard_rho::factorize;
 
 pub mod ntt;
@@ -32,6 +32,24 @@ pub fn gcd<T: PrimUint>(mut a: T, mut b: T) -> T {
 
 pub fn lcm<T: PrimUint>(a: T, b: T) -> T {
     a / gcd(a, b) * b
+}
+
+pub fn egcd<T: PrimSint>(mut a: T, mut b: T) -> (T, T, T) {
+    assert!(a > 0.into() && b > 0.into());
+    let mut c = if a > b {
+        (a, b) = (b, a);
+        [0, 1, 1, 0].map(|x| x.into())
+    } else {
+        [1, 0, 0, 1].map(|x| x.into())
+    }; // treat as a row-major 2x2 matrix
+    loop {
+        if a.is_zero() {
+            break (b, c[1], c[3]);
+        }
+        let (q, r) = (b / a, b % a);
+        (a, b) = (r, a);
+        c = [c[1] - q * c[0], c[0], c[3] - q * c[2], c[2]];
+    }
 }
 
 #[cfg(test)]
