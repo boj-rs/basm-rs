@@ -35,7 +35,6 @@ pub fn lcm<T: PrimUint>(a: T, b: T) -> T {
 }
 
 pub fn egcd<T: PrimSint>(mut a: T, mut b: T) -> (T, T, T) {
-    assert!(a > 0.into() && b > 0.into());
     let mut c = if a > b {
         (a, b) = (b, a);
         [0, 1, 1, 0].map(|x| x.into())
