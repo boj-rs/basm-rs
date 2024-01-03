@@ -1,7 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use super::miller_rabin::is_prime_u64;
-use super::gcd_u64;
+use super::gcd;
 
 use rand::{RngCore, SeedableRng};
 use rand::rngs::SmallRng;
@@ -23,7 +23,7 @@ fn rho(n: u64, small_rng: &mut SmallRng) -> u64 {
         if p == q {
             g = n;
         } else {
-            g = gcd_u64(p.abs_diff(q), n);
+            g = gcd(p.abs_diff(q), n);
         }
     }
     g

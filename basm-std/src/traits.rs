@@ -26,16 +26,22 @@ pub trait PrimUint:
     + BitAndAssign
     + BitOrAssign
     + BitXorAssign
+    + Eq
+    + Ord
 {
-    fn trailing_zeros(self) -> u32;
+    fn is_zero(self) -> bool;
+    fn trailing_zeros(self) -> Self;
     fn wrapping_sub(self, rhs: Self) -> Self;
 }
 
 macro_rules! define_primitive_uint {
     ($t:ty) => {
         impl PrimUint for $t {
-            fn trailing_zeros(self) -> u32 {
-                self.trailing_zeros()
+            fn is_zero(self) -> bool {
+                self == 0
+            }
+            fn trailing_zeros(self) -> Self {
+                self.trailing_zeros() as $t
             }
             fn wrapping_sub(self, rhs: Self) -> Self {
                 self.wrapping_sub(rhs)
@@ -44,4 +50,9 @@ macro_rules! define_primitive_uint {
     };
 }
 
+define_primitive_uint!(u8);
+define_primitive_uint!(u16);
+define_primitive_uint!(u32);
 define_primitive_uint!(u64);
+define_primitive_uint!(u128);
+define_primitive_uint!(usize);
