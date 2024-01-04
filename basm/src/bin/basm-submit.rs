@@ -15,3 +15,8 @@ extern crate basm_std as basm;
 #[path = "../solution.rs"]
 mod solution;
 mod codegen;
+
+#[panic_handler]
+fn panic(_pi: &core::panic::PanicInfo) -> ! {
+    unsafe { core::hint::unreachable_unchecked() }
+}

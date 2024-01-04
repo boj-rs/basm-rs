@@ -15,3 +15,27 @@ extern crate basm_std as basm;
 #[path = "../solution.rs"]
 mod solution;
 mod codegen;
+
+#[panic_handler]
+fn panic(_pi: &core::panic::PanicInfo) -> ! {
+    use alloc::string::ToString;
+    use basm::platform::services::write_stdio;
+    write_stdio(2, _pi.to_string().as_bytes());
+    write_stdio(2, b"\n");
+
+    // Rust sets an exit code of 101 when the process panicked.
+    // Hence, we follow that practice for maximum compatibility.
+    // Reference: https://rust-cli.github.io/book/in-depth/exit-code.html
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    {
+        extern "win64" {
+            fn ExitProcess(uExitCode: u32) -> !;
+        }
+        unsafe { ExitProcess(101); }
+    }
+    #[cfg(target_os = "linux")] {
+        unsafe { basm::platform::os::linux::syscall::exit_group(101); }
+    }
+    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux")))]
+    unsafe { core::hint::unreachable_unchecked() }
+}
