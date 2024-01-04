@@ -292,18 +292,6 @@ extern "win64" fn __CxxFrameHandler3() -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
 
-#[panic_handler]
-fn panic(_pi: &core::panic::PanicInfo) -> ! {
-    #[cfg(debug_assertions)]
-    {
-        use alloc::string::ToString;
-        use basm::platform::services::write_stdio;
-        write_stdio(2, _pi.to_string().as_bytes());
-        write_stdio(2, b"\n");
-    }
-    unsafe { core::hint::unreachable_unchecked() }
-}
-
 #[alloc_error_handler]
 fn alloc_fail(_: core::alloc::Layout) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
