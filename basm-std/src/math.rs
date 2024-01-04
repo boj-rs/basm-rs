@@ -3,7 +3,6 @@ pub use miller_rabin::*;
 mod sieve;
 pub use sieve::LinearSieve;
 mod pollard_rho;
-use crate::traits::{PrimSint, PrimUint};
 pub use pollard_rho::factorize;
 
 pub mod ntt;
@@ -11,8 +10,38 @@ pub use ntt::*;
 
 // reference: https://nyaannyaan.github.io/library/trial/fast-gcd.hpp.html
 
-pub fn gcd<T: PrimUint>(mut a: T, mut b: T) -> T {
-    if a.is_zero() || b.is_zero() {
+use core::ops::*;
+
+pub trait GcdOps:
+    Copy
+    + From<u8>
+    + PartialOrd
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Shl<u32, Output = Self>
+    + Shr<u32, Output = Self>
+    + ShrAssign<u32>
+{
+    fn trailing_zeros(self) -> u32;
+    fn wrapping_sub(self, rhs: Self) -> Self;
+}
+
+macro_rules! impl_gcd_ops {
+    ($($t:ty),*) => { $(
+        impl GcdOps for $t {
+            fn trailing_zeros(self) -> u32 {
+                self.trailing_zeros()
+            }
+            fn wrapping_sub(self, rhs: Self) -> Self {
+                self.wrapping_sub(rhs)
+            }
+        }
+    )* };
+}
+impl_gcd_ops!(u8, u16, u32, u64, u128, usize);
+
+pub fn gcd<T: GcdOps>(mut a: T, mut b: T) -> T {
+    if a == 0.into() || b == 0.into() {
         a + b
     } else {
         let n = a.trailing_zeros();
@@ -30,11 +59,29 @@ pub fn gcd<T: PrimUint>(mut a: T, mut b: T) -> T {
     }
 }
 
-pub fn lcm<T: PrimUint>(a: T, b: T) -> T {
+pub fn lcm<T: GcdOps + Mul<Output = T> + Div<Output = T>>(a: T, b: T) -> T {
     a / gcd(a, b) * b
 }
 
-pub fn egcd<T: PrimSint>(mut a: T, mut b: T) -> (T, T, T) {
+pub trait EgcdOps:
+    Copy
+    + From<i8>
+    + PartialOrd
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + Rem<Output = Self>
+{
+}
+
+macro_rules! impl_egcd_ops {
+    ($($t:ty),*) => { $(
+        impl EgcdOps for $t {}
+    )* };
+}
+impl_egcd_ops!(i8, i16, i32, i64, i128, isize);
+
+pub fn egcd<T: EgcdOps>(mut a: T, mut b: T) -> (T, T, T) {
     let mut c = if a > b {
         (a, b) = (b, a);
         [0, 1, 1, 0].map(|x| x.into())
@@ -42,7 +89,7 @@ pub fn egcd<T: PrimSint>(mut a: T, mut b: T) -> (T, T, T) {
         [1, 0, 0, 1].map(|x| x.into())
     }; // treat as a row-major 2x2 matrix
     loop {
-        if a.is_zero() {
+        if a == 0.into() {
             break (b, c[1], c[3]);
         }
         let (q, r) = (b / a, b % a);
@@ -77,11 +124,11 @@ mod test {
 
     #[test]
     fn egcd_returns_gcd() {
-        let a: i64 = 823327498201749212;
-        let b: i64 = 734892783927949214;
+        let a: i128 = 823327498201749212;
+        let b: i128 = 734892783927949214;
         let (g, s, t) = egcd(a, b);
-        let normal = gcd(a as u64, b as u64) as i64;
+        let normal = gcd(a as u64, b as u64) as i128;
         assert_eq!(normal, g);
-        assert_eq!(a as i128 * s as i128 + b as i128 * t as i128, g as i128);
+        assert_eq!(a * s + b * t, g);
     }
 }

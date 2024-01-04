@@ -16,4 +16,3 @@ pub mod math;
 pub mod platform;
 pub mod sorts;
 pub mod strings;
-pub mod traits;
