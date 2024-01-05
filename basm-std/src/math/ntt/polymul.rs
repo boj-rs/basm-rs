@@ -77,6 +77,11 @@ fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// If either of the inputs is empty, the result will be an empty Vec.
 /// Otherwise the output will have length equal to `x.len() + y.len() - 1`.
+/// 
+/// Note that `modulo` does not need to be a prime.
+///
+/// Example:
+/// `polymul_u64(&[1 << 32, 1 << 32], &[1 << 32], 0)` returns `vec![0, 0]`.
 pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
     if x.is_empty() || y.is_empty() {
         Vec::<u64>::new()
