@@ -11,6 +11,7 @@ mod test {
     #[test]
     fn check_multiply_u64() {
         assert_eq!(vec![6, 0], multiply_u64(&[2], &[3]));
+        assert_eq!(vec![0, 1, 1], multiply_u64(&[1 << 32, 1 << 32], &[1 << 32]));
         assert_eq!(
             vec![338457285041528512, 873741774122123434, 1614279433659886989, 2232618956921417485],
             multiply_u64(
@@ -22,6 +23,7 @@ mod test {
     #[test]
     fn check_polymul_u64() {
         assert_eq!(vec![6], polymul_u64(&[2], &[3], 0));
+        assert_eq!(vec![0, 0], polymul_u64(&[1 << 32, 1 << 32], &[1 << 32], 0));
         assert_eq!(
             vec![388856412, 499682766, 44258992],
             polymul_u64(
