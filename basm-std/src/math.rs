@@ -40,6 +40,7 @@ macro_rules! impl_gcd_ops {
 }
 impl_gcd_ops!(u8, u16, u32, u64, u128, usize);
 
+/// Returns the greatest common divisor (GCD) of `a` and `b` if neither is zero, otherwise returns `a + b`.
 pub fn gcd<T: GcdOps>(mut a: T, mut b: T) -> T {
     if a == 0.into() || b == 0.into() {
         a + b
@@ -81,6 +82,7 @@ macro_rules! impl_egcd_ops {
 }
 impl_egcd_ops!(i8, i16, i32, i64, i128, isize);
 
+/// Returns `(g, x, y)` where `g` is the greatest common divisor (GCD), and `x`, `y` are integers such that `a*x + b*y = g`.
 pub fn egcd<T: EgcdOps>(mut a: T, mut b: T) -> (T, T, T) {
     let mut c = if a > b {
         (a, b) = (b, a);
