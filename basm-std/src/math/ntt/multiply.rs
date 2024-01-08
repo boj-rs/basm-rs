@@ -170,6 +170,9 @@ fn mac3_u64(acc: &mut [u64], b: &[u64], c: &[u64]) {
 /// Least significant digits come first.
 /// If either of the inputs is empty, the result will be an empty Vec.
 /// Otherwise the output will have length equal to `x.len() + y.len()`.
+///
+/// Example:
+/// `multiply_u64(&[1 << 32, 1 << 32], &[1 << 32])` returns `vec![0, 1, 1]`.
 pub fn multiply_u64(x: &[u64], y: &[u64]) -> Vec<u64> {
     if x.is_empty() || y.is_empty() {
         Vec::<u64>::new()
