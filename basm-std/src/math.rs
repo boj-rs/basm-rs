@@ -73,6 +73,7 @@ pub trait EgcdOps:
     Copy
     + From<i8>
     + PartialOrd
+    + Neg<Output = Self>
     + Sub<Output = Self>
     + Mul<Output = Self>
     + Div<Output = Self>
@@ -87,9 +88,10 @@ macro_rules! impl_egcd_ops {
 }
 impl_egcd_ops!(i8, i16, i32, i64, i128, isize);
 
-/// Returns `(g, x, y)` where `g` is the greatest common divisor (GCD), and `x`, `y` are integers such that `a*x + b*y = g`.
+/// Returns `(g, x, y)` where `g` is the greatest common divisor (GCD) of `a` and `b`, and `x`, `y` are integers such that `a*x + b*y = g`.
+/// `g` is always nonnegative.
 pub fn egcd<T: EgcdOps>(mut a: T, mut b: T) -> (T, T, T) {
-    let mut c = if a > b {
+    let mut c: [T; 4] = if a > b {
         (a, b) = (b, a);
         [0, 1, 1, 0].map(|x| x.into())
     } else {
@@ -97,7 +99,11 @@ pub fn egcd<T: EgcdOps>(mut a: T, mut b: T) -> (T, T, T) {
     }; // treat as a row-major 2x2 matrix
     loop {
         if a == 0.into() {
-            break (b, c[1], c[3]);
+            break if b < 0.into() {
+                (-b, -c[1], -c[3])
+            } else {
+                (b, c[1], c[3])
+            };
         }
         let (q, r) = (b / a, b % a);
         (a, b) = (r, a);
