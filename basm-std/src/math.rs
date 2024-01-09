@@ -60,8 +60,13 @@ pub fn gcd<T: GcdOps>(mut a: T, mut b: T) -> T {
     }
 }
 
+/// Returns the least common multiplier (LCM) of `a` and `b` if neither is zero, otherwise returns `0`.
 pub fn lcm<T: GcdOps + Mul<Output = T> + Div<Output = T>>(a: T, b: T) -> T {
-    a / gcd(a, b) * b
+    if a == 0.into() && b == 0.into() {
+        0.into()
+    } else {
+        a / gcd(a, b) * b
+    }
 }
 
 pub trait EgcdOps:
