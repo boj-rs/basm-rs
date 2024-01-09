@@ -180,3 +180,8 @@ pub fn basm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     expanded.to_token_stream().into()
 }
+
+#[proc_macro]
+pub fn basm_import(_item: TokenStream) -> TokenStream {
+    "".parse().unwrap()
+}
