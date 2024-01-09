@@ -88,8 +88,7 @@ macro_rules! impl_egcd_ops {
 }
 impl_egcd_ops!(i8, i16, i32, i64, i128, isize);
 
-/// Returns `(g, x, y)` where `g` is the greatest common divisor (GCD) of `a` and `b`, and `x`, `y` are integers such that `a*x + b*y = g`.
-/// `g` is always nonnegative.
+/// Returns `(g, x, y)`, where `g` is the GCD of `a.abs()` and `b.abs()`, and `x`, `y` are integers satisfying `a*x + b*y = g`.
 pub fn egcd<T: EgcdOps>(mut a: T, mut b: T) -> (T, T, T) {
     let mut c: [T; 4] = if a > b {
         (a, b) = (b, a);
