@@ -39,16 +39,7 @@ fn check_type(input: &str, is_output_type: bool) -> bool {
 
 pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_in = parse_macro_input!(item as ItemFn);
-
-    /* verify the function signature is compatible with basm-export */
-    assert!(fn_in.sig.asyncness.is_none());
-    assert!(fn_in.sig.generics.lt_token.is_none());
-    if fn_in.sig.generics.params.iter().next().is_some() {
-        panic!();
-    }
-    assert!(fn_in.sig.generics.gt_token.is_none());
-    assert!(fn_in.sig.generics.where_clause.is_none());
-    assert!(fn_in.sig.variadic.is_none());
+    super::utils::verify_signature(&fn_in.sig);
 
     let inputs = &fn_in.sig.inputs;
     let mut inputs_thunk = vec![];
