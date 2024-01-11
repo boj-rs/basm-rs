@@ -2,6 +2,40 @@ use super::nttcore::*;
 use alloc::vec;
 use alloc::vec::Vec;
 
+fn mac3mod_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
+    let min_len = b.len() + c.len();
+    let plan_x = NttPlan::build::<P2>(min_len);
+    let plan_y = NttPlan::build::<P3>(min_len);
+    let mut x = vec![0u64; plan_x.g + plan_x.n];
+    let mut y = vec![0u64; plan_y.g + plan_y.n];
+    let mut r = vec![0u64; plan_x.g + plan_x.n];
+
+    /* convolution with modulo P2 */
+    for i in 0..b.len() { x[plan_x.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] }; }
+    for i in 0..c.len() { r[plan_x.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] }; }
+    conv::<P2>(&plan_x, &mut x, b.len(), &mut r[..plan_x.g+plan_x.n], c.len(), arith::invmod(P3, P2));
+
+    /* convolution with modulo P3 */
+    for i in 0..b.len() { y[plan_y.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] }; }
+    for i in 0..c.len() { r[plan_y.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] }; }
+    (&mut r[plan_y.g..])[c.len()..plan_y.n].fill(0u64);
+    conv::<P3>(&plan_y, &mut y, b.len(), &mut r[..plan_y.g+plan_y.n], c.len(), Arith::<P3>::submod(0, arith::invmod(P2, P3)));
+
+    /* merge the results in {x, y} into acc */
+    for i in 0..min_len {
+        /* extract the convolution result */
+        let (a, b) = (x[i], y[i]);
+        let (mut v, overflow) = (a as u128 * P3 as u128).overflowing_sub(b as u128 * P2 as u128);
+        if overflow { v = v.wrapping_add(P2 as u128 * P3 as u128); }
+
+        if modulo == 0 { /* modulo == 2^64 */
+            acc[i] = acc[i].wrapping_add(v as u64);
+        } else { /* nonzero modulo */
+            acc[i] = ((acc[i] as u128 + v) % modulo as u128) as u64;
+        }
+    }
+}
+
 fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
     let min_len = b.len() + c.len();
     let plan_x = NttPlan::build::<P1>(min_len);
@@ -29,7 +63,7 @@ fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
     (&mut r[plan_z.g..])[c.len()..plan_z.n].fill(0u64);
     conv::<P3>(&plan_z, &mut z, b.len(), &mut r[..plan_z.g+plan_z.n], c.len(), 1);
 
-    /* merge the results in {x, y, z} into acc (process carry along the way) */
+    /* merge the results in {x, y, z} into acc */
     let modulo_p64 = if modulo == 0 { 0 } else { (1u128 << 64) % modulo as u128 };
     let modulo_p128 = if modulo == 0 { 0 } else { (modulo_p64 * modulo_p64) % modulo as u128 };
     for i in 0..min_len {
@@ -90,6 +124,8 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
         // If they are small enough, we may reduce the number of
         // convolutions from 3 to 1 or 2. This will yield huge
         // savings in running time.
+        let x: Vec<u64> = x.iter().map(|&v| if modulo == 0 { v } else { v % modulo }).collect();
+        let y: Vec<u64> = y.iter().map(|&v| if modulo == 0 { v } else { v % modulo }).collect();
         let strategy = {
             let maxx = *x.iter().max().unwrap();
             let maxy = *y.iter().max().unwrap();
@@ -105,9 +141,12 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
             }
         };
         let mut out = vec![];
-        if strategy == 3 || strategy == 2 {
+        if strategy == 3 {
             out.resize(x.len() + y.len() + 1, 0);
-            mac3mod_three_primes(&mut out, x, y, modulo);
+            mac3mod_three_primes(&mut out, &x, &y, modulo);
+        } else if strategy == 2 {
+            out.resize(x.len() + y.len() + 1, 0);
+            mac3mod_two_primes(&mut out, &x, &y, modulo);
         } else { /* strategy == 1 */
             let min_len = x.len() + y.len();
             let plan = NttPlan::build::<P3>(min_len);
@@ -120,6 +159,11 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
             conv::<P3>(&plan, &mut out[..plan.g+plan.n], x.len(), &mut r[..plan.g+plan.n], y.len(), 1);
         }
         out.resize(x.len() + y.len() - 1, 0);
+        if strategy == 1 && modulo != 0 {
+            for x in out.iter_mut() {
+                *x %= modulo;
+            }
+        }
         out
     }
 }
