@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use super::Pair;
 
 pub trait Ser {
     fn ser(&self, buf: &mut Vec<u8>);
@@ -40,6 +41,13 @@ impl Ser for String {
     }
 }
 
+impl<T1: Ser, T2: Ser> Ser for Pair<T1, T2> {
+    fn ser(&self, buf: &mut Vec<u8>) {
+        self.0.ser(buf);
+        self.1.ser(buf)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -69,5 +77,9 @@ mod test {
         *target.last_mut().unwrap() = 12;
         target.extend_from_slice(b"Hello World!".as_slice());
         assert_eq!(target, buf);
+
+        let mut buf = vec![];
+        Pair(-3i8, 7u64).ser(&mut buf);
+        assert_eq!(vec![253, 0, 0, 0, 0, 0, 0, 0, 7], buf);
     }
 }

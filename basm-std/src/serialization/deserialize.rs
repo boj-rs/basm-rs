@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use super::Pair;
 
 pub trait De {
     fn de(buf: &mut &[u8]) -> Self;
@@ -43,6 +44,14 @@ impl De for String {
     }
 }
 
+impl<T1: De, T2: De> De for Pair<T1, T2> {
+    fn de(buf: &mut &[u8]) -> Self {
+        // Expressions taking multiple operands are evaluated left to right
+        // as written in the source code.
+        Pair(T1::de(buf), T2::de(buf))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -77,5 +86,10 @@ mod test {
         let x = String::de(&mut buf);
         assert!(buf.is_empty());
         assert_eq!("Hello World!", x);
+
+        let mut buf: &[u8] = &[253, 0, 0, 0, 0, 0, 0, 0, 7];
+        let x = Pair::<i8, u64>::de(&mut buf);
+        assert!(buf.is_empty());
+        assert_eq!(Pair(-3i8, 7u64), x);
     }
 }
