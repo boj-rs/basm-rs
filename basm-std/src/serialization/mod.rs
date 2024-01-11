@@ -8,9 +8,9 @@
 pub struct Pair<T1, T2>(T1, T2);
 
 mod serialize;
-pub use serialize::Ser as Serialize;
+pub use serialize::Ser;
 mod deserialize;
-pub use deserialize::De as Deserialize;
+pub use deserialize::De;
 
 pub unsafe fn eat(ptr_serialized: usize) -> (&'static [u8], usize) {
     const SIZE: usize = core::mem::size_of::<usize>();
