@@ -16,6 +16,11 @@ pub trait Ser {
     }
 }
 
+impl Ser for () {
+    fn ser(&self, _buf: &mut Vec<u8>) {
+    }
+}
+
 macro_rules! impl_int {
     ($($ty:ty)*) => {
         $(

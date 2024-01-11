@@ -6,6 +6,10 @@ pub trait De {
     fn de(buf: &mut &[u8]) -> Self;
 }
 
+impl De for () {
+    fn de(_buf: &mut &[u8]) -> Self {}
+}
+
 macro_rules! impl_int {
     ($($ty:ty)*) => {
         $(
