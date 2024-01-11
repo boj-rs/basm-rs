@@ -14,6 +14,16 @@ macro_rules! impl_int {
                     buf.extend_from_slice(&self.to_be_bytes());
                 }
             }
+            impl Ser for *const $ty {
+                fn ser(&self, buf: &mut Vec<u8>) {
+                    (*self as usize).ser(buf)
+                }
+            }
+            impl Ser for *mut $ty {
+                fn ser(&self, buf: &mut Vec<u8>) {
+                    (*self as usize).ser(buf)
+                }
+            }
         )*
     }
 }

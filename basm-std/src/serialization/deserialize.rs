@@ -16,6 +16,16 @@ macro_rules! impl_int {
                     res
                 }
             }
+            impl De for *const $ty {
+                fn de(buf: &mut &[u8]) -> Self {
+                    usize::de(buf) as Self
+                }
+            }
+            impl De for *mut $ty {
+                fn de(buf: &mut &[u8]) -> Self {
+                    usize::de(buf) as Self
+                }
+            }
         )*
     }
 }
