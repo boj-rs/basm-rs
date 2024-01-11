@@ -5,7 +5,7 @@
 /// 
 /// Note: `(T1, T2)` maps to `std::tuple<T1, T2>`.
 #[derive(Debug, PartialEq, PartialOrd)]
-pub struct Pair<T1, T2>(T1, T2);
+pub struct Pair<T1, T2>(pub T1, pub T2);
 
 mod serialize;
 pub use serialize::Ser;
