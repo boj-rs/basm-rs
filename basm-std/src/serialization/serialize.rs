@@ -3,16 +3,23 @@ use alloc::vec::Vec;
 use super::Pair;
 
 pub trait Ser {
+    /// Serializes the current object and appends it to the end of `buf`.
     fn ser(&self, buf: &mut Vec<u8>);
-    fn ser_len(&self, buf: &mut Vec<u8>) {
-        // We first put a placeholder for length,
-        // which is replaced after serialization is finished.
+    /// Serializes the current object and appends it to the end of `buf`,
+    /// and writes the cumulative length `buf.len() - (len_pos + SIZE)`
+    /// at `buf[len_pos..len_pos + SIZE]`, where `SIZE` is the size of
+    /// `usize` in bytes.
+    fn ser_len(&self, buf: &mut Vec<u8>, len_pos: usize) {
         const SIZE: usize = core::mem::size_of::<usize>();
-        let pos = buf.len();
-        0usize.ser(buf);
+        if buf.len() < len_pos + SIZE {
+            // When the buffer falls short of len_pos,
+            // we first put a placeholder for length,
+            // which is replaced after serialization is finished.
+            buf.resize(len_pos + SIZE, 0);
+        }
         self.ser(buf);
-        let len = buf.len() - (pos + SIZE);
-        buf[pos..pos + SIZE].copy_from_slice(&len.to_be_bytes())
+        let len = buf.len() - (len_pos + SIZE);
+        buf[len_pos..len_pos + SIZE].copy_from_slice(&len.to_be_bytes())
     }
 }
 
