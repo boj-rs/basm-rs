@@ -148,21 +148,20 @@ macro_rules! impl_mod_ops_signed {
             }
             fn modmul(x: $t, y: $t, modulo: $t) -> $t {
                 debug_assert!(modulo > 0);
-                const BITS: usize = core::mem::size_of::<$t>() * 8;
-                if BITS <= 16 {
+                if <$t>::BITS <= 16 {
                     ((x as i32) * (y as i32) % (modulo as i32)) as $t
-                } else if BITS <= 32 {
+                } else if <$t>::BITS <= 32 {
                     ((x as i64) * (y as i64) % (modulo as i64)) as $t
-                } else if BITS <= 64 {
+                } else if <$t>::BITS <= 64 {
                     ((x as i128) * (y as i128) % (modulo as i128)) as $t
-                } else if BITS <= 128 {
+                } else if <$t>::BITS <= 128 {
                     let mut x_tmp = x % modulo;
                     if x_tmp < 0 { x_tmp += modulo; }
                     let mut y_tmp = y % modulo;
                     if y_tmp < 0 { y_tmp += modulo; }
                     modmul::modmul128(x_tmp as u128, y_tmp as u128, modulo as u128) as $t
                 } else {
-                    panic!("Unsupported number of bits: {BITS}")
+                    panic!("Unsupported number of bits: {}", <$t>::BITS)
                 }
             }
         }
@@ -209,17 +208,16 @@ macro_rules! impl_mod_ops_unsigned {
                 }
             }
             fn modmul(x: $t, y: $t, modulo: $t) -> $t {
-                const BITS: usize = core::mem::size_of::<$t>() * 8;
-                if BITS <= 16 {
+                if <$t>::BITS <= 16 {
                     ((x as u32) * (y as u32) % (modulo as u32)) as $t
-                } else if BITS <= 32 {
+                } else if <$t>::BITS <= 32 {
                     ((x as u64) * (y as u64) % (modulo as u64)) as $t
-                } else if BITS <= 64 {
+                } else if <$t>::BITS <= 64 {
                     ((x as u128) * (y as u128) % (modulo as u128)) as $t
-                } else if BITS <= 128 {
+                } else if <$t>::BITS <= 128 {
                     modmul::modmul128(x as u128, y as u128, modulo as u128) as $t
                 } else {
-                    panic!("Unsupported number of bits: {BITS}")
+                    panic!("Unsupported number of bits: {}", <$t>::BITS)
                 }
             }
         }
