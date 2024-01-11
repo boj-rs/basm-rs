@@ -42,52 +42,54 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
         }
     }
     let mangled = super::utils::mangle(sig);
-    let basm_import_mod_mangled: TokenStream = ("basm_import_mod_".to_owned() + &mangled).parse().unwrap();
-    let basm_import_mangled: TokenStream = ("basm_import_".to_owned() + &mangled).parse().unwrap();
+    let basm_import_mod: TokenStream = ("basm_import_mod_".to_owned() + &mangled).parse().unwrap();
+    let basm_import: TokenStream = ("basm_import_".to_owned() + &mangled).parse().unwrap();
+    let internals: TokenStream = ("internals_".to_owned() + &mangled).parse().unwrap();
     let fn_name = &sig.ident;
     let return_type: TokenStream = match &sig.output {
         syn::ReturnType::Default => { "()".parse().unwrap() }
         syn::ReturnType::Type(_x, y) => { quote!(#y) }
     };
     let out = quote! {
-        mod #basm_import_mod_mangled {
-            extern crate basm_std;
-            use alloc::vec::Vec;
-            use basm_std::serialization::{Ser, De, eat, Pair};
-            use core::mem::transmute;
+        mod #basm_import_mod {
+            mod #internals {
+                pub static mut SER_VEC: alloc::vec::Vec::<u8> = alloc::vec::Vec::<u8>::new();
+                pub static mut PTR_FN: usize = 0;
+            
+                #[cfg(target_arch = "x86_64")]
+                #[inline(never)]
+                pub unsafe extern "win64" fn free() { SER_VEC.clear() }
+            
+                #[cfg(not(target_arch = "x86_64"))]
+                #[inline(never)]
+                pub unsafe extern "C" fn free() { SER_VEC.clear() }
+            
+                #[cfg(target_arch = "x86_64")]
+                #[no_mangle]
+                #[inline(never)]
+                pub unsafe extern "win64" fn #basm_import(ptr_fn: usize) { PTR_FN = ptr_fn; }
+            
+                #[cfg(not(target_arch = "x86_64"))]
+                #[no_mangle]
+                #[inline(never)]
+                pub unsafe extern "C" fn #basm_import(ptr_fn: usize) { PTR_FN = ptr_fn; }
+            }
         
-            static mut SER_VEC: Vec::<u8> = Vec::<u8>::new();
-            static mut PTR_FN: usize = 0;
-        
-            #[cfg(target_arch = "x86_64")]
-            #[inline(never)]
-            unsafe extern "win64" fn free() { SER_VEC.clear() }
-        
-            #[cfg(not(target_arch = "x86_64"))]
-            #[inline(never)]
-            unsafe extern "C" fn free() { SER_VEC.clear() }
-        
-            #[cfg(target_arch = "x86_64")]
-            #[no_mangle]
-            #[inline(never)]
-            unsafe extern "win64" fn #basm_import_mangled(ptr_fn: usize) { PTR_FN = ptr_fn; }
-        
-            #[cfg(not(target_arch = "x86_64"))]
-            #[no_mangle]
-            #[inline(never)]
-            unsafe extern "C" fn #basm_import_mangled(ptr_fn: usize) { PTR_FN = ptr_fn; }
-        
+            use super::*;
             pub #sig {
+                extern crate basm_std;
+                use basm_std::serialization::{Ser, De, eat, Pair};    
+                use core::mem::transmute;
                 unsafe {
                     #[cfg(target_arch = "x86_64")]
-                    let ptr_fn: extern "win64" fn(usize) -> usize = transmute(PTR_FN);
+                    let ptr_fn: extern "win64" fn(usize) -> usize = transmute(#internals::PTR_FN);
                     #[cfg(not(target_arch = "x86_64"))]
-                    let ptr_fn: extern "C" fn(usize) -> usize = transmute(PTR_FN);
+                    let ptr_fn: extern "C" fn(usize) -> usize = transmute(#internals::PTR_FN);
             
-                    assert!(SER_VEC.is_empty());
-                    #( #arg_names.ser_len(&mut SER_VEC, 0); )*
-                    (free as usize).ser(&mut SER_VEC);
-                    let ptr_serialized = ptr_fn(SER_VEC.as_ptr() as usize);
+                    assert!(#internals::SER_VEC.is_empty());
+                    #( #arg_names.ser_len(&mut #internals::SER_VEC, 0); )*
+                    (#internals::free as usize).ser(&mut #internals::SER_VEC);
+                    let ptr_serialized = ptr_fn(#internals::SER_VEC.as_ptr() as usize);
             
                     let (mut buf, ptr_free_remote): (&'static [u8], usize) = eat(ptr_serialized);
                     #[cfg(target_arch = "x86_64")]
@@ -102,7 +104,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
                 }
             }
         }
-        use #basm_import_mod_mangled::#fn_name;
+        use #basm_import_mod::#fn_name;
     };
     out
 }
