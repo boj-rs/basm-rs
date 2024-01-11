@@ -4,6 +4,16 @@ use super::Pair;
 
 pub trait Ser {
     fn ser(&self, buf: &mut Vec<u8>);
+    fn ser_len(&self, buf: &mut Vec<u8>) {
+        // We first put a placeholder for length,
+        // which is replaced after serialization is finished.
+        const SIZE: usize = core::mem::size_of::<usize>();
+        let pos = buf.len();
+        0usize.ser(buf);
+        self.ser(buf);
+        let len = buf.len() - (pos + SIZE);
+        buf[pos..pos + SIZE].copy_from_slice(&len.to_be_bytes())
+    }
 }
 
 macro_rules! impl_int {
