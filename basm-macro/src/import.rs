@@ -4,16 +4,28 @@ extern crate quote;
 extern crate syn;
 
 use proc_macro::TokenStream;
+use syn::{Signature, parse::{Parse, ParseStream}, Result, Token, parse_macro_input};
 
-pub fn import_impl(_item: TokenStream) -> TokenStream {
-    for x in _item.into_iter() {
-        use proc_macro::TokenTree::*;
-        match x {
-            Group(y) => println!("Group {y}"),
-            Ident(y) => println!("Ident {y}"),
-            Punct(y) => println!("Punct {y}"),
-            Literal(y) => println!("Literal {y}")
+struct VecSignature {
+    sigs: Vec<Signature>
+}
+
+impl Parse for VecSignature {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut sigs = vec![];
+        while !input.is_empty() {
+            let sig: Signature = input.parse()?;
+            let _semi: Token![;] = input.parse()?;
+            sigs.push(sig);
         }
+        Ok(Self { sigs })
+    }
+}
+
+pub fn import_impl(input: TokenStream) -> TokenStream {
+    let vecsig: VecSignature = parse_macro_input!(input);
+    for sig in vecsig.sigs {
+        super::utils::verify_signature(&sig);
     }
     "".parse().unwrap()
 }
