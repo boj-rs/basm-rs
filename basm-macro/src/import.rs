@@ -1,10 +1,9 @@
-extern crate proc_macro;
 extern crate proc_macro2;
 extern crate quote;
 extern crate syn;
 
-use proc_macro::TokenStream;
-use syn::{Signature, parse::{Parse, ParseStream}, Result, Token, parse_macro_input};
+use proc_macro2::TokenStream;
+use syn::{Signature, parse::{Parse, ParseStream}, Result, Token};
 
 struct VecSignature {
     sigs: Vec<Signature>
@@ -23,9 +22,19 @@ impl Parse for VecSignature {
 }
 
 pub fn import_impl(input: TokenStream) -> TokenStream {
-    let vecsig: VecSignature = parse_macro_input!(input);
+    let vecsig: VecSignature = syn::parse2(input).unwrap();
     for sig in vecsig.sigs {
         super::utils::verify_signature(&sig);
+        for tok in sig.inputs {
+            match tok {
+                syn::FnArg::Receiver(_) => {
+                    // self, &self, &mut self are not allowed
+                    panic!();
+                }
+                syn::FnArg::Typed(_pattype) => {
+                }
+            }
+        }
     }
     "".parse().unwrap()
 }
