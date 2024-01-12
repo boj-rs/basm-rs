@@ -88,9 +88,10 @@ impl Mangle for TFunction {
     fn mangle(&self) -> String {
         let mut args_mangled = vec![];
         for x in self.args.iter() {
+            args_mangled.push("_".into());
             args_mangled.push(x.mangle());
         }
-        let args_mangled_all = args_mangled.join("_");
-        format!("{0}_{1}_{2}_{3}", self.ident.mangle(), self.args.len(), args_mangled_all, self.output.mangle())
+        let args_mangled_all = args_mangled.join("");
+        format!("{0}_{1}{2}_{3}", self.ident.mangle(), self.args.len(), args_mangled_all, self.output.mangle())
     }
 }
