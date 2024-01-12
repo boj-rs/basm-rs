@@ -30,7 +30,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
     let mangled = tfn.mangle();
 
     let basm_import_mod: TokenStream = ("basm_import_mod_".to_owned() + &mangled).parse().unwrap();
-    let basm_import: TokenStream = ("basm_import_".to_owned() + &mangled).parse().unwrap();
+    let basm_import: TokenStream = ("_basm_import_".to_owned() + &mangled).parse().unwrap();
     let internals: TokenStream = ("internals_".to_owned() + &mangled).parse().unwrap();
     let fn_name = &tfn.ident;
     let return_type: TokenStream = if let TBase::Prim(TPrimitive::Unit) = &tfn.output.ty {
