@@ -71,9 +71,16 @@ impl Mangle for TOutput {
     }
 }
 
+impl Mangle for Ident {
+    fn mangle(&self) -> String {
+        let x = self.to_string();
+        format!("{0}_{1}", x.len(), x)
+    }
+}
+
 impl Mangle for TArg {
     fn mangle(&self) -> String {
-        format!("{0}_{1}", self.ident, self.ty.mangle())
+        format!("{0}_{1}", self.ident.mangle(), self.ty.mangle())
     }
 }
 
@@ -84,6 +91,6 @@ impl Mangle for TFunction {
             args_mangled.push(x.mangle());
         }
         let args_mangled_all = args_mangled.join("_");
-        format!("{0}_{1}_{2}", self.ident, args_mangled_all, self.output.mangle())
+        format!("{0}_{1}_{2}_{3}", self.ident.mangle(), self.args.len(), args_mangled_all, self.output.mangle())
     }
 }
