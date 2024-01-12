@@ -23,8 +23,8 @@ impl Mangle for TPrimitive {
             Self::Integer(sp, ty) => {
                 match sp {
                     PtrSpecifier::None => "",
-                    PtrSpecifier::PtrConst => "ptr",
-                    PtrSpecifier::PtrMut => "ptrmut"
+                    PtrSpecifier::PtrConst => "ptr_",
+                    PtrSpecifier::PtrMut => "ptrmut_"
                 }.to_owned() + &ty.mangle()
             },
             Self::String => "string".into(),
@@ -59,8 +59,8 @@ impl Mangle for TInput {
     fn mangle(&self) -> String {
         match self.borrow {
             BorrowSpecifier::None => "",
-            BorrowSpecifier::BorrowConst => "bor",
-            BorrowSpecifier::BorrowMut => "bormut"
+            BorrowSpecifier::BorrowConst => "bor_",
+            BorrowSpecifier::BorrowMut => "bormut_"
         }.to_owned() + &self.ty.mangle()        
     }
 }
