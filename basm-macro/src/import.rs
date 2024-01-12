@@ -1,10 +1,8 @@
-extern crate proc_macro2;
-extern crate quote;
-extern crate syn;
-
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Signature, parse::{Parse, ParseStream}, Result, Token};
+
+use super::types::{TFunction, Mangle};
 
 struct VecSignature {
     sigs: Vec<Signature>
@@ -23,29 +21,18 @@ impl Parse for VecSignature {
 }
 
 fn import_impl_single(sig: &Signature) -> TokenStream {
-    super::utils::verify_signature(&sig);
-    let mut arg_names = vec![];
-    for tok in sig.inputs.iter() {
-        match tok.clone() {
-            syn::FnArg::Receiver(_) => {
-                // self, &self, &mut self are not allowed
-                panic!();
-            }
-            syn::FnArg::Typed(pattype) => {
-                let (pat, ty) = (*pattype.pat, *pattype.ty);
-                arg_names.push(match pat {
-                    syn::Pat::Ident(x) => { x.ident }
-                    _ => { panic!() }
-                });
-                let _canonical_ty = super::utils::canonicalize_type(&ty);
-            }
-        }
-    }
-    let mangled = super::utils::mangle(sig);
+    super::utils::verify_signature(sig);
+    let tfn = match TFunction::try_from(sig) {
+        Ok(x) => x,
+        Err(x) => panic!("{}", x)
+    };
+    let arg_names = tfn.arg_names();
+    let mangled = tfn.mangle();
+
     let basm_import_mod: TokenStream = ("basm_import_mod_".to_owned() + &mangled).parse().unwrap();
     let basm_import: TokenStream = ("basm_import_".to_owned() + &mangled).parse().unwrap();
     let internals: TokenStream = ("internals_".to_owned() + &mangled).parse().unwrap();
-    let fn_name = &sig.ident;
+    let fn_name = &tfn.ident;
     let return_type: TokenStream = match &sig.output {
         syn::ReturnType::Default => { "()".parse().unwrap() }
         syn::ReturnType::Type(_x, y) => { quote!(#y) }
