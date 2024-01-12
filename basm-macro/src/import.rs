@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Signature, parse::{Parse, ParseStream}, Result, Token};
 
-use super::types::{TFunction, Mangle};
+use super::types::{TBase, TFunction, TPrimitive, Mangle};
 
 struct VecSignature {
     sigs: Vec<Signature>
@@ -33,9 +33,13 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
     let basm_import: TokenStream = ("basm_import_".to_owned() + &mangled).parse().unwrap();
     let internals: TokenStream = ("internals_".to_owned() + &mangled).parse().unwrap();
     let fn_name = &tfn.ident;
-    let return_type: TokenStream = match &sig.output {
-        syn::ReturnType::Default => { "()".parse().unwrap() }
-        syn::ReturnType::Type(_x, y) => { quote!(#y) }
+    let return_type: TokenStream = if let TBase::Prim(TPrimitive::Unit) = &tfn.output.ty {
+        "<()>".parse().unwrap()
+    } else {
+        match &sig.output {
+            syn::ReturnType::Default => { "<()>".parse().unwrap() }
+            syn::ReturnType::Type(_x, y) => { quote!(#y) }
+        }
     };
     let out = quote! {
         mod #basm_import_mod {

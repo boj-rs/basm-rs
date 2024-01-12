@@ -1,4 +1,5 @@
 use super::*;
+use quote::quote;
 
 fn try_parse_ident(value: &syn::Type) -> Result<String, String> {
     let syn::Type::Path(x) = value else {
@@ -89,8 +90,14 @@ impl TryFrom<&syn::Type> for TPrimitive {
                 "String" => Ok(Self::String),
                 _ => Err("Unsupported primitive token ".to_owned() + &x)
             }
+        } else if let syn::Type::Tuple(x) = value {
+            if x.elems.is_empty() {
+                Ok(Self::Unit)
+            } else {
+                Err(format!("Failed to parse {}; note that tuples are not yet supported", quote!(#value)))
+            }
         } else {
-            Err("Failed to parse TPrimitive".into())
+            Err(format!("Failed to parse TPrimitive {}", quote!(#value)))
         }
     }
 }
