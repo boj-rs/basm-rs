@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Signature, parse::{Parse, ParseStream}, Result, Token};
 
-use super::types::{TBase, TFunction, TPrimitive, Mangle};
+use super::types::{TFunction, Mangle};
 
 struct VecSignature {
     sigs: Vec<Signature>
@@ -33,13 +33,9 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
     let basm_import: TokenStream = ("_basm_import_".to_owned() + &mangled).parse().unwrap();
     let internals: TokenStream = ("internals_".to_owned() + &mangled).parse().unwrap();
     let fn_name = &tfn.ident;
-    let return_type: TokenStream = if let TBase::Prim(TPrimitive::Unit) = &tfn.output.ty {
-        "<()>".parse().unwrap()
-    } else {
-        match &sig.output {
-            syn::ReturnType::Default => { "<()>".parse().unwrap() }
-            syn::ReturnType::Type(_x, y) => { quote!(#y) }
-        }
+    let return_type: TokenStream = match &sig.output {
+        syn::ReturnType::Default => { "()".parse().unwrap() }
+        syn::ReturnType::Type(_x, y) => { quote!(#y) }
     };
     let out = quote! {
         mod #basm_import_mod {
@@ -88,7 +84,8 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
                     #[cfg(not(target_arch = "x86_64"))]
                     let free_remote: extern "C" fn() -> () = transmute(ptr_free_remote);
         
-                    let out = #return_type::de(&mut buf);
+                    type return_type = #return_type;
+                    let out = return_type::de(&mut buf);
                     assert!(buf.is_empty());
                     free_remote();
                     out
