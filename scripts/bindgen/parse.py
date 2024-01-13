@@ -125,10 +125,13 @@ def TBase(parser):
 
 def TInput(parser):
     if parser.try_match_consume_token("bor"):
-        return "const {0}&".format(TBase(parser))
+        out = TBase(parser)
+        return ("const {0}&".format(out), out)
     if parser.try_match_consume_token("bormut"):
-        return "{0}&".format(TBase(parser))
-    return TBase(parser)
+        out = TBase(parser)
+        return ("{0}&".format(out), out)        
+    out = TBase(parser)
+    return (out, out)
 
 def TOutput(parser):
     return TBase(parser)
@@ -182,4 +185,4 @@ if __name__ == '__main__':
     print(Signature("_basm_export_4_init_2_1_t_prim_i32_1_n_prim_i32_prim_unit"))
     print(Signature("_basm_export_4_game_0_prim_unit"))
     print(Signature("_basm_import_5_guess_1_1_b_prim_string_pair_prim_i32_prim_i32"))
-    print(Signature("_basm_import_8_test_ptr_2_1_x_prim_ptr_usize_1_y_vec_pair_prim_i8_prim_u64_prim_ptrmut_u8"))
+    print(Signature("_basm_import_8_test_ptr_3_1_a_bor_vec_prim_i16_1_x_prim_ptr_usize_1_y_vec_pair_prim_i8_prim_u64_prim_ptrmut_u8"))

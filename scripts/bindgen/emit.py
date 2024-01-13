@@ -5,15 +5,46 @@ else:
 
 def emit_export(sig: Signature, offset: int):
     args_in_cpp_syntax = ", ".join(
-        ["{ty} {ident}".format(ty = ty, ident = ident) for (ident, ty) in sig.args]
+        ["{ty} arg{id}".format(ty = ty, id = i) for (i, (_ident, (ty, _ty_pure))) in enumerate(sig.args)]
     )
-    template = "\n".join([
+    if len(sig.args) == 0:
+        arg_ser = None
+    else:
+        arg_ser = "\n".join(
+            [r"    do_ser<{ty_pure}>(s_buf, arg{id});".format(ty_pure = ty_pure, id = i)
+                for (i, (_ident, (_ty, ty_pure))) in enumerate(sig.args)]
+        )
+    if sig.output == "void":
+        out_de = None
+        return_out = None
+    else:
+        out_de = r"    {output} out = do_de<{output}>(ptr_serialized);"
+        return_out = r"    return out;"
+    template = "\n".join([x for x in [
         r"{output} {ident}({args_in_cpp_syntax}) {{",
-        r"    // TODO",
+        r"    static std::vector<uint8_t> s_buf;",
+        r"    struct basm_free_impl {{",
+        r"        static void free() {{",
+        r"            s_buf.clear();",
+        r"        }}",
+        r"    }};",
+        r"",
+        r"    do_ser<size_t>(s_buf, 0);",
+        arg_ser,
+        r"    do_ser<size_t>(s_buf, (size_t) basm_free_impl::free);",
+        r"    do_ser_end(s_buf);",
+        r"    size_t ptr_serialized = ((size_t (BASMCALL *)(size_t))(BASM_LOADER_IMAGEBASE + {offset}))((size_t) s_buf.data());",
+        r"",
+        r"    do_de<size_t>(ptr_serialized);",
+        out_de,
+        r"    ((void (BASMCALL *)()) do_de<size_t>(ptr_serialized))();",
+        return_out,
         r"}}"
-    ]) + "\n"
+    ] if x]) + "\n"
     out = template.format(
+        offset = offset,
         args_in_cpp_syntax = args_in_cpp_syntax,
+        arg_ser = arg_ser,
         ident = sig.ident,
         output = sig.output
     )
@@ -21,8 +52,8 @@ def emit_export(sig: Signature, offset: int):
 
 def emit_import(sig: Signature, offset: int):
     arg_de = "\n".join(
-        [r"    {ty} arg{id} = do_de<{ty}>(ptr_serialized);".format(ty = ty, id = i)
-            for (i, (_ident, ty)) in enumerate(sig.args)]
+        [r"    {ty} arg{id} = do_de<{ty_pure}>(ptr_serialized);".format(ty = ty, ty_pure = ty_pure, id = i)
+            for (i, (_ident, (ty, ty_pure))) in enumerate(sig.args)]
     )
     arg_names = ", ".join(
         ["arg{id}".format(id = i) for i in range(len(sig.args))]
@@ -90,6 +121,6 @@ if __name__ == '__main__':
         (Signature("_basm_export_4_init_2_1_t_prim_i32_1_n_prim_i32_prim_unit"), 2083),
         (Signature("_basm_export_4_game_0_prim_unit"), 1142),
         (Signature("_basm_import_5_guess_1_1_b_prim_string_pair_prim_i32_prim_i32"), 648),
-        (Signature("_basm_import_8_test_ptr_2_1_x_prim_ptr_usize_1_y_vec_pair_prim_i8_prim_u64_prim_ptrmut_u8"), 94576)
+        (Signature("_basm_import_8_test_ptr_3_1_a_bor_vec_prim_i16_1_x_prim_ptr_usize_1_y_vec_pair_prim_i8_prim_u64_prim_ptrmut_u8"), 94576)
     ]
     print(emit_all(sig_offset_list))

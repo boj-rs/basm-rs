@@ -210,7 +210,7 @@ template <typename T>
 class ser_impl_raw {
     public:
         ser_impl_raw(std::vector<uint8_t>& buf, T val) {
-            for (auto i = 0; i < sizeof(T); i++) buf.emplace_back((uint8_t) (val >> ((sizeof(T) - i - 1) * 8)) & 0xFF);
+            for (size_t i = 0; i < sizeof(T); i++) buf.emplace_back((uint8_t) (val >> ((sizeof(T) - i - 1) * 8)) & 0xFF);
         }
 };
 
@@ -266,7 +266,7 @@ class de_impl_raw {
     public:
         static T impl_de(size_t& ptr) {
             T val = 0;
-            for (auto i = 0; i < sizeof(T); i++) val = (val << 8) | (T) *((uint8_t *)(ptr++));
+            for (size_t i = 0; i < sizeof(T); i++) val = (val << 8) | (T) *((uint8_t *)(ptr++));
             return val;
         }
 };
