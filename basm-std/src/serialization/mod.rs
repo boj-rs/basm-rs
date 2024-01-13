@@ -12,12 +12,9 @@ pub use serialize::Ser;
 mod deserialize;
 pub use deserialize::De;
 
-pub unsafe fn eat(ptr_serialized: usize) -> (&'static [u8], usize) {
+pub unsafe fn eat(ptr_serialized: usize) -> &'static [u8] {
     const SIZE: usize = core::mem::size_of::<usize>();
     let mut buf = core::slice::from_raw_parts(ptr_serialized as *const u8, SIZE);
     let len = usize::de(&mut buf);
-    let remain = core::slice::from_raw_parts((ptr_serialized + SIZE) as *const u8, len + SIZE);
-    let mut buf = &remain[len..];
-    let ptr_fn = usize::de(&mut buf);
-    (&remain[..len], ptr_fn)
+    core::slice::from_raw_parts((ptr_serialized + SIZE) as *const u8, len)
 }
