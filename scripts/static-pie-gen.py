@@ -136,6 +136,7 @@ if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in templat
 # exports
 exports_dict = loader_fdict.get("exports", dict())
 exports_cpp = []
+imports_list = []
 for e_name, e_offset in exports_dict.items():
     prefix = "_basm_export_"
     if e_name.startswith(prefix):
@@ -143,11 +144,11 @@ for e_name, e_offset in exports_dict.items():
         e_name = e_name.split("_")
         e_name = [codecs.decode(x, 'hex').decode('utf8') for x in e_name]
         e_bindgen = bindgen_cpp.synthesize(e_name, e_offset)
+        exports_cpp.append(e_bindgen)
     else:
         sig = bindgen.parse.Signature(e_name)
-        e_bindgen = bindgen.emit.emit(sig)
-    exports_cpp.append(e_bindgen)
-exports_cpp = "\n".join(exports_cpp)
+        imports_list.append((sig, e_offset))
+exports_cpp = "\n".join(exports_cpp + [bindgen.emit.emit_all(imports_list)])
 
 out = None
 for each_template_path in template_candidates:
