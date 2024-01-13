@@ -148,7 +148,18 @@ def TFunction(parser):
 class Signature:
     EXPORT = "export"
     IMPORT = "import"
-    def __init__(self, bindgen_type, ident, args, output):
+    def __init__(self, mangled):
+        parser = Parser(mangled)
+        if parser.try_match_consume("_basm_export_"):
+            bindgen_type = Signature.EXPORT
+        elif parser.try_match_consume("_basm_import_"):
+            bindgen_type = Signature.IMPORT
+        else:
+            raise Error("Bindgen: unknown bindgen type")
+        ident, args, output = TFunction(parser)
+        parser.ensure_empty()
+
+        self.mangled = mangled
         self.bindgen_type = bindgen_type
         self.ident = ident
         self.args = args
@@ -167,20 +178,8 @@ class Signature:
             output = self.output
         ) + "\n"
 
-def demangle(mangled):
-    parser = Parser(mangled)
-    if parser.try_match_consume("_basm_export_"):
-        bindgen_type = Signature.EXPORT
-    elif parser.try_match_consume("_basm_import_"):
-        bindgen_type = Signature.IMPORT
-    else:
-        raise Error("Bindgen: unknown bindgen type")
-    ident, args, output = TFunction(parser)
-    parser.ensure_empty()
-    return Signature(bindgen_type, ident, args, output)
-
 if __name__ == '__main__':
-    print(demangle("_basm_export_4_init_2_1_t_prim_i32_1_n_prim_i32_prim_unit"))
-    print(demangle("_basm_export_4_game_0_prim_unit"))
-    print(demangle("_basm_import_5_guess_1_1_b_prim_string_pair_prim_i32_prim_i32"))
-    print(demangle("_basm_import_8_test_ptr_2_1_x_prim_ptr_usize_1_y_vec_pair_prim_i8_prim_u64_prim_ptrmut_u8"))
+    print(Signature("_basm_export_4_init_2_1_t_prim_i32_1_n_prim_i32_prim_unit"))
+    print(Signature("_basm_export_4_game_0_prim_unit"))
+    print(Signature("_basm_import_5_guess_1_1_b_prim_string_pair_prim_i32_prim_i32"))
+    print(Signature("_basm_import_8_test_ptr_2_1_x_prim_ptr_usize_1_y_vec_pair_prim_i8_prim_u64_prim_ptrmut_u8"))
