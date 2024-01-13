@@ -2,7 +2,6 @@
 import base64
 import base91
 import bindgen.parse, bindgen.emit
-import bindgen_cpp
 import codecs
 import json
 import lzma
