@@ -63,12 +63,13 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
             use super::*;
             unsafe fn basm_export_impl(ptr_serialized: usize) -> usize {
                 extern crate basm_std;
-                use basm_std::serialization::{Ser, De, eat};
+                use basm_std::serialization::{Ser, De};
 
-                let mut buf: &'static [u8] = eat(ptr_serialized);
+                let mut buf: &'static [u8] = basm_std::serialization::eat(ptr_serialized);
                 #( let #arg_muts #arg_names = #arg_pure_types::de(&mut buf); )*
                 let ptr_free_remote = usize::de(&mut buf);
                 assert!(buf.is_empty());
+                basm_std::serialization::call_free(ptr_free_remote);
                 let out = #fn_name(#( #arg_borrows #arg_names ),*);
 
                 assert!(#internals::SER_VEC.is_empty());
