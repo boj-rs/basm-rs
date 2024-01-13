@@ -135,7 +135,7 @@ def TOutput(parser):
 
 def TArg(parser):
     ident = parser.ident()
-    ty = TBase(parser)
+    ty = TInput(parser)
     return (ident, ty)
 
 def TFunction(parser):
