@@ -63,6 +63,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
             }
         
             use super::*;
+            #[allow(clippy::ptr_arg)]
             pub #sig {
                 extern crate basm_std;
                 use basm_std::serialization::{Ser, De};

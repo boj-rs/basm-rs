@@ -13,7 +13,9 @@ use syn::parse_macro_input;
 
 #[proc_macro_attribute]
 pub fn basm_export(attr: TokenStream, item: TokenStream) -> TokenStream {
-    export::export_impl(attr, item)
+    let attr = parse_macro_input!(attr);
+    let item = parse_macro_input!(item);
+    export::export_impl(attr, item).into()
 }
 
 #[proc_macro]

@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use syn::Ident;
 
 pub enum TInteger {
@@ -73,6 +74,20 @@ pub trait Mangle {
 impl TFunction {
     pub fn arg_names(&self) -> Vec<Ident> {
         self.args.iter().map(|x| x.ident.clone()).collect()
+    }
+    pub fn arg_borrows(&self) -> Vec<TokenStream> {
+        self.args.iter().map(|x| match x.ty.borrow {
+            BorrowSpecifier::None => "",
+            BorrowSpecifier::BorrowConst => "&",
+            BorrowSpecifier::BorrowMut => "&mut"
+        }.parse().unwrap()).collect()
+    }
+    pub fn arg_muts(&self) -> Vec<TokenStream> {
+        self.args.iter().map(|x| match x.ty.borrow {
+            BorrowSpecifier::None => "",
+            BorrowSpecifier::BorrowConst => "",
+            BorrowSpecifier::BorrowMut => "mut"
+        }.parse().unwrap()).collect()
     }
 }
 
