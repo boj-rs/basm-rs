@@ -1,4 +1,7 @@
-from parse import Signature
+if __name__ == '__main__':
+    from parse import Signature
+else:
+    from .parse import Signature
 
 def emit_export(sig: Signature):
     args_in_cpp_syntax = ", ".join(

@@ -1,6 +1,7 @@
 ﻿import array
 import base64
 import base91
+import bindgen.parse, bindgen.emit
 import bindgen_cpp
 import codecs
 import json
@@ -137,11 +138,14 @@ exports_dict = loader_fdict.get("exports", dict())
 exports_cpp = []
 for e_name, e_offset in exports_dict.items():
     prefix = "_basm_export_"
-    assert e_name.startswith(prefix)
-    e_name = e_name[len(prefix):]
-    e_name = e_name.split("_")
-    e_name = [codecs.decode(x, 'hex').decode('utf8') for x in e_name]
-    e_bindgen = bindgen_cpp.synthesize(e_name, e_offset)
+    if e_name.startswith(prefix):
+        e_name = e_name[len(prefix):]
+        e_name = e_name.split("_")
+        e_name = [codecs.decode(x, 'hex').decode('utf8') for x in e_name]
+        e_bindgen = bindgen_cpp.synthesize(e_name, e_offset)
+    else:
+        sig = bindgen.parse.Signature(e_name)
+        e_bindgen = bindgen.emit.emit(sig)
     exports_cpp.append(e_bindgen)
 exports_cpp = "\n".join(exports_cpp)
 
