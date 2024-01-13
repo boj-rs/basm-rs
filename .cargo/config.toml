@@ -2,4 +2,4 @@
 rustflags = ["-Z", "export-executable-symbols", "-C", "target-feature=+avx,+avx2,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+fma,+f16c,+aes", "-C", "relocation-model=pie", "-C", "target-cpu=haswell"]
 
 [target.wasm32-unknown-unknown]
-rustflags = ["-Z", "export-executable-symbols", "-C", "link-args=-z stack-size=67108864"]
+rustflags = ["-C", "link-args=-z stack-size=67108864"]
