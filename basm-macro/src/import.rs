@@ -65,31 +65,20 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
             use super::*;
             pub #sig {
                 extern crate basm_std;
-                use basm_std::serialization::{Ser, De, eat, Pair};    
-                use core::mem::transmute;
+                use basm_std::serialization::{Ser, De};
                 unsafe {
-                    #[cfg(target_arch = "x86_64")]
-                    let ptr_fn: extern "win64" fn(usize) -> usize = transmute(#internals::PTR_FN);
-                    #[cfg(not(target_arch = "x86_64"))]
-                    let ptr_fn: extern "C" fn(usize) -> usize = transmute(#internals::PTR_FN);
-            
                     assert!(#internals::SER_VEC.is_empty());
                     #( #arg_names.ser_len(&mut #internals::SER_VEC, 0); )*
                     (#internals::free as usize).ser_len(&mut #internals::SER_VEC, 0);
-                    let ptr_serialized = ptr_fn(#internals::SER_VEC.as_ptr() as usize);
+                    let ptr_serialized = basm_std::serialization::call_import(#internals::PTR_FN, #internals::SER_VEC.as_ptr() as usize);
             
-                    let mut buf: &'static [u8] = eat(ptr_serialized);
+                    let mut buf: &'static [u8] = basm_std::serialization::eat(ptr_serialized);
                     type return_type = #return_type;
                     let out = return_type::de(&mut buf);
                     let ptr_free_remote = usize::de(&mut buf);
                     assert!(buf.is_empty());
 
-                    #[cfg(target_arch = "x86_64")]
-                    let free_remote: extern "win64" fn() -> () = transmute(ptr_free_remote);
-                    #[cfg(not(target_arch = "x86_64"))]
-                    let free_remote: extern "C" fn() -> () = transmute(ptr_free_remote);
-
-                    free_remote();
+                    basm_std::serialization::call_free(ptr_free_remote);
                     out
                 }
             }

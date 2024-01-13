@@ -18,3 +18,25 @@ pub unsafe fn eat(ptr_serialized: usize) -> &'static [u8] {
     let len = usize::de(&mut buf);
     core::slice::from_raw_parts((ptr_serialized + SIZE) as *const u8, len)
 }
+
+/// Calls external function `ptr_fn_remote: fn(usize) -> usize` on function implementation problems.
+/// Intended to be internal use only.
+pub unsafe fn call_import(ptr_fn_remote: usize, ptr_serialized: usize) -> usize {
+    #[cfg(target_arch = "x86_64")]
+    let fn_remote: extern "win64" fn(usize) -> usize = core::mem::transmute(ptr_fn_remote);
+    #[cfg(not(target_arch = "x86_64"))]
+    let fn_remote: extern "C" fn(usize) -> usize = core::mem::transmute(ptr_fn_remote);
+
+    fn_remote(ptr_serialized)
+}
+
+/// Calls external function `ptr_free_remote: fn() -> ()` on function implementation problems.
+/// Intended to be internal use only.
+pub unsafe fn call_free(ptr_free_remote: usize) {
+    #[cfg(target_arch = "x86_64")]
+    let free_remote: extern "win64" fn() -> () = core::mem::transmute(ptr_free_remote);
+    #[cfg(not(target_arch = "x86_64"))]
+    let free_remote: extern "C" fn() -> () = core::mem::transmute(ptr_free_remote);
+
+    free_remote()
+}
