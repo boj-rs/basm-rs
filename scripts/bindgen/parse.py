@@ -134,28 +134,50 @@ def TOutput(parser):
     return TBase(parser)
 
 def TArg(parser):
-    name = parser.ident()
+    ident = parser.ident()
     ty = TBase(parser)
-    return (name, ty)
+    return (ident, ty)
 
 def TFunction(parser):
-    fn_name = parser.ident()
+    ident = parser.ident()
     num_args = int(parser.token())
     args = [TArg(parser) for _ in range(num_args)]
-    out = TOutput(parser)
-    return (fn_name, args, out)
+    output = TOutput(parser)
+    return (ident, args, output)
+
+class Signature:
+    EXPORT = "export"
+    IMPORT = "import"
+    def __init__(self, bindgen_type, ident, args, output):
+        self.bindgen_type = bindgen_type
+        self.ident = ident
+        self.args = args
+        self.output = output
+
+    def __str__(self):
+        return "\n".join([
+            "bindgen_type: {bindgen_type}",
+            "ident: {ident}",
+            "args: {args}",
+            "output: {output}"
+        ]).format(
+            bindgen_type = self.bindgen_type,
+            ident = self.ident,
+            args = self.args,
+            output = self.output
+        ) + "\n"
 
 def demangle(mangled):
     parser = Parser(mangled)
-    if parser.try_match_consume("_basm_export_"):    
-        bindgen_type = "export"
+    if parser.try_match_consume("_basm_export_"):
+        bindgen_type = Signature.EXPORT
     elif parser.try_match_consume("_basm_import_"):
-        bindgen_type = "import"
+        bindgen_type = Signature.IMPORT
     else:
         raise Error("Bindgen: unknown bindgen type")
-    out = TFunction(parser)
+    ident, args, output = TFunction(parser)
     parser.ensure_empty()
-    return (bindgen_type, out)
+    return Signature(bindgen_type, ident, args, output)
 
 if __name__ == '__main__':
     print(demangle("_basm_export_4_init_2_1_t_prim_i32_1_n_prim_i32_prim_unit"))
