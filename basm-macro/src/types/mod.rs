@@ -11,7 +11,8 @@ pub enum TInteger {
     U16,
     U32,
     U64,
-    Usize
+    Usize,
+    Bool
 }
 
 pub enum PtrSpecifier {

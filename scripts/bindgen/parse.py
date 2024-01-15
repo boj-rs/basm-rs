@@ -82,7 +82,8 @@ def TInteger(parser):
         "u16": "uint16_t",
         "u32": "uint32_t",
         "u64": "uint64_t",
-        "usize": "size_t"
+        "usize": "size_t",
+        "bool": "bool"
     }
     for k, v in types.items():
         out = parser.try_match_consume_token(k)

@@ -209,6 +209,13 @@ class ser_impl_raw {
         }
 };
 
+class ser_impl_bool {
+    public:
+        ser_impl_bool(std::vector<uint8_t>& buf, bool val) {
+            buf.emplace_back(val ? 1 : 0);
+        }
+};
+
 template <typename T1, typename T2>
 class ser_impl_pair {
     public:
@@ -226,6 +233,7 @@ class ser_impl_vec {
             for (auto e : val) do_ser(buf, e);
         }
 };
+template <> struct ser<bool> { using impl = ser_impl_bool; };
 
 SER_INT(char);
 SER_INT(unsigned char);
@@ -237,6 +245,8 @@ SER_INT(long int);
 SER_INT(unsigned long int);
 SER_INT(long long int);
 SER_INT(unsigned long long int);
+SER_RAW(const bool*);
+SER_RAW(bool*);
 template <typename T1, typename T2> struct ser<std::pair<T1, T2>> { using impl = ser_impl_pair<T1, T2>; };
 template <typename T> struct ser<std::vector<T>> { using impl = ser_impl_vec<T>; };
 
@@ -266,6 +276,15 @@ class de_impl_raw {
         }
 };
 
+class de_impl_bool {
+    public:
+        static bool impl_de(size_t& ptr) {
+            uint8_t val = *((uint8_t *)(ptr++));
+            return val != 0;
+        }
+};
+template <> struct de<bool> { using impl = de_impl_bool; };
+
 DE_INT(char);
 DE_INT(unsigned char);
 DE_INT(short int);
@@ -276,6 +295,8 @@ DE_INT(long int);
 DE_INT(unsigned long int);
 DE_INT(long long int);
 DE_INT(unsigned long long int);
+DE_RAW(const bool*);
+DE_RAW(bool*);
 
 template <typename T1, typename T2>
 class de_impl_pair {

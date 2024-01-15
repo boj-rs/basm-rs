@@ -36,6 +36,13 @@ macro_rules! impl_int {
 
 impl_int!(i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize);
 
+impl De for bool {
+    fn de(buf: &mut &[u8]) -> Self {
+        let val = u8::de(buf);
+        val != 0
+    }
+}
+
 impl<T: De, const N: usize> De for [T; N] {
     fn de(buf: &mut &[u8]) -> Self {
         [0; N].map(move |_| T::de(buf))

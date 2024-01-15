@@ -52,6 +52,12 @@ macro_rules! impl_int {
 
 impl_int!(i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize);
 
+impl Ser for bool {
+    fn ser(&self, buf: &mut Vec<u8>) {
+        buf.push(if *self { 1 } else { 0 });
+    }
+}
+
 impl<T: Ser, const N: usize> Ser for [T; N] {
     fn ser(&self, buf: &mut Vec<u8>) {
         self.iter().for_each(|x| x.ser(buf))

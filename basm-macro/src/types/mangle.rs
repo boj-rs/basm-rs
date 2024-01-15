@@ -12,7 +12,8 @@ impl Mangle for TInteger {
             Self::U16 => "u16",
             Self::U32 => "u32",
             Self::U64 => "u64",
-            Self::Usize => "usize"
+            Self::Usize => "usize",
+            Self::Bool => "bool"
         }.into()
     }
 }

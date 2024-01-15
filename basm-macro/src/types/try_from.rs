@@ -72,6 +72,7 @@ impl TryFrom<&syn::Type> for TInteger {
             "u32" => Ok(Self::U32),
             "u64" => Ok(Self::U64),
             "usize" => Ok(Self::Usize),
+            "bool" => Ok(Self::Bool),
             _ => Err("Unsupported integer type ".to_owned() + &x.to_string())
         }
     }
