@@ -1,4 +1,4 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, Span};
 use syn::Ident;
 
 pub enum TInteger {
@@ -75,6 +75,9 @@ pub trait Mangle {
 impl TFunction {
     pub fn arg_names(&self) -> Vec<Ident> {
         self.args.iter().map(|x| x.ident.clone()).collect()
+    }
+    pub fn arg_names_anonymous(&self) -> Vec<Ident> {
+        (0..self.args.len()).map(|id| Ident::new(&format!("arg{id}"), Span::mixed_site())).collect()
     }
     pub fn arg_borrows(&self) -> Vec<TokenStream> {
         self.args.iter().map(|x| match x.ty.borrow {

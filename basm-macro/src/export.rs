@@ -12,7 +12,7 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(x) => x,
         Err(x) => panic!("{}", x)
     };
-    let arg_names = tfn.arg_names();
+    let arg_names_anonymous = tfn.arg_names_anonymous();
     let arg_borrows = tfn.arg_borrows();
     let arg_muts = tfn.arg_muts();
     let arg_pure_types: Vec<_> = sig.inputs.iter().map(|x| {
@@ -65,11 +65,11 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 use basm_std::serialization::{Ser, De};
 
                 let mut buf: &'static [u8] = basm_std::serialization::eat(ptr_serialized);
-                #( let #arg_muts #arg_names = <#arg_pure_types>::de(&mut buf); )*
+                #( let #arg_muts #arg_names_anonymous = <#arg_pure_types>::de(&mut buf); )*
                 let ptr_free_remote = usize::de(&mut buf);
                 assert!(buf.is_empty());
                 basm_std::serialization::call_free(ptr_free_remote);
-                let out = #fn_name(#( #arg_borrows #arg_names ),*);
+                let out = super::#fn_name(#( #arg_borrows #arg_names_anonymous ),*);
 
                 assert!(#internals::SER_VEC.is_empty());
                 out.ser_len(&mut #internals::SER_VEC, 0);
