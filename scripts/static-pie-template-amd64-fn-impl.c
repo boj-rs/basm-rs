@@ -30,6 +30,7 @@ $$$$solution_src$$$$
 #if defined(__cplusplus)
 #include <vector>
 #include <string>
+#include <utility>
 #endif
 
 #ifndef UINT32_MAX
