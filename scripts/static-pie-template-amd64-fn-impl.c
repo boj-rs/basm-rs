@@ -190,12 +190,6 @@ size_t basm_load_module() {
 
 #define BASM_LOADER_IMAGEBASE (basm_load_module())
 
-#pragma pack(push, 1)
-struct ThreePtr {
-    size_t p[3];
-};
-#pragma pack(pop)
-
 // Ser
 template <typename T> struct ser { using impl = void; };
 
