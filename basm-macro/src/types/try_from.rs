@@ -8,10 +8,15 @@ fn try_parse_ident(value: &syn::Type) -> Result<String, String> {
     if x.qself.is_some() {
         return Err("TypePath::qself must be None".into());
     }
-    let Some(y) = x.path.get_ident() else {
-        return Err("Path must be an Ident".into());
-    };
-    Ok(y.to_string())
+    if x.path.leading_colon.is_some() {
+        return Err("Path::leading_colon must be None".into());
+    }
+    for y in x.path.segments.iter() {
+        if !y.arguments.is_empty() {
+            return Err("PathSegment should not have any generic arguments".into());
+        }
+    }
+    Ok(x.path.segments.iter().map(|y| y.ident.to_string()).collect::<Vec<_>>().join("::"))
 }
 
 fn try_parse_generics(value: &syn::Type) -> Result<(Vec<String>, Vec<&syn::Type>), String> {
@@ -87,7 +92,7 @@ impl TryFrom<&syn::Type> for TPrimitive {
             Ok(TPrimitive::Integer(sp, y))
         } else if let Ok(x) = try_parse_ident(value) {
             match x.as_str() {
-                "String" => Ok(Self::String),
+                "alloc::string::String" | "string::String" | "String" => Ok(Self::String),
                 _ => Err("Unsupported primitive token ".to_owned() + &x)
             }
         } else if let syn::Type::Tuple(x) = value {
