@@ -36,6 +36,13 @@ macro_rules! impl_int {
                     buf.extend_from_slice(&self.to_be_bytes());
                 }
             }
+        )*
+    }
+}
+
+macro_rules! impl_int_ptr {
+    ($($ty:ty)*) => {
+        $(
             impl Ser for *const $ty {
                 fn ser(&self, buf: &mut Vec<u8>) {
                     (*self as usize).ser(buf)
@@ -51,6 +58,7 @@ macro_rules! impl_int {
 }
 
 impl_int!(i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize);
+impl_int_ptr!(i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize bool);
 
 impl Ser for bool {
     fn ser(&self, buf: &mut Vec<u8>) {
