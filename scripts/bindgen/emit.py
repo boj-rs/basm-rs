@@ -51,6 +51,9 @@ def emit_export(sig: Signature, offset: int):
     return out, None
 
 def emit_import(sig: Signature, offset: int):
+    args_in_cpp_syntax = ", ".join(
+        ["{ty} {ident}".format(ty = ty, ident = ident) for (ident, (ty, _ty_pure)) in sig.args]
+    )
     arg_de = "\n".join(
         [r"    {ty} arg{id} = do_de<{ty_pure}>(ptr_serialized);".format(ty = ty, ty_pure = ty_pure, id = i)
             for (i, (_ident, (ty, ty_pure))) in enumerate(sig.args)]
@@ -65,6 +68,7 @@ def emit_import(sig: Signature, offset: int):
         call_fn = r"    {output} out = {ident}({arg_names});"
         out_ser = r"    do_ser<{output}>(s_buf, out);"
     template = "\n".join([x for x in [
+        r"{output} {ident}({args_in_cpp_syntax});",
         r"BASMCALL size_t basm_import_thunk_{ident}(size_t ptr_serialized) {{",
         r"    static std::vector<uint8_t> s_buf;",
         r"    struct basm_free_impl {{",
@@ -87,6 +91,7 @@ def emit_import(sig: Signature, offset: int):
     ] if x]) + "\n"
     out = template.format(
         ident = sig.ident,
+        args_in_cpp_syntax = args_in_cpp_syntax,
         arg_de = arg_de,
         arg_names = arg_names,
         output = sig.output
