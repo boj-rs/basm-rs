@@ -20,8 +20,7 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let ty = &*pattype.ty;
         match ty {
             syn::Type::Reference(x) => &*x.elem,
-            syn::Type::Path(_) => ty,
-            _ => { panic!() }
+            _ => ty,
         }
     }).collect();
     let mangled = tfn.mangle();
@@ -66,7 +65,7 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 use basm_std::serialization::{Ser, De};
 
                 let mut buf: &'static [u8] = basm_std::serialization::eat(ptr_serialized);
-                #( let #arg_muts #arg_names = #arg_pure_types::de(&mut buf); )*
+                #( let #arg_muts #arg_names = <#arg_pure_types>::de(&mut buf); )*
                 let ptr_free_remote = usize::de(&mut buf);
                 assert!(buf.is_empty());
                 basm_std::serialization::call_free(ptr_free_remote);

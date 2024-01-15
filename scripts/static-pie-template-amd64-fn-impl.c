@@ -199,13 +199,22 @@ void do_ser(std::vector<uint8_t>& buf, T val) {
 }
 
 #define SER_RAW(ty) template<> struct ser<ty> { using impl = ser_impl_raw<ty>; }
-#define SER_INT(ty) SER_RAW(ty); SER_RAW(const ty *); SER_RAW(ty *)
+#define SER_RAW_PTR(ty) template<> struct ser<ty> { using impl = ser_impl_raw_ptr<ty>; }
+#define SER_INT(ty) SER_RAW(ty); SER_RAW_PTR(const ty *); SER_RAW_PTR(ty *)
 
 template <typename T>
 class ser_impl_raw {
     public:
         ser_impl_raw(std::vector<uint8_t>& buf, T val) {
             for (size_t i = 0; i < sizeof(T); i++) buf.emplace_back((uint8_t) (val >> ((sizeof(T) - i - 1) * 8)) & 0xFF);
+        }
+};
+
+template <typename T>
+class ser_impl_raw_ptr {
+    public:
+        ser_impl_raw_ptr(std::vector<uint8_t>& buf, T val) {
+            for (size_t i = 0; i < sizeof(T); i++) buf.emplace_back((uint8_t) (((size_t)val) >> ((sizeof(T) - i - 1) * 8)) & 0xFF);
         }
 };
 
@@ -245,8 +254,8 @@ SER_INT(long int);
 SER_INT(unsigned long int);
 SER_INT(long long int);
 SER_INT(unsigned long long int);
-SER_RAW(const bool*);
-SER_RAW(bool*);
+SER_RAW_PTR(const bool*);
+SER_RAW_PTR(bool*);
 template <typename T1, typename T2> struct ser<std::pair<T1, T2>> { using impl = ser_impl_pair<T1, T2>; };
 template <typename T> struct ser<std::vector<T>> { using impl = ser_impl_vec<T>; };
 
@@ -264,6 +273,7 @@ T do_de(size_t& ptr) {
 }
 
 #define DE_RAW(ty) template<> struct de<ty> { using impl = de_impl_raw<ty>; }
+#define DE_RAW_PTR(ty) template<> struct de<ty> { using impl = de_impl_raw_ptr<ty>; }
 #define DE_INT(ty) DE_RAW(ty); DE_RAW(const ty *); DE_RAW(ty *)
 
 template <typename T>
@@ -273,6 +283,16 @@ class de_impl_raw {
             T val = 0;
             for (size_t i = 0; i < sizeof(T); i++) val = (val << 8) | (T) *((uint8_t *)(ptr++));
             return val;
+        }
+};
+
+template <typename T>
+class de_impl_raw_ptr {
+    public:
+        static T impl_de(size_t& ptr) {
+            size_t val = 0;
+            for (size_t i = 0; i < sizeof(T); i++) val = (val << 8) | (T) *((uint8_t *)(ptr++));
+            return (T) val;
         }
 };
 
@@ -295,8 +315,8 @@ DE_INT(long int);
 DE_INT(unsigned long int);
 DE_INT(long long int);
 DE_INT(unsigned long long int);
-DE_RAW(const bool*);
-DE_RAW(bool*);
+DE_RAW_PTR(const bool*);
+DE_RAW_PTR(bool*);
 
 template <typename T1, typename T2>
 class de_impl_pair {
