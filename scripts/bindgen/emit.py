@@ -58,7 +58,13 @@ def emit_import(sig: Signature, offset: int):
     arg_names = ", ".join(
         ["arg{id}".format(id = i) for i in range(len(sig.args))]
     )
-    template = "\n".join([
+    if sig.output == "void":
+        call_fn = r"    {ident}({arg_names});"
+        out_ser = None
+    else:
+        call_fn = r"    {output} out = {ident}({arg_names});"
+        out_ser = r"    do_ser<{output}>(s_buf, out);"
+    template = "\n".join([x for x in [
         r"BASMCALL size_t basm_import_thunk_{ident}(size_t ptr_serialized) {{",
         r"    static std::vector<uint8_t> s_buf;",
         r"    struct basm_free_impl {{",
@@ -71,14 +77,14 @@ def emit_import(sig: Signature, offset: int):
         arg_de,
         r"    ((void (BASMCALL *)()) do_de<size_t>(ptr_serialized))();",
         r"",
-        r"    {output} out = {ident}({arg_names});",
+        call_fn,
         r"    do_ser<size_t>(s_buf, 0);",
-        r"    do_ser<{output}>(s_buf, out);",
+        out_ser,
         r"    do_ser<size_t>(s_buf, (size_t) basm_free_impl::free);",
         r"    do_ser_end(s_buf);",
         r"    return (size_t) s_buf.data();",
         r"}}",
-    ]) + "\n"
+    ] if x]) + "\n"
     out = template.format(
         ident = sig.ident,
         arg_de = arg_de,
