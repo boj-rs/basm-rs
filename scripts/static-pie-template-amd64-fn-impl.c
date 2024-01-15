@@ -274,7 +274,7 @@ T do_de(size_t& ptr) {
 
 #define DE_RAW(ty) template<> struct de<ty> { using impl = de_impl_raw<ty>; }
 #define DE_RAW_PTR(ty) template<> struct de<ty> { using impl = de_impl_raw_ptr<ty>; }
-#define DE_INT(ty) DE_RAW(ty); DE_RAW(const ty *); DE_RAW(ty *)
+#define DE_INT(ty) DE_RAW(ty); DE_RAW_PTR(const ty *); DE_RAW_PTR(ty *)
 
 template <typename T>
 class de_impl_raw {
