@@ -124,7 +124,7 @@ def emit_all(sig_offset_list):
         r"void basm_on_loaded() {",
     ] + on_loaded_clauses + [
         r"}"
-    ]) + "\n"
+    ])
     return body + on_loaded
 
 if __name__ == '__main__':
