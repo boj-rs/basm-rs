@@ -21,7 +21,7 @@ basm.rs는 Rust 코드를 [백준 온라인 저지](https://www.acmicpc.net/)를
 또한, 다음과 같은 편의 기능을 제공합니다.
 - 백준 온라인 저지 등에 제출 시 **채점 결과로 표시되는 메모리 사용량이 줄어듭니다.**
 - **문제 풀이에 사용하기 편리한 입출력 인터페이스 구현이 내장되어 러스트로 문제 풀이를 하기에 편리합니다.** 러스트는 C/C++에 비해 문제 풀이에 필요한 형태의 입출력을 하기에는 다소 불편한 부분이 있는데 이를 해결해줍니다.
-- **(Experimental) 러스트로 함수 구현 문제를 풀 수 있습니다.** (예제 참고)
+- **러스트로 함수 구현 문제를 풀 수 있습니다.** (예제 참고)
 
 러스트의 풍성한 라이브러리 생태계를 활용하셔서 즐거운 문제 풀이를 하실 수 있기를 바랍니다.
 
@@ -590,6 +590,90 @@ fn take_photos(n: i32, _m: i32, k: i32, r: Vec::<i32>, c: Vec::<i32>) -> i64 {
 4 5
 4 6
 ```
+
+## 예제: 숫자 야구 F([BOJ 18160](https://www.acmicpc.net/problem/18160))
+
+이 예제는 basm-rs의 함수 구현 기능 지원을 이용해 함수 가져오기(import)를 하는 방법을 보여줍니다.
+
+이 프로젝트를 다운로드 또는 클론한 다음, 위의 "주의사항"에 나열된 대로 Nightly Rust를 셋업합니다.
+
+basm/src/solution.rs를 다음과 같이 수정합니다.
+
+```rust
+use alloc::{format, string::String, vec::Vec};
+use basm::serialization::Pair;
+pub fn main() {
+}
+
+basm_macro::basm_import! {
+    fn guess(b: String) -> Pair::<i32, i32>;
+}
+
+static mut ALL: Vec<i32> = Vec::new();
+static mut N: i32 = 0;
+
+#[basm_macro::basm_export]
+fn init(_t: i32, n: i32) {
+    unsafe {
+        ALL.clear();
+        N = n;
+        let pow10_n = 10i32.pow(n as u32);
+        'outer: for i in 0..pow10_n {
+            let mut digits = [false; 10];
+            let mut j = i;
+            for _ in 0..n {
+                let d = (j % 10) as usize;
+                if digits[d] { continue 'outer; }
+                digits[d] = true;
+                j /= 10;
+            }
+            ALL.push(i);
+        }
+    }
+}
+
+fn check(mut x: i32, mut y: i32) -> Pair::<i32, i32> {
+    let mut digits_x = [false; 10];
+    let mut digits_y = [false; 10];
+    let mut strikes = 0;
+    let mut balls = 0;
+    unsafe {
+        for _ in 0..N {
+            let d_x = (x % 10) as usize;
+            let d_y = (y % 10) as usize;
+            if d_x == d_y { strikes += 1; }
+            if digits_x[d_y] { balls += 1; }
+            if digits_y[d_x] { balls += 1; }
+            digits_x[d_x] = true;
+            digits_y[d_y] = true;
+            x /= 10;
+            y /= 10;
+        }
+    }
+    Pair::<i32, i32>(strikes, balls)
+}
+
+#[basm_macro::basm_export]
+fn game() {
+    let mut all = unsafe { ALL.clone() };
+    let n = unsafe { N };
+    loop {
+        let query = all[0];
+        let query_str = if n == 3 { format!("{:03}", query) } else { format!("{:04}", query) };
+        let out = guess(query_str);
+        if out == Pair(n, 0) { break; }
+        let mut all_new = Vec::new();
+        for x in all {
+            if check(x, query) == out {
+                all_new.push(x);
+            }
+        }
+        all = all_new;
+    }
+}
+```
+
+빌드 및 실행은 이전 함수 구현 예제와 동일합니다.
 
 ## Open Source Attributions
 
