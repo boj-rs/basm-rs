@@ -26,6 +26,9 @@ pub trait ReaderTrait: Sized {
     fn next<T: Readable>(&mut self) -> T {
         T::read(self)
     }
+    fn take<T: Readable>(&mut self, n: usize) -> impl Iterator<Item = T> {
+        (0..n).map(|_| T::read(self))
+    }
 }
 
 pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
