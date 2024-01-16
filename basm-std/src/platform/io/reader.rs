@@ -23,7 +23,7 @@ pub trait ReaderTrait: Sized {
     fn f64(&mut self) -> f64;
     fn word(&mut self) -> String;
     fn line(&mut self) -> String;
-    fn next<T>(&mut self) -> T where T: Readable {
+    fn next<T: Readable>(&mut self) -> T {
         T::read(self)
     }
 }
