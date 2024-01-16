@@ -3,6 +3,18 @@ use core::mem::MaybeUninit;
 use core::str::FromStr;
 use crate::platform::services;
 
+pub trait Readable {
+    fn read(reader: &mut impl ReaderTrait) -> Self;
+}
+
+pub trait ReaderTrait: Sized {
+    fn word(&mut self) -> String;
+    fn line(&mut self) -> String;
+    fn next<T>(&mut self) -> T where T: Readable {
+        T::read(self)
+    }
+}
+
 pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
     buf: [MaybeUninit<u8>; N],
     len: usize,
@@ -207,11 +219,6 @@ impl<const N: usize> Reader<N> {
             }
         }
     }
-    pub fn word(&mut self) -> String {
-        let mut buf = String::new();
-        self.word_to_string(&mut buf);
-        buf
-    }
     pub fn line_to_string(&mut self, buf: &mut String) {
         self.try_refill(1);
         while self.off < self.len {
@@ -228,11 +235,6 @@ impl<const N: usize> Reader<N> {
                 self.try_refill(1);
             }
         }
-    }
-    pub fn line(&mut self) -> String {
-        let mut buf = String::new();
-        self.line_to_string(&mut buf);
-        buf
     }
 
     #[cfg(not(feature = "short"))]
@@ -398,6 +400,19 @@ impl<const N: usize> Reader<N> {
     pub fn is_eof_skip_whitespace(&mut self) -> bool {
         self.skip_whitespace();
         self.off == self.len
+    }
+}
+
+impl<const N: usize> ReaderTrait for Reader<N> {
+    fn word(&mut self) -> String {
+        let mut buf = String::new();
+        self.word_to_string(&mut buf);
+        buf
+    }
+    fn line(&mut self) -> String {
+        let mut buf = String::new();
+        self.line_to_string(&mut buf);
+        buf
     }
 }
 
