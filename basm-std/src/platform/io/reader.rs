@@ -213,6 +213,7 @@ impl<const N: usize> Reader<N> {
         buf
     }
     pub fn line_to_string(&mut self, buf: &mut String) {
+        self.try_refill(1);
         while self.off < self.len {
             let rem = self.len - self.off;
             let data = &self.remain()[..rem];
