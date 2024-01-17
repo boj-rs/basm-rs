@@ -29,6 +29,18 @@ pub trait ReaderTrait: Sized {
     fn take<T: Readable>(&mut self, n: usize) -> impl Iterator<Item = T> {
         (0..n).map(|_| T::read(self))
     }
+    /// Reads and collects `n` elements of type `T`.
+    fn collect<Cn: FromIterator<T>, T: Readable>(&mut self, n: usize) -> Cn {
+        Cn::from_iter((0..n).map(|_| T::read(self)))
+    }
+    /// Reads and collects an `n`-by-`m` matrix of type `T`.
+    fn collect_2d<Cnm: FromIterator<Cm>, Cm: FromIterator<T>, T: Readable>(&mut self, n: usize, m: usize) -> Cnm {
+        Cnm::from_iter((0..n).map(|_| Cm::from_iter((0..m).map(|_| T::read(self)))))
+    }
+    /// Reads and collects an `n`-by-`m`-by-`p` tensor of type `T`.
+    fn collect_3d<Cnmp: FromIterator<Cmp>, Cmp: FromIterator<Cp>, Cp: FromIterator<T>, T: Readable>(&mut self, n: usize, m: usize, p: usize) -> Cnmp {
+        Cnmp::from_iter((0..n).map(|_| Cmp::from_iter((0..m).map(|_| Cp::from_iter((0..p).map(|_| T::read(self)))))))
+    }
 }
 
 pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
