@@ -14,5 +14,6 @@ pub mod collections;
 pub mod graph;
 pub mod math;
 pub mod platform;
+pub mod serialization;
 pub mod sorts;
 pub mod strings;

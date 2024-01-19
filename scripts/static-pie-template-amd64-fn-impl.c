@@ -29,6 +29,8 @@ $$$$solution_src$$$$
 #include <inttypes.h>
 #if defined(__cplusplus)
 #include <vector>
+#include <string>
+#include <utility>
 #endif
 
 #ifndef UINT32_MAX
@@ -150,7 +152,8 @@ char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 static int g_loaded = 0;
 static PLATFORM_DATA g_pd;
 
-size_t load_module() {
+void basm_on_loaded();
+size_t basm_load_module() {
     if (!g_loaded) {
         g_pd.env_flags            = ENV_FLAGS_NO_EXIT;
 #if defined(_WIN32)
@@ -180,16 +183,173 @@ size_t load_module() {
         b85tobin(payload, (char const *)payload);
         stub(&g_pd, payload);
         g_loaded = 1;
+        basm_on_loaded();
     }
     return (size_t) g_pd.ptr_alloc_rwx;
 }
 
-#define BASM_LOADER_IMAGEBASE (load_module())
+#define BASM_LOADER_IMAGEBASE (basm_load_module())
 
-#pragma pack(push, 1)
-struct ThreePtr {
-    size_t p[3];
+// Ser
+template <typename T> struct ser { using impl = void; };
+
+template <typename T, typename Impl = typename ser<T>::impl>
+void do_ser(std::vector<uint8_t>& buf, T val) {
+    Impl(buf, val);
+}
+
+#define SER_RAW(ty) template<> struct ser<ty> { using impl = ser_impl_raw<ty>; }
+#define SER_RAW_PTR(ty) template<> struct ser<ty> { using impl = ser_impl_raw_ptr<ty>; }
+#define SER_INT(ty) SER_RAW(ty); SER_RAW_PTR(const ty *); SER_RAW_PTR(ty *)
+
+template <typename T>
+class ser_impl_raw {
+    public:
+        ser_impl_raw(std::vector<uint8_t>& buf, T val) {
+            for (size_t i = 0; i < sizeof(T); i++) buf.emplace_back((uint8_t) (val >> ((sizeof(T) - i - 1) * 8)) & 0xFF);
+        }
 };
-#pragma pack(pop)
+
+template <typename T>
+class ser_impl_raw_ptr {
+    public:
+        ser_impl_raw_ptr(std::vector<uint8_t>& buf, T val) {
+            for (size_t i = 0; i < sizeof(T); i++) buf.emplace_back((uint8_t) (((size_t)val) >> ((sizeof(T) - i - 1) * 8)) & 0xFF);
+        }
+};
+
+class ser_impl_bool {
+    public:
+        ser_impl_bool(std::vector<uint8_t>& buf, bool val) {
+            buf.emplace_back(val ? 1 : 0);
+        }
+};
+
+template <typename T1, typename T2>
+class ser_impl_pair {
+    public:
+        ser_impl_pair(std::vector<uint8_t>& buf, std::pair<T1, T2> val) {
+            do_ser(buf, val.first);
+            do_ser(buf, val.second);
+        }
+};
+
+template <typename T>
+class ser_impl_vec {
+    public:
+        ser_impl_vec(std::vector<uint8_t>& buf, std::vector<T> val) {
+            do_ser(buf, val.size());
+            for (auto e : val) do_ser(buf, e);
+        }
+};
+template <> struct ser<bool> { using impl = ser_impl_bool; };
+
+SER_INT(char);
+SER_INT(unsigned char);
+SER_INT(short int);
+SER_INT(unsigned short int);
+SER_INT(int);
+SER_INT(unsigned int);
+SER_INT(long int);
+SER_INT(unsigned long int);
+SER_INT(long long int);
+SER_INT(unsigned long long int);
+SER_RAW_PTR(const bool*);
+SER_RAW_PTR(bool*);
+template <typename T1, typename T2> struct ser<std::pair<T1, T2>> { using impl = ser_impl_pair<T1, T2>; };
+template <typename T> struct ser<std::vector<T>> { using impl = ser_impl_vec<T>; };
+
+void do_ser_end(std::vector<uint8_t>& buf) {
+    size_t len = buf.size() - sizeof(size_t);
+    for (size_t i = 0; i < sizeof(size_t); i++) buf[i] = (uint8_t) (len >> ((sizeof(size_t) - i - 1) * 8)) & 0xFF;
+}
+
+// De
+template <typename T> struct de { using impl = void; };
+
+template <typename T, typename Impl = typename de<T>::impl>
+T do_de(size_t& ptr) {
+    return Impl::impl_de(ptr);
+}
+
+#define DE_RAW(ty) template<> struct de<ty> { using impl = de_impl_raw<ty>; }
+#define DE_RAW_PTR(ty) template<> struct de<ty> { using impl = de_impl_raw_ptr<ty>; }
+#define DE_INT(ty) DE_RAW(ty); DE_RAW_PTR(const ty *); DE_RAW_PTR(ty *)
+
+template <typename T>
+class de_impl_raw {
+    public:
+        static T impl_de(size_t& ptr) {
+            T val = 0;
+            for (size_t i = 0; i < sizeof(T); i++) val = (val << 8) | (T) *((uint8_t *)(ptr++));
+            return val;
+        }
+};
+
+template <typename T>
+class de_impl_raw_ptr {
+    public:
+        static T impl_de(size_t& ptr) {
+            size_t val = 0;
+            for (size_t i = 0; i < sizeof(T); i++) val = (val << 8) | (T) *((uint8_t *)(ptr++));
+            return (T) val;
+        }
+};
+
+class de_impl_bool {
+    public:
+        static bool impl_de(size_t& ptr) {
+            uint8_t val = *((uint8_t *)(ptr++));
+            return val != 0;
+        }
+};
+template <> struct de<bool> { using impl = de_impl_bool; };
+
+DE_INT(char);
+DE_INT(unsigned char);
+DE_INT(short int);
+DE_INT(unsigned short int);
+DE_INT(int);
+DE_INT(unsigned int);
+DE_INT(long int);
+DE_INT(unsigned long int);
+DE_INT(long long int);
+DE_INT(unsigned long long int);
+DE_RAW_PTR(const bool*);
+DE_RAW_PTR(bool*);
+
+template <typename T1, typename T2>
+class de_impl_pair {
+    public:
+        static std::pair<T1, T2> impl_de(size_t& ptr) {
+            T1 val1 = do_de<T1>(ptr);
+            T2 val2 = do_de<T2>(ptr);
+            return std::make_pair(val1, val2);
+        }
+};
+template <typename T1, typename T2> struct de<std::pair<T1, T2>> { using impl = de_impl_pair<T1, T2>; };
+
+template <typename T>
+class de_impl_vec {
+    public:
+        static std::vector<T> impl_de(size_t& ptr) {
+            size_t length = do_de<size_t>(ptr);
+            std::vector<T> val;
+            for (size_t i = 0; i < length; i++) val.push_back(do_de<T>(ptr));
+            return val;
+        }
+};
+template <typename T> struct de<std::vector<T>> { using impl = de_impl_vec<T>; };
+
+class de_impl_string {
+    public:
+        static std::string impl_de(size_t& ptr) {
+            size_t length = do_de<size_t>(ptr);
+            std::string val;
+            for (size_t i = 0; i < length; i++) val.push_back(do_de<char>(ptr));
+            return val;
+        }
+};
+template <> struct de<std::string> { using impl = de_impl_string; };
 
 $$$$exports_cpp$$$$

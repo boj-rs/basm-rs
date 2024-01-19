@@ -227,7 +227,7 @@ def load_elf64(elf):
     exports = dict()
     for st_dict in dynsym:
         st_name_str = resolve_st_name(st_dict['st_name']).decode('utf8')
-        if st_name_str.startswith("_basm_export_"):
+        if st_name_str.startswith("_basm_export_") or st_name_str.startswith("_basm_import_"):
             exports[st_name_str] = st_dict['st_value']
 
     entrypoint_offset = b2i(elf[24:32])

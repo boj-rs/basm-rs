@@ -98,8 +98,8 @@ if __name__ == '__main__':
     with open(indata_path, mode="r", encoding="utf8") as f:
         completed_process = subprocess.run(run_cmd, shell=False, stdin=f, capture_output=True, text=True)
     if completed_process.returncode != 0:
-        raise Exception("Program {0} exited with non-zero code {3} (hex {3:X}) for input {1} and output {2}"
-            .format(sol_path, indata_path, outdata_path, completed_process.returncode))
+        raise Exception("Program {0} exited with non-zero code {3} (hex {3:X}) for input {1} and output {2}\n\n{4}"
+            .format(sol_path, indata_path, outdata_path, completed_process.returncode, completed_process.stderr))
     if test_equal(completed_process.stdout, outdata):
         print("Program {0} succeeded for input {1} and output {2}".format(sol_path, indata_path, outdata_path))
     else:
