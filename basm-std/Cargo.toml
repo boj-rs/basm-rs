@@ -26,3 +26,6 @@ compiler_builtins = { version = "0.1.103", features = ["mem"] }
 
 [features]
 short = []
+
+[lints.clippy]
+missing_safety_doc = { level = "allow" }
