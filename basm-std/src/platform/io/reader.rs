@@ -3,6 +3,46 @@ use core::mem::MaybeUninit;
 use core::str::FromStr;
 use crate::platform::services;
 
+pub trait Readable {
+    fn read(reader: &mut impl ReaderTrait) -> Self;
+}
+
+pub trait ReaderTrait: Sized {
+    fn i8(&mut self) -> i8;
+    fn i16(&mut self) -> i16;
+    fn i32(&mut self) -> i32;
+    fn i64(&mut self) -> i64;
+    fn i128(&mut self) -> i128;
+    fn isize(&mut self) -> isize;
+    fn u8(&mut self) -> u8;
+    fn u16(&mut self) -> u16;
+    fn u32(&mut self) -> u32;
+    fn u64(&mut self) -> u64;
+    fn u128(&mut self) -> u128;
+    fn usize(&mut self) -> usize;
+    fn f64(&mut self) -> f64;
+    fn word(&mut self) -> String;
+    fn line(&mut self) -> String;
+    fn next<T: Readable>(&mut self) -> T {
+        T::read(self)
+    }
+    fn take<T: Readable>(&mut self, n: usize) -> impl Iterator<Item = T> {
+        (0..n).map(|_| T::read(self))
+    }
+    /// Reads and collects `n` elements of type `T`.
+    fn collect<Cn: FromIterator<T>, T: Readable>(&mut self, n: usize) -> Cn {
+        Cn::from_iter((0..n).map(|_| T::read(self)))
+    }
+    /// Reads and collects an `n`-by-`m` matrix of type `T`.
+    fn collect_2d<Cnm: FromIterator<Cm>, Cm: FromIterator<T>, T: Readable>(&mut self, n: usize, m: usize) -> Cnm {
+        Cnm::from_iter((0..n).map(|_| Cm::from_iter((0..m).map(|_| T::read(self)))))
+    }
+    /// Reads and collects an `n`-by-`m`-by-`p` tensor of type `T`.
+    fn collect_3d<Cnmp: FromIterator<Cmp>, Cmp: FromIterator<Cp>, Cp: FromIterator<T>, T: Readable>(&mut self, n: usize, m: usize, p: usize) -> Cnmp {
+        Cnmp::from_iter((0..n).map(|_| Cmp::from_iter((0..m).map(|_| Cp::from_iter((0..p).map(|_| T::read(self)))))))
+    }
+}
+
 pub struct Reader<const N: usize = { super::DEFAULT_BUF_SIZE }> {
     buf: [MaybeUninit<u8>; N],
     len: usize,
@@ -207,12 +247,8 @@ impl<const N: usize> Reader<N> {
             }
         }
     }
-    pub fn word(&mut self) -> String {
-        let mut buf = String::new();
-        self.word_to_string(&mut buf);
-        buf
-    }
     pub fn line_to_string(&mut self, buf: &mut String) {
+        self.try_refill(1);
         while self.off < self.len {
             let rem = self.len - self.off;
             let data = &self.remain()[..rem];
@@ -227,11 +263,6 @@ impl<const N: usize> Reader<N> {
                 self.try_refill(1);
             }
         }
-    }
-    pub fn line(&mut self) -> String {
-        let mut buf = String::new();
-        self.line_to_string(&mut buf);
-        buf
     }
 
     #[cfg(not(feature = "short"))]
@@ -281,19 +312,40 @@ impl<const N: usize> Reader<N> {
         n
     }
 
-    pub fn i8(&mut self) -> i8 {
+    pub fn is_eof(&mut self) -> bool {
+        if self.off == self.len { self.try_refill(1); }
+        self.off == self.len
+    }
+    pub fn is_eof_skip_whitespace(&mut self) -> bool {
+        self.skip_whitespace();
+        self.off == self.len
+    }
+}
+
+impl<const N: usize> ReaderTrait for Reader<N> {
+    fn word(&mut self) -> String {
+        let mut buf = String::new();
+        self.word_to_string(&mut buf);
+        buf
+    }
+    fn line(&mut self) -> String {
+        let mut buf = String::new();
+        self.line_to_string(&mut buf);
+        buf
+    }
+    fn i8(&mut self) -> i8 {
         self.i32() as i8
     }
-    pub fn u8(&mut self) -> u8 {
+    fn u8(&mut self) -> u8 {
         self.u32() as u8
     }
-    pub fn i16(&mut self) -> i16 {
+    fn i16(&mut self) -> i16 {
         self.i32() as i16
     }
-    pub fn u16(&mut self) -> u16 {
+    fn u16(&mut self) -> u16 {
         self.u32() as u16
     }
-    pub fn i32(&mut self) -> i32 {
+    fn i32(&mut self) -> i32 {
         self.skip_whitespace();
         self.try_refill(17);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
@@ -304,12 +356,12 @@ impl<const N: usize> Reader<N> {
             self.noskip_u64()
         }) as i32
     }
-    pub fn u32(&mut self) -> u32 {
+    fn u32(&mut self) -> u32 {
         self.skip_whitespace();
         self.try_refill(16);
         self.noskip_u64() as u32
     }
-    pub fn i64(&mut self) -> i64 {
+    fn i64(&mut self) -> i64 {
         self.skip_whitespace();
         self.try_refill(25);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
@@ -320,12 +372,12 @@ impl<const N: usize> Reader<N> {
             self.noskip_u64()
         }) as i64
     }
-    pub fn u64(&mut self) -> u64 {
+    fn u64(&mut self) -> u64 {
         self.skip_whitespace();
         self.try_refill(24);
         self.noskip_u64()
     }
-    pub fn i128(&mut self) -> i128 {
+    fn i128(&mut self) -> i128 {
         self.skip_whitespace();
         self.try_refill(41);
         let sign = unsafe { self.buf[self.off].assume_init() } == b'-';
@@ -336,36 +388,36 @@ impl<const N: usize> Reader<N> {
             self.noskip_u128()
         }) as i128
     }
-    pub fn u128(&mut self) -> u128 {
+    fn u128(&mut self) -> u128 {
         self.skip_whitespace();
         self.try_refill(40);
         self.noskip_u128()
     }
     #[cfg(target_pointer_width = "32")]
-    pub fn isize(&mut self) -> isize {
+    fn isize(&mut self) -> isize {
         self.i32() as isize
     }
     #[cfg(target_pointer_width = "32")]
-    pub fn usize(&mut self) -> usize {
+    fn usize(&mut self) -> usize {
         self.u32() as usize
     }
     #[cfg(target_pointer_width = "64")]
-    pub fn isize(&mut self) -> isize {
+    fn isize(&mut self) -> isize {
         self.i64() as isize
     }
     #[cfg(target_pointer_width = "64")]
-    pub fn usize(&mut self) -> usize {
+    fn usize(&mut self) -> usize {
         self.u64() as usize
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
-    pub fn isize(&mut self) -> isize {
+    fn isize(&mut self) -> isize {
         self.i128() as isize
     }
     #[cfg(all(not(target_pointer_width = "32"), not(target_pointer_width = "64")))]
-    pub fn usize(&mut self) -> usize {
+    fn usize(&mut self) -> usize {
         self.u128() as usize
     }
-    pub fn f64(&mut self) -> f64 {
+    fn f64(&mut self) -> f64 {
         /* For simplicity, we assume the input string is at most 64 bytes.
          * Strings longer than this length are either incorrectly parsed
          * (scientific notations get their exponents truncated) or approximately parsed
@@ -388,15 +440,6 @@ impl<const N: usize> Reader<N> {
                 f64::NAN
             }
         }
-    }
-
-    pub fn is_eof(&mut self) -> bool {
-        if self.off == self.len { self.try_refill(1); }
-        self.off == self.len
-    }
-    pub fn is_eof_skip_whitespace(&mut self) -> bool {
-        self.skip_whitespace();
-        self.off == self.len
     }
 }
 
