@@ -1,4 +1,4 @@
-use basm::platform::io::{Reader, Writer, Print};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use alloc::collections::BTreeSet;
 pub fn main() {
     let mut reader: Reader = Default::default();

@@ -1,4 +1,4 @@
-use basm::platform::io::{Reader, Writer, Print};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use core::cmp::max;
 pub fn main() {
     let mut reader: Reader = Default::default();

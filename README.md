@@ -51,7 +51,7 @@ fn main() {
 
 ```rust
 // basm/src/solution.rs
-use basm::platform::io::{Reader, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer};
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
@@ -66,7 +66,7 @@ pub fn main() {
   - 위의 예시 코드는 기본 설정에 따라 입출력 버퍼를 크게 할당합니다. 대부분의 상황에서는 기본 설정이 적절하지만, 156KB 메모리 사용량을 달성하려면 버퍼 크기를 줄여야 합니다. 다음 코드에서는 입출력 버퍼를 각각 128바이트로 설정하여 메모리 사용량을 줄입니다.
 ```rust
 // basm/src/solution.rs
-use basm::platform::io::{Reader, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
     let mut writer = Writer::<128>::new();
@@ -201,7 +201,7 @@ dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-
 basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
-use basm::platform::io::{Reader, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -280,7 +280,7 @@ basm/src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
-use basm::platform::io::{Reader, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -352,7 +352,7 @@ pub fn main() {
 basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
-use basm::platform::io::{Reader, Writer, Print};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use core::cmp::max;
 pub fn main() {
     let mut reader: Reader = Default::default();
@@ -394,7 +394,7 @@ basm/src/solution.rs를 다음과 같이 수정합니다. 이때, main 함수는
 ```rust
 use alloc::vec::Vec;
 use basm::platform::is_local_env;
-use basm::platform::io::{Reader, Writer, Print};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use basm_macro::basm_export;
 
 pub fn main() {
@@ -450,7 +450,7 @@ basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
 use basm::platform::is_local_env;
-use basm::platform::io::{Reader, Writer, Print};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use basm_macro::basm_export;
 use alloc::vec;
 use alloc::vec::Vec;

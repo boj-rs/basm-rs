@@ -104,5 +104,5 @@ if __name__ == '__main__':
         print("Program {0} succeeded for input {1} and output {2}".format(sol_path, indata_path, outdata_path))
     else:
         err_msg = "Program {0} fails to print the correct output for input {1} and output {2}\n".format(sol_path, indata_path, outdata_path)
-        err_msg += "Input:\n{0}\nOutput (expected):\n{1}\nOutput (actual):\n{2}\n".format(indata[:1000], outdata[:1000], stdout[:1000])
+        err_msg += "Input:\n{0}\nOutput (expected):\n{1}\nOutput (actual):\n{2}\n".format(indata[:1000], outdata[:1000], completed_process.stdout[:1000])
         raise Exception(err_msg)
