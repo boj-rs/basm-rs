@@ -5,6 +5,11 @@ edition = "2021"
 default-run = "basm"
 autobins = false
 
+[lib]
+test = true
+bench = true
+path = "src/bin/basm-lib.rs"
+
 [[bin]]
 name = "basm"
 test = false

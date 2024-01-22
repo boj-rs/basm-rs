@@ -16,6 +16,7 @@ extern crate basm_std as basm;
 mod solution;
 mod codegen;
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_pi: &core::panic::PanicInfo) -> ! {
     use alloc::string::ToString;

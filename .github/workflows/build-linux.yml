@@ -47,8 +47,6 @@ jobs:
       - name: Test
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: cargo test --lib -- --test-threads 1
-        env:
-          RUSTFLAGS: ""
       - name: Check C (x86_64)
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: |
