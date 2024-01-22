@@ -6,7 +6,6 @@ default-run = "basm"
 autobins = false
 
 [lib]
-name = "basm_lib"
 test = true
 bench = true
 path = "src/bin/basm-lib.rs"
