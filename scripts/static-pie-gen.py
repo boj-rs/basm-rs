@@ -4,6 +4,7 @@ import base91
 import bindgen.parse, bindgen.emit
 import codecs
 import json
+import locator
 import lzma
 import os
 import re
@@ -12,6 +13,8 @@ import sys
 
 try:
     solution_src_path, target_name, elf_path, stub_path, lang_name, template_path = sys.argv[1:]
+    stub_path = locator.template_path(stub_path)
+    template_path = locator.template_path(template_path)
 except ValueError:
     print(f"Usage: {sys.argv[0]} solution_src_path target_name elf_path stub_path lang_name template_path", file=sys.stderr)
     sys.exit(1)

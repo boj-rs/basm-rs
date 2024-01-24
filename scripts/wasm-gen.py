@@ -1,5 +1,6 @@
 import base64
 import io
+import locator
 import os
 import re
 import sys
@@ -37,7 +38,7 @@ with open("target/wasm32-unknown-unknown/release/basm-submit.wasm", "rb") as f:
 code = base64.b64encode(deflate_raw(code)).decode('ascii')
 
 # template
-with open(sys.argv[1], "r") as f:
+with open(locator.template_path(sys.argv[1]), "r") as f:
     template = f.read()
 
 # putting it all together

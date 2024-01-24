@@ -84,10 +84,10 @@ else
 fi
 
 if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
-  python3 scripts/static-pie-gen.py basm/src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit.exe scripts/"$stub" "$lang_name" scripts/"$template"
+  python3 scripts/static-pie-gen.py basm/src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit.exe "$stub" "$lang_name" "$template"
 else
   cp target/"$target_name"/"$build_mode_dir"/basm-submit target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
   objcopy --strip-all target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
   objcopy --remove-section .eh_frame --remove-section .gcc_except_table --remove-section .gnu.hash target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
-  python3 scripts/static-pie-gen.py basm/src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit-stripped scripts/"$stub" "$lang_name" scripts/"$template"
+  python3 scripts/static-pie-gen.py basm/src/solution.rs "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit-stripped "$stub" "$lang_name" "$template"
 fi
