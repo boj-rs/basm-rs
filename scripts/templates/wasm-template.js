@@ -1,5 +1,6 @@
 // Generated with https://github.com/kiwiyou/basm-rs
 // Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
+$$$$solution_src$$$$
 const fs = require('fs')
 const code = require('zlib').inflateRawSync(Buffer.from(`$$$$binary_base64$$$$`, 'base64'))
 const svc_read_stdio = (fd, buf, count) =>
@@ -12,5 +13,3 @@ WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } }).then
     exports._start()
   }
 )
-
-$$$$solution_src$$$$
