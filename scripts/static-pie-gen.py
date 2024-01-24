@@ -7,6 +7,7 @@ import json
 import locator
 import lzma
 import os
+import srcpack
 import subprocess
 import sys
 import utils
@@ -62,14 +63,7 @@ with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 
 # solution_src
-with open(solution_src_path, encoding='utf8') as f:
-    sol = f.readlines()
-
-sol = [line.replace("\ufeff", "") for line in sol]
-sol = [("" if lang_name == "Rust" else "//") + line.rstrip() + "\n" for line in sol]
-if len(sol) > 0:
-    sol[-1] = sol[-1].rstrip()
-sol = "".join(sol)
+sol = srcpack.read_assemble("basm/", lang_name)
 
 # binary (raw)
 # Since we append a little-endian 8-byte nonnegative integer, we can practically ensure that the last byte is zero.
