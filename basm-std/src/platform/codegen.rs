@@ -1,16 +1,9 @@
-#![cfg(not(test))]
-
 #[cfg(not(target_arch = "wasm32"))]
 use core::arch::asm;
 
-use crate::solution;
-use basm::platform;
-use basm::platform::allocator;
+use crate::platform;
 #[cfg(not(target_arch = "wasm32"))]
-use basm::platform::loader;
-
-#[global_allocator]
-static ALLOC: allocator::Allocator = allocator::Allocator;
+use crate::platform::loader;
 
 /* We need to support multiple scenarios.
  *   1) Architectures: x86, x86-64
@@ -28,9 +21,9 @@ static ALLOC: allocator::Allocator = allocator::Allocator;
  * For 4), we build the binary to run without the loader.
  *   When running without the loader, the binary will fabricate a dummy
  *     SERVICE_FUNCTIONS and PLATFORM_DATA table at the beginning of the
- *     EntryPoint (_start).
+ *     EntryPoint (_basm_start).
  *   When running with the loader, the loader patches the beginning of
- *     the EntryPoint (_start) to override the platform configuration data.
+ *     the EntryPoint (_basm_start) to override the platform configuration data.
  *
  * When running without the loader, the relocations are handled differently.
  *   For Windows, the Windows kernel will handle relocations for us,
@@ -54,7 +47,7 @@ compile_error!("The target architecture is not supported.");
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
 #[no_mangle]
 #[naked]
-unsafe extern "win64" fn _start() -> ! {
+pub unsafe extern "win64" fn _basm_start() -> ! {
     // AMD64 System V ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call` instruction.
     // However, when called as the entrypoint by the Linux OS,
@@ -103,7 +96,7 @@ unsafe extern "sysv64" fn get_kernel32() -> usize {
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 #[no_mangle]
 #[naked]
-unsafe extern "win64" fn _start() -> ! {
+pub unsafe extern "win64" fn _basm_start() -> ! {
     // Microsoft x64 ABI requires RSP to be aligned
     //   on the 16-byte boundary BEFORE `call` instruction.
     // Also, when called as the entrypoint by the Windows OS,
@@ -162,7 +155,7 @@ unsafe extern "win64" fn _start() -> ! {
 #[link_section = ".data"]
 unsafe extern "cdecl" fn _get_start_offset() -> ! {
     asm!(
-        "lea    eax, [_start]",
+        "lea    eax, [_basm_start]",
         "ret",
         options(noreturn)
     );
@@ -183,7 +176,7 @@ unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
 #[cfg(target_arch = "x86")]
 #[no_mangle]
 #[naked]
-unsafe extern "cdecl" fn _start() -> ! {
+pub unsafe extern "cdecl" fn _basm_start() -> ! {
     // i386 System V ABI requires ESP to be aligned
     //   on the 16-byte boundary BEFORE `call` instruction
     asm!(
@@ -205,9 +198,9 @@ unsafe extern "cdecl" fn _start() -> ! {
         "2:",
         "call   3f",
         "3:",
-        "pop    ecx",                       // ecx = _start + 36 (obtained by counting the opcode size in bytes)
+        "pop    ecx",                       // ecx = _basm_start + 36 (obtained by counting the opcode size in bytes)
         "push   edx",                       // [esp + 0] = PLATFORM_DATA table
-        "call   {2}",                       // eax = offset of _start from the image base
+        "call   {2}",                       // eax = offset of _basm_start from the image base
         "sub    ecx, eax",
         "sub    ecx, 36",                   // ecx = the in-memory image base (i.e., __ehdr_start)
         "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
@@ -231,7 +224,7 @@ unsafe extern "cdecl" fn _start() -> ! {
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn _start() {
+pub extern "C" fn _basm_start() {
     let mut pd = platform::services::PlatformData {
         env_id: platform::services::ENV_ID_WASM,
         .. Default::default()
@@ -246,7 +239,10 @@ extern "C" fn _start() {
  */
 #[cfg_attr(not(feature = "short"), inline(never))]
 fn _call_main() {
-    solution::main();
+    extern "C" {
+        fn _basm_main();
+    }
+    unsafe { _basm_main() }
 }
 fn _start_rust(platform_data: usize) -> i32 {
     platform::init(platform_data);
@@ -259,7 +255,7 @@ fn _start_rust(platform_data: usize) -> i32 {
 #[naked]
 #[repr(align(4))]
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
-unsafe extern "win64" fn __chkstk() -> ! {
+pub unsafe extern "win64" fn __chkstk() -> ! {
     asm!(
         "push   rcx",
         "push   rax",
@@ -280,30 +276,4 @@ unsafe extern "win64" fn __chkstk() -> ! {
         "ret",
         options(noreturn)
     );
-}
-
-#[no_mangle]
-#[cfg(target_os = "windows")]
-static mut _fltused: i32 = 0;
-
-#[no_mangle]
-#[cfg(target_os = "windows")]
-extern "win64" fn __CxxFrameHandler3() -> ! {
-    unsafe { core::hint::unreachable_unchecked() }
-}
-
-#[alloc_error_handler]
-fn alloc_fail(_: core::alloc::Layout) -> ! {
-    unsafe { core::hint::unreachable_unchecked() }
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub fn _Unwind_Resume() {
-    unsafe { core::hint::unreachable_unchecked() }
-}
-
-#[no_mangle]
-pub fn rust_eh_personality() {
-    unsafe { core::hint::unreachable_unchecked() }
 }

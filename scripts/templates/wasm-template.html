@@ -61,7 +61,7 @@
         const code = await deflate('$$$$binary_base64$$$$');
         const wasm = await WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } });
         exports = wasm.instance.exports;
-        exports._start();
+        exports._basm_start();
         return concatenate_bytes(stdout);
       }
       async function run() {

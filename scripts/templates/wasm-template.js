@@ -10,6 +10,6 @@ const svc_write_stdio = (fd, buf, count) =>
 WebAssembly.instantiate(code, { env: { svc_read_stdio, svc_write_stdio } }).then(
   (wasm) => {
     exports = wasm.instance.exports
-    exports._start()
+    exports._basm_start()
   }
 )

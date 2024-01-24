@@ -11,7 +11,7 @@ fn main() {
             link_args_basm.push("/SUBSYSTEM:CONSOLE");
             link_args_basm.push("/NODEFAULTLIB");
             link_args_basm.push("/DYNAMICBASE");
-            link_args_basm.push("/ENTRY:_start");
+            link_args_basm.push("/ENTRY:_basm_start");
             link_args_basm.push("/NXCOMPAT:NO");
             link_args_basm.push("/STACK:268435456");
             link_args_basm.push("/EMITTOOLVERSIONINFO:NO");
@@ -30,9 +30,9 @@ fn main() {
             if target == "i686-unknown-linux-gnu" {
                 // Prevent linker from putting data into text, which is non-writable and hence not relocatable.
                 // This prevents the hack for getting the _DYNAMIC symbol in the entrypoint.
-                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro,-z,notext");
+                link_args_basm.push("-Wl,--entry=_basm_start,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro,-z,notext");
             } else {
-                link_args_basm.push("-Wl,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro");
+                link_args_basm.push("-Wl,--entry=_basm_start,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro");
             }
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
         },

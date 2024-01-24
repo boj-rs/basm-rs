@@ -25,4 +25,8 @@ compiler_builtins = { version = "0.1.103", features = ["mem"] }
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
 
 [features]
+# Enables codegen routines.
+# When this feature is enabled, the external implementations should provide an `extern "C" fn _basm_main()`.
+codegen = []
+# Favors short routines for code golf.
 short = []
