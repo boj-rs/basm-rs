@@ -3,6 +3,7 @@ import os
 # Reads and assembles the source code in the crate at the path `crate_root`.
 # `crate_root` usually equals `basm/`.
 def read_assemble(crate_root, target_language):
+    sol_first = []
     sol_all = []
     crate_src_path = os.path.join(crate_root, "src/")
     for root, dirs, files in os.walk(crate_src_path):
@@ -13,7 +14,11 @@ def read_assemble(crate_root, target_language):
             if f_path.endswith(".rs"):
                 with open(f_path, encoding='utf8') as f:
                     sol = f.readlines()
-                sol_all.append((f_path, sol))
+                if os.path.abspath(f_path) == os.path.abspath(os.path.join(crate_root, "src/solution.rs")):
+                    sol_first.append((f_path, sol))
+                else:
+                    sol_all.append((f_path, sol))
+    sol_all = sol_first + sol_all
     if len(sol_all) == 1:
         sol_flat = sol_all[0][1]
     else:
