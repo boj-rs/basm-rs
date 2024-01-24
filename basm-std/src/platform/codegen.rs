@@ -277,3 +277,26 @@ pub unsafe extern "win64" fn __chkstk() -> ! {
         options(noreturn)
     );
 }
+
+pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
+    use alloc::string::ToString;
+    use crate::platform::services::write_stdio;
+    write_stdio(2, _pi.to_string().as_bytes());
+    write_stdio(2, b"\n");
+
+    // Rust sets an exit code of 101 when the process panicked.
+    // Hence, we follow that practice for maximum compatibility.
+    // Reference: https://rust-cli.github.io/book/in-depth/exit-code.html
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    {
+        extern "win64" {
+            fn ExitProcess(uExitCode: u32) -> !;
+        }
+        ExitProcess(101)
+    }
+    #[cfg(target_os = "linux")] {
+        crate::platform::os::linux::syscall::exit_group(101)
+    }
+    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux")))]
+    core::hint::unreachable_unchecked()
+}

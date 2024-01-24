@@ -34,34 +34,11 @@ mod runtime {
         unsafe { core::hint::unreachable_unchecked() }
     }
 
-    #[cfg(all(not(test), feature = "submit"))]
     #[panic_handler]
     fn panic(_pi: &core::panic::PanicInfo) -> ! {
-        unsafe { core::hint::unreachable_unchecked() }
-    }
-
-    #[cfg(all(not(test), not(feature = "submit")))]
-    #[panic_handler]
-    fn panic(_pi: &core::panic::PanicInfo) -> ! {
-        use alloc::string::ToString;
-        use basm::platform::services::write_stdio;
-        write_stdio(2, _pi.to_string().as_bytes());
-        write_stdio(2, b"\n");
-
-        // Rust sets an exit code of 101 when the process panicked.
-        // Hence, we follow that practice for maximum compatibility.
-        // Reference: https://rust-cli.github.io/book/in-depth/exit-code.html
-        #[cfg(all(windows, target_arch = "x86_64"))]
-        {
-            extern "win64" {
-                fn ExitProcess(uExitCode: u32) -> !;
-            }
-            unsafe { ExitProcess(101); }
-        }
-        #[cfg(target_os = "linux")] {
-            unsafe { basm::platform::os::linux::syscall::exit_group(101); }
-        }
-        #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux")))]
+        #[cfg(not(feature = "submit"))]
+        unsafe { basm::platform::codegen::print_panicinfo_and_exit(_pi) }
+        #[cfg(feature = "submit")]
         unsafe { core::hint::unreachable_unchecked() }
     }
 }
