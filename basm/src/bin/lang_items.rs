@@ -18,11 +18,6 @@ mod runtime {
         unsafe { core::hint::unreachable_unchecked() }
     }
 
-    #[alloc_error_handler]
-    fn alloc_fail(_: core::alloc::Layout) -> ! {
-        unsafe { core::hint::unreachable_unchecked() }
-    }
-
     #[no_mangle]
     #[allow(non_snake_case)]
     fn _Unwind_Resume() {
