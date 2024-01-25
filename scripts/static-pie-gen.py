@@ -4,14 +4,18 @@ import base91
 import bindgen.parse, bindgen.emit
 import codecs
 import json
+import locator
 import lzma
 import os
-import re
+import srcpack
 import subprocess
 import sys
+import utils
 
 try:
     solution_src_path, target_name, elf_path, stub_path, lang_name, template_path = sys.argv[1:]
+    stub_path = locator.template_path(stub_path)
+    template_path = locator.template_path(template_path)
 except ValueError:
     print(f"Usage: {sys.argv[0]} solution_src_path target_name elf_path stub_path lang_name template_path", file=sys.stderr)
     sys.exit(1)
@@ -59,14 +63,7 @@ with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 
 # solution_src
-with open(solution_src_path, encoding='utf8') as f:
-    sol = f.readlines()
-
-sol = [line.replace("\ufeff", "") for line in sol]
-sol = [("" if lang_name == "Rust" else "//") + line.rstrip() + "\n" for line in sol]
-if len(sol) > 0:
-    sol[-1] = sol[-1].rstrip()
-sol = "".join(sol)
+sol = srcpack.read_assemble("basm/", lang_name)
 
 # binary (raw)
 # Since we append a little-endian 8-byte nonnegative integer, we can practically ensure that the last byte is zero.
@@ -146,13 +143,7 @@ for each_template_path in template_candidates:
         template = f.read()
     template = template.replace("\ufeff", "")
 
-    # putting it all together
-    # reference: https://stackoverflow.com/a/15448887
-    def multiple_replace(string, rep_dict):
-        pattern = re.compile("|".join([re.escape(k) for k in sorted(rep_dict,key=len,reverse=True)]), flags=re.DOTALL)
-        return pattern.sub(lambda x: rep_dict[x.group(0)], string)
-
-    out_candidate = multiple_replace(template, {
+    out_candidate = utils.multiple_replace(template, {
         "$$$$solution_src$$$$": sol,
         "$$$$stub_raw$$$$": stub_raw,
         "$$$$stub_base85$$$$": stub_b85,
