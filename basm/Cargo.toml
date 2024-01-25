@@ -21,12 +21,13 @@ name = "basm-submit"
 test = false
 bench = false
 path = "src/bin/basm-submit.rs"
+required-features = ["submit"]
 
 [dependencies]
 libm = "0.2.7"
 ryu = "1.0"
-basm-std = { path = "../basm-std" }
 basm-macro = { path = "../basm-macro" }
+basm-std = { path = "../basm-std", features = ["codegen"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
@@ -39,3 +40,4 @@ compiler_builtins = { version = "0.1.103", features = ["mem"] }
 
 [features]
 short = []
+submit = []

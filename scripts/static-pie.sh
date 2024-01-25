@@ -78,9 +78,9 @@ fi
 
 binary_path=basm.bin
 if [[ "$build_mode" == "Debug" ]]; then
-  cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit "$@"
+  cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit --features=submit "$@"
 else
-  cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit --release "$@"
+  cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit --features=submit --release "$@"
 fi
 
 if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
