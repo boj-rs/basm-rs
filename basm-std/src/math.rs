@@ -204,7 +204,7 @@ macro_rules! impl_mod_ops_unsigned {
                     }
                     let (q, r) = (b / a, b % a);
                     (a, b) = (r, a);
-                    c = [modsub(c[1], q * c[0], modulo), c[0], modsub(c[3], q * c[2], modulo), c[2]];
+                    c = [modsub(c[1], modmul(q, c[0], modulo), modulo), c[0], modsub(c[3], modmul(q, c[2], modulo), modulo), c[2]];
                 }
             }
             fn modmul(x: $t, y: $t, modulo: $t) -> $t {
@@ -312,6 +312,7 @@ mod test {
         assert_eq!(Some(4u64), modinv(3u64, 11u64));
         let p = 0u64.wrapping_sub((1u64 << 32) - 1);
         assert_eq!(Some((p + 1) / 2), modinv(2u64, p));
+        assert_eq!(Some(9999999966u64), modinv(9999999966u64, 9999999967u64));
     }
 
     #[test]
