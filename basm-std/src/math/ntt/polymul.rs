@@ -124,8 +124,6 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
         // If they are small enough, we may reduce the number of
         // convolutions from 3 to 1 or 2. This will yield huge
         // savings in running time.
-        let x: Vec<u64> = x.iter().map(|&v| if modulo == 0 { v } else { v % modulo }).collect();
-        let y: Vec<u64> = y.iter().map(|&v| if modulo == 0 { v } else { v % modulo }).collect();
         let strategy = {
             let maxx = *x.iter().max().unwrap();
             let maxy = *y.iter().max().unwrap();
@@ -143,10 +141,10 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
         let mut out = vec![];
         if strategy == 3 {
             out.resize(x.len() + y.len() + 1, 0);
-            mac3mod_three_primes(&mut out, &x, &y, modulo);
+            mac3mod_three_primes(&mut out, x, y, modulo);
         } else if strategy == 2 {
             out.resize(x.len() + y.len() + 1, 0);
-            mac3mod_two_primes(&mut out, &x, &y, modulo);
+            mac3mod_two_primes(&mut out, x, y, modulo);
         } else { /* strategy == 1 */
             let min_len = x.len() + y.len();
             let plan = NttPlan::build::<P3>(min_len);
