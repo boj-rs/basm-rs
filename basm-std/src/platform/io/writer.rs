@@ -347,95 +347,23 @@ impl<const N: usize> Print<&str> for Writer<N> {
     }
 }
 
-impl<const N: usize> Print<i16> for Writer<N> {
-    fn print(&mut self, x: i16) {
-        self.i16(x);
-    }
-    fn println(&mut self, x: i16) {
-        self.i16(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<u16> for Writer<N> {
-    fn print(&mut self, x: u16) {
-        self.u16(x);
-    }
-    fn println(&mut self, x: u16) {
-        self.u16(x);
-        self.byte_unchecked(b'\n');
+macro_rules! impl_print{
+    ($($ty:ident)*) => {
+        $(
+            impl<const N: usize> Print<$ty> for Writer<N> {
+                fn print(&mut self, x: $ty) {
+                    self.$ty(x);
+                }
+                fn println(&mut self, x: $ty) {
+                    self.$ty(x);
+                    self.byte_unchecked(b'\n');
+                }
+            }
+        )*
     }
 }
 
-impl<const N: usize> Print<i32> for Writer<N> {
-    fn print(&mut self, x: i32) {
-        self.i32(x);
-    }
-    fn println(&mut self, x: i32) {
-        self.i32(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<u32> for Writer<N> {
-    fn print(&mut self, x: u32) {
-        self.u32(x);
-    }
-    fn println(&mut self, x: u32) {
-        self.u32(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<i64> for Writer<N> {
-    fn print(&mut self, x: i64) {
-        self.i64(x);
-    }
-    fn println(&mut self, x: i64) {
-        self.i64(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<u64> for Writer<N> {
-    fn print(&mut self, x: u64) {
-        self.u64(x);
-    }
-    fn println(&mut self, x: u64) {
-        self.u64(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<isize> for Writer<N> {
-    fn print(&mut self, x: isize) {
-        self.isize(x);
-    }
-    fn println(&mut self, x: isize) {
-        self.isize(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<usize> for Writer<N> {
-    fn print(&mut self, x: usize) {
-        self.usize(x);
-    }
-    fn println(&mut self, x: usize) {
-        self.usize(x);
-        self.byte_unchecked(b'\n');
-    }
-}
-
-impl<const N: usize> Print<f64> for Writer<N> {
-    fn print(&mut self, x: f64) {
-        self.f64(x);
-    }
-    fn println(&mut self, x: f64) {
-        self.f64(x);
-        self.byte_unchecked(b'\n');
-    }
-}
+impl_print!(i16 u16 i32 u32 i64 u64 f64 i128 u128 isize usize);
 
 /*
 #[cfg(test)]
