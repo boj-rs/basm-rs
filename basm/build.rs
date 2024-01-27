@@ -17,6 +17,7 @@ fn main() {
             link_args_basm.push("/EMITTOOLVERSIONINFO:NO");
             link_args_basm.push("/EMITPOGOPHASEINFO");
             link_args_basm_submit.push("/ALIGN:128");
+            link_args_basm_submit.push("/OPT:REF,ICF");
         },
         "x86_64-unknown-linux-gnu" | "x86_64-unknown-linux-gnu-short" | "i686-unknown-linux-gnu" => {
             link_args_basm.push("-nostartfiles");

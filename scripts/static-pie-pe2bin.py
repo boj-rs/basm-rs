@@ -80,11 +80,12 @@ if __name__ == '__main__':
 
     # Process exports
     exports = dict()
-    for e in pe.DIRECTORY_ENTRY_EXPORT.symbols:
-        e_name = None if e.name is None else e.name.decode('utf8')
-        if e_name.startswith("_basm_export_") or e_name.startswith("_basm_import_"):
-            assert e.address >= pos_begin
-            exports[e_name] = e.address
+    if hasattr(pe, "DIRECTORY_ENTRY_EXPORT"):
+        for e in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+            e_name = None if e.name is None else e.name.decode('utf8')
+            if e_name.startswith("_basm_export_") or e_name.startswith("_basm_import_"):
+                assert e.address >= pos_begin
+                exports[e_name] = e.address
 
     fdict = {}
     fdict['entrypoint_offset'] = entrypoint_offset
