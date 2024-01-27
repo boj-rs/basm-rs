@@ -1,9 +1,9 @@
 use super::nttcore::*;
-use alloc::vec;
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
+use core::cmp::min;
 
-fn mac3mod_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
-    let min_len = b.len() + c.len();
+fn mul_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
+    let min_len = b.len() + c.len() - 1;
     let plan_x = NttPlan::build::<P2>(min_len);
     let plan_y = NttPlan::build::<P3>(min_len);
     let mut x = vec![0u64; plan_x.g + plan_x.n];
@@ -22,22 +22,27 @@ fn mac3mod_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
     conv::<P3>(&plan_y, &mut y, b.len(), &mut r[..plan_y.g+plan_y.n], c.len(), Arith::<P3>::submod(0, arith::invmod(P2, P3)));
 
     /* merge the results in {x, y} into acc */
-    for i in 0..min_len {
-        /* extract the convolution result */
-        let (a, b) = (x[i], y[i]);
-        let (mut v, overflow) = (a as u128 * P3 as u128).overflowing_sub(b as u128 * P2 as u128);
-        if overflow { v = v.wrapping_add(P2 as u128 * P3 as u128); }
-
-        if modulo == 0 { /* modulo == 2^64 */
-            acc[i] = acc[i].wrapping_add(v as u64);
-        } else { /* nonzero modulo */
-            acc[i] = ((acc[i] as u128 + v) % modulo as u128) as u64;
+    if modulo == 0 {
+        let p2p3 = (P2 as u128 * P3 as u128) as u64;
+        for i in 0..min_len {
+            /* extract the convolution result */
+            let (v, overflow) = (x[i] as u128 * P3 as u128).overflowing_sub(y[i] as u128 * P2 as u128);
+            let v = v as u64;
+            acc[i] = if overflow { v.wrapping_add(p2p3) } else { v };
+        }
+    } else {
+        let p2p3 = ((P2 as u128 * P3 as u128) % modulo as u128) as u64;
+        for i in 0..min_len {
+            /* extract the convolution result */
+            let (mut v, overflow) = (x[i] as u128 * P3 as u128).overflowing_sub(y[i] as u128 * P2 as u128);
+            if overflow { v = v.wrapping_add(p2p3 as u128); }
+            acc[i] = (v % modulo as u128) as u64;
         }
     }
 }
 
-fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
-    let min_len = b.len() + c.len();
+fn mul_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
+    let min_len = b.len() + c.len() - 1;
     let plan_x = NttPlan::build::<P1>(min_len);
     let plan_y = NttPlan::build::<P2>(min_len);
     let plan_z = NttPlan::build::<P3>(min_len);
@@ -93,13 +98,12 @@ fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
         let out_0 = out_01 as u64;
 
         if modulo == 0 { /* modulo == 2^64 */
-            acc[i] = acc[i].wrapping_add(out_0);
+            acc[i] = out_0;
         } else { /* nonzero modulo */
             let out_12 = P1P2_HI as u128 * vcmv as u128 + (out_01 >> 64);
             let out_1 = out_12 as u64;
             let out_2 = (out_12 >> 64) as u64;
-            let mut out = acc[i] as u128;
-            out = (out + out_0 as u128) % modulo as u128;
+            let mut out = (out_0 % modulo) as u128;
             out = (out + (out_1 as u128 * modulo_p64)) % modulo as u128;
             out = (out + (out_2 as u128 * modulo_p128)) % modulo as u128;
             acc[i] = out as u64;
@@ -119,6 +123,23 @@ fn mac3mod_three_primes(acc: &mut [u64], b: &[u64], c: &[u64], modulo: u64) {
 pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
     if x.is_empty() || y.is_empty() {
         Vec::<u64>::new()
+    } else if min(x.len(), y.len()) <= 16 {
+        // Handle small cases with naive multiplication
+        let mut out = vec![0; x.len() + y.len() - 1];
+        if modulo == 0 {
+            for i in 0..x.len() {
+                for j in 0..y.len() {
+                    out[i + j] = x[i].wrapping_mul(y[j]).wrapping_add(out[i + j]);
+                }
+            }
+        } else {
+            for i in 0..x.len() {
+                for j in 0..y.len() {
+                    out[i + j] = ((x[i] as u128 * y[j] as u128 + out[i + j] as u128) % modulo as u128) as u64;
+                }
+            }
+        }
+        out
     } else {
         // We estimate the maximum value of the convolution.
         // If they are small enough, we may reduce the number of
@@ -140,13 +161,13 @@ pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
         };
         let mut out = vec![];
         if strategy == 3 {
-            out.resize(x.len() + y.len() + 1, 0);
-            mac3mod_three_primes(&mut out, x, y, modulo);
+            out.resize(x.len() + y.len() - 1, 0);
+            mul_three_primes(&mut out, x, y, modulo);
         } else if strategy == 2 {
-            out.resize(x.len() + y.len() + 1, 0);
-            mac3mod_two_primes(&mut out, x, y, modulo);
+            out.resize(x.len() + y.len() - 1, 0);
+            mul_two_primes(&mut out, x, y, modulo);
         } else { /* strategy == 1 */
-            let min_len = x.len() + y.len();
+            let min_len = x.len() + y.len() - 1;
             let plan = NttPlan::build::<P3>(min_len);
             let mut r = vec![0u64; plan.g + plan.n];
 
