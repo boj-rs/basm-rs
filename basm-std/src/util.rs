@@ -1,6 +1,13 @@
 use core::{cmp::Ordering, f64::consts, mem, num::FpCategory};
-// use core::convert::FloatToInt;
 
+/// Trait for f64 operations. This trait is for easy-to-use f64 functions without explicitly
+/// declaring `libm` functions every single time trying to use methods with `f64`.
+///
+/// The function implementations are from rust standard implementations, with a few tweaks to match
+/// with needs for basm-rs:
+/// * https://doc.rust-lang.org/src/std/f64.rs.html
+/// * https://doc.rust-lang.org/src/core/num/f64.rs
+/// * https://doc.rust-lang.org/src/core/intrinsics.rs.html
 pub trait F64Ops {
     fn floor(self) -> f64;
     fn ceil(self) -> f64;
