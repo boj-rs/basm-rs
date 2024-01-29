@@ -1,5 +1,4 @@
-use core::{cmp::Ordering, num::FpCategory};
-use libm::*;
+use core::{cmp::Ordering, f64::consts, mem, num::FpCategory};
 // use core::convert::FloatToInt;
 
 pub trait F64Ops {
@@ -106,7 +105,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn floor(self) -> f64 {
-        unsafe { intrinsics::floorf64(self) }
+        libm::floor(self)
     }
 
     /// Returns the smallest integer greater than or equal to `self`.
@@ -124,7 +123,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ceil(self) -> f64 {
-        unsafe { intrinsics::ceilf64(self) }
+        libm::ceil(self)
     }
 
     /// Returns the nearest integer to `self`. If a value is half-way between two
@@ -148,7 +147,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn round(self) -> f64 {
-        unsafe { intrinsics::roundf64(self) }
+        libm::round(self)
     }
 
     /// Returns the nearest integer to a number. Rounds half-way cases to the number
@@ -172,7 +171,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn round_ties_even(self) -> f64 {
-        unsafe { intrinsics::rintf64(self) }
+        libm::rint(self)
     }
 
     /// Returns the integer part of `self`.
@@ -193,7 +192,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn trunc(self) -> f64 {
-        unsafe { intrinsics::truncf64(self) }
+        libm::trunc(self)
     }
 
     /// Returns the fractional part of `self`.
@@ -234,7 +233,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn abs(self) -> f64 {
-        unsafe { intrinsics::fabsf64(self) }
+        libm::fabs(self)
     }
 
     /// Returns a number that represents the sign of `self`.
@@ -287,7 +286,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn copysign(self, sign: f64) -> f64 {
-        unsafe { intrinsics::copysignf64(self, sign) }
+        libm::copysign(self, sign)
     }
 
     /// Fused multiply-add. Computes `(self * a) + b` with only one rounding
@@ -313,7 +312,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn mul_add(self, a: f64, b: f64) -> f64 {
-        unsafe { intrinsics::fmaf64(self, a, b) }
+        libm::fma(self, a, b)
     }
 
     /// Calculates Euclidean division, the matching method for `rem_euclid`.
@@ -384,6 +383,12 @@ impl F64Ops for f64 {
     /// It might have a different sequence of rounding operations than `powf`,
     /// so the results are not guaranteed to agree.
     ///
+    /// # Precision
+    /// The rust compiler's implementation uses "rust-intrinsic" function `intrinsic::powif64`,
+    /// which is not available on `libm`. In the context of competitive programming, the point
+    /// where the user is using `f64` means that the precision is not a huge concern. For this
+    /// reason, for now this function is equivalent to `self.powf(n as f64)`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -395,7 +400,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn powi(self, n: i32) -> f64 {
-        unsafe { intrinsics::powif64(self, n) }
+        self.powf(n as f64)
     }
 
     /// Raises a number to a floating point power.
@@ -411,7 +416,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn powf(self, n: f64) -> f64 {
-        unsafe { intrinsics::powf64(self, n) }
+        libm::pow(self, n)
     }
 
     /// Returns the square root of a number.
@@ -434,7 +439,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn sqrt(self) -> f64 {
-        unsafe { intrinsics::sqrtf64(self) }
+        libm::sqrt(self)
     }
 
     /// Returns `e^(self)`, (the exponential function).
@@ -454,7 +459,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn exp(self) -> f64 {
-        unsafe { intrinsics::expf64(self) }
+        libm::exp(self)
     }
 
     /// Returns `2^(self)`.
@@ -472,10 +477,15 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn exp2(self) -> f64 {
-        unsafe { intrinsics::exp2f64(self) }
+        libm::exp2(self)
     }
 
     /// Returns the natural logarithm of the number.
+    ///
+    /// # Non-standard behavior of Solaris/Illumos
+    /// Solaris/Illumos requires a wrapper around log, log2, and log10 functions
+    /// because of their non-standard behavior (e.g., log(-n) returns -Inf instead
+    /// of expected NaN). However, this is ignored as basm-rs does not target for these OS's.
     ///
     /// # Examples
     ///
@@ -492,7 +502,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ln(self) -> f64 {
-        crate::sys::log_wrapper(self, |n| unsafe { intrinsics::logf64(n) })
+        libm::log(self)
     }
 
     /// Returns the logarithm of the number with respect to an arbitrary base.
@@ -532,7 +542,10 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn log2(self) -> f64 {
-        crate::sys::log_wrapper(self, crate::sys::log2f64)
+        // The original implementation of log requires `log_wrapper` due to Solaris/Illumos
+        // having non-standard behavior (i.e, log(-n) returns -Inf instead of expected NaN).
+        // However, this will be ignored as those are not basm-rs's targets.
+        libm::log2(self)
     }
 
     /// Returns the base 10 logarithm of the number.
@@ -550,7 +563,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn log10(self) -> f64 {
-        crate::sys::log_wrapper(self, |n| unsafe { intrinsics::log10f64(n) })
+        libm::log10(self)
     }
 
     /// The positive difference of two numbers.
@@ -580,7 +593,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn abs_sub(self, other: f64) -> f64 {
-        unsafe { cmath::fdim(self, other) }
+        libm::fdim(self, other)
     }
 
     /// Returns the cube root of a number.
@@ -598,7 +611,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn cbrt(self) -> f64 {
-        unsafe { cmath::cbrt(self) }
+        libm::cbrt(self)
     }
 
     /// Compute the distance between the origin and a point (`x`, `y`) on the
@@ -620,7 +633,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn hypot(self, other: f64) -> f64 {
-        unsafe { cmath::hypot(self, other) }
+        libm::hypot(self, other)
     }
 
     /// Computes the sine of a number (in radians).
@@ -637,7 +650,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn sin(self) -> f64 {
-        unsafe { intrinsics::sinf64(self) }
+        libm::sin(self)
     }
 
     /// Computes the cosine of a number (in radians).
@@ -654,7 +667,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn cos(self) -> f64 {
-        unsafe { intrinsics::cosf64(self) }
+        libm::cos(self)
     }
 
     /// Computes the tangent of a number (in radians).
@@ -670,7 +683,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn tan(self) -> f64 {
-        unsafe { cmath::tan(self) }
+        libm::tan(self)
     }
 
     /// Computes the arcsine of a number. Return value is in radians in
@@ -691,7 +704,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn asin(self) -> f64 {
-        unsafe { cmath::asin(self) }
+        libm::asin(self)
     }
 
     /// Computes the arccosine of a number. Return value is in radians in
@@ -712,7 +725,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn acos(self) -> f64 {
-        unsafe { cmath::acos(self) }
+        libm::acos(self)
     }
 
     /// Computes the arctangent of a number. Return value is in radians in the
@@ -732,7 +745,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn atan(self) -> f64 {
-        unsafe { cmath::atan(self) }
+        libm::atan(self)
     }
 
     /// Computes the four quadrant arctangent of `self` (`y`) and `other` (`x`) in radians.
@@ -764,7 +777,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn atan2(self, other: f64) -> f64 {
-        unsafe { cmath::atan2(self, other) }
+        libm::atan2(self, other)
     }
 
     /// Simultaneously computes the sine and cosine of the number, `x`. Returns
@@ -805,7 +818,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn exp_m1(self) -> f64 {
-        unsafe { cmath::expm1(self) }
+        libm::expm1(self)
     }
 
     /// Returns `ln(1+n)` (natural logarithm) more accurately than if
@@ -826,7 +839,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ln_1p(self) -> f64 {
-        unsafe { cmath::log1p(self) }
+        libm::log1p(self)
     }
 
     /// Hyperbolic sine function.
@@ -847,7 +860,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn sinh(self) -> f64 {
-        unsafe { cmath::sinh(self) }
+        libm::sinh(self)
     }
 
     /// Hyperbolic cosine function.
@@ -868,7 +881,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn cosh(self) -> f64 {
-        unsafe { cmath::cosh(self) }
+        libm::cosh(self)
     }
 
     /// Hyperbolic tangent function.
@@ -889,7 +902,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn tanh(self) -> f64 {
-        unsafe { cmath::tanh(self) }
+        libm::tanh(self)
     }
 
     /// Inverse hyperbolic sine function.
@@ -972,7 +985,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn gamma(self) -> f64 {
-        unsafe { cmath::tgamma(self) }
+        libm::tgamma(self)
     }
 
     /// Natural logarithm of the absolute value of the gamma function
@@ -992,9 +1005,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ln_gamma(self) -> (f64, i32) {
-        let mut signgamp: i32 = 0;
-        let x = unsafe { cmath::lgamma_r(self, &mut signgamp) };
-        (x, signgamp)
+        libm::lgamma_r(self)
     }
 
     /// Not a Number (NaN).
@@ -1137,6 +1148,23 @@ impl F64Ops for f64 {
     /// assert_eq!(inf.classify(), FpCategory::Infinite);
     /// ```
     fn classify(self) -> FpCategory {
+        const unsafe fn partial_classify(val: f64) -> FpCategory {
+            // This doesn't actually return a right answer for NaN on purpose,
+            // seeing as how it cannot correctly discern between a floating point NaN,
+            // and some normal floating point numbers truncated from an x87 FPU.
+            const EXP_MASK: u64 = 0x7ff0000000000000;
+            const MAN_MASK: u64 = 0x000fffffffffffff;
+
+            // SAFETY: The caller is not asking questions for which this will tell lies.
+            let b = unsafe { mem::transmute::<f64, u64>(val) };
+            match (b & MAN_MASK, b & EXP_MASK) {
+                (0, EXP_MASK) => FpCategory::Infinite,
+                (0, 0) => FpCategory::Zero,
+                (_, 0) => FpCategory::Subnormal,
+                _ => FpCategory::Normal,
+            }
+        }
+
         // A previous implementation tried to only use bitmask-based checks,
         // using f64::to_bits to transmute the float to its bit repr and match on that.
         // Unfortunately, floating point numbers can be much worse than that.
@@ -1163,7 +1191,7 @@ impl F64Ops for f64 {
             // SAFETY: f64 to u64 is fine. Usually.
             // If control flow has gotten this far, the value is definitely in one of the categories
             // that f64::partial_classify can correctly analyze.
-            unsafe { f64::partial_classify(self) }
+            unsafe { partial_classify(self) }
         }
     }
 
@@ -1372,7 +1400,7 @@ impl F64Ops for f64 {
     #[must_use = "this returns the result of the comparison, without modifying either input"]
     #[inline]
     fn max(self, other: f64) -> f64 {
-        intrinsics::maxnumf64(self, other)
+        libm::fmax(self, other)
     }
 
     /// Returns the minimum of the two numbers, ignoring NaN.
@@ -1391,7 +1419,7 @@ impl F64Ops for f64 {
     #[must_use = "this returns the result of the comparison, without modifying either input"]
     #[inline]
     fn min(self, other: f64) -> f64 {
-        intrinsics::minnumf64(self, other)
+        libm::fmin(self, other)
     }
 
     /// Returns the maximum of the two numbers, propagating NaN.
@@ -1488,8 +1516,8 @@ impl F64Ops for f64 {
         const HI: f64 = f64::MAX / 2.;
 
         let (a, b) = (self, other);
-        let abs_a = a.abs_private();
-        let abs_b = b.abs_private();
+        let abs_a = a.abs();
+        let abs_b = b.abs();
 
         if abs_a <= HI && abs_b <= HI {
             // Overflow is impossible
@@ -1531,30 +1559,7 @@ impl F64Ops for f64 {
         // ...sorta.
         //
         // See the SAFETY comment in f64::from_bits for more.
-        fn ct_f64_to_u64(ct: f64) -> u64 {
-            match ct.classify() {
-                FpCategory::Nan => {
-                    panic!("const-eval error: cannot use f64::to_bits on a NaN")
-                }
-                FpCategory::Subnormal => {
-                    panic!("const-eval error: cannot use f64::to_bits on a subnormal number")
-                }
-                FpCategory::Infinite | FpCategory::Normal | FpCategory::Zero => {
-                    // SAFETY: We have a normal floating point number. Now we transmute, i.e. do a bitcopy.
-                    unsafe { mem::transmute::<f64, u64>(ct) }
-                }
-            }
-        }
-
-        #[inline(always)] // See https://github.com/rust-lang/compiler-builtins/issues/491
-        fn rt_f64_to_u64(rt: f64) -> u64 {
-            // SAFETY: `u64` is a plain old datatype so we can always... uh...
-            // ...look, just pretend you forgot what you just read.
-            // Stability concerns.
-            unsafe { mem::transmute::<f64, u64>(rt) }
-        }
-        // SAFETY: We use internal implementations that either always work or fail at compile time.
-        unsafe { intrinsics::const_eval_select((self,), ct_f64_to_u64, rt_f64_to_u64) }
+        unsafe { mem::transmute::<f64, u64>(self) }
     }
 
     /// Raw transmutation from `u64`.
@@ -1625,30 +1630,11 @@ impl F64Ops for f64 {
         //
         // In order to preserve, at least for the moment, const-to-runtime equivalence,
         // reject any of these possible situations from happening.
-        fn ct_u64_to_f64(ct: u64) -> f64 {
-            match f64::classify_bits(ct) {
-                FpCategory::Subnormal => {
-                    panic!("const-eval error: cannot use f64::from_bits on a subnormal number")
-                }
-                FpCategory::Nan => {
-                    panic!("const-eval error: cannot use f64::from_bits on NaN")
-                }
-                FpCategory::Infinite | FpCategory::Normal | FpCategory::Zero => {
-                    // SAFETY: It's not a frumious number
-                    unsafe { mem::transmute::<u64, f64>(ct) }
-                }
-            }
-        }
-
-        #[inline(always)] // See https://github.com/rust-lang/compiler-builtins/issues/491
-        fn rt_u64_to_f64(rt: u64) -> f64 {
-            // SAFETY: `u64` is a plain old datatype so we can always... uh...
-            // ...look, just pretend you forgot what you just read.
-            // Stability concerns.
-            unsafe { mem::transmute::<u64, f64>(rt) }
-        }
-        // SAFETY: We use internal implementations that either always work or fail at compile time.
-        unsafe { intrinsics::const_eval_select((v,), ct_u64_to_f64, rt_u64_to_f64) }
+        //
+        // SAFETY: `u64` is a plain old datatype so we can always... uh...
+        // ...look, just pretend you forgot what you just read.
+        // Stability concerns.
+        unsafe { mem::transmute::<u64, f64>(v) }
     }
 
     /// Return the memory representation of this floating point number as a byte array in
