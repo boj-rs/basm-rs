@@ -596,10 +596,7 @@ impl F64Ops for f64 {
     ///
     /// # Deprecated
     /// You probably meant `(self - other).abs()`. This operation is `(self - other).max(0.0)`
-    /// except that `abs_sub` also propagates NaNs (also known as `fdim` in C). If you truly need
-    /// the positive difference, consider using that expression or the C function `fdim`,
-    /// Depending on how you wish to handle NaN (please consider filing an issue describing your
-    /// use-case too).
+    /// except that `abs_sub` also propagates NaNs (also known as `fdim` in C).
     ///
     /// # Examples
     ///
