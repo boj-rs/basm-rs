@@ -369,7 +369,7 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn powi(self, n: i32) -> f64 {
-        self.powf(n as f64)
+        compiler_builtins::float::pow::__powidf2(self, n)
     }
 
     /// Raises a number to a floating point power.
