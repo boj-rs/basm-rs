@@ -489,10 +489,12 @@ impl F64Ops for f64 {
 
     /// Returns the natural logarithm of the number.
     ///
-    /// # Non-standard behavior of Solaris/Illumos
-    /// Solaris/Illumos requires a wrapper around log, log2, and log10 functions
-    /// because of their non-standard behavior (e.g., log(-n) returns -Inf instead
-    /// of expected NaN). However, this is ignored as basm-rs does not target for these OS's.
+    /// # Note
+    /// Despite not being target for basm-rs, provided log functions in Solaris/Illumos have
+    /// non-standard behavior (e.g., log(-n) returns -Inf instead of NaN). The rust standard
+    /// library is covering this case with a special `log_wrapper` function, but for the sake of
+    /// the purpose of basm-rs, this is not implemented and log functions defined here are simply
+    /// exposing APIs of libm.
     ///
     /// # Examples
     ///
@@ -536,6 +538,13 @@ impl F64Ops for f64 {
 
     /// Returns the base 2 logarithm of the number.
     ///
+    /// # Note
+    /// Despite not being target for basm-rs, provided log functions in Solaris/Illumos have
+    /// non-standard behavior (e.g., log(-n) returns -Inf instead of NaN). The rust standard
+    /// library is covering this case with a special `log_wrapper` function, but for the sake of
+    /// the purpose of basm-rs, this is not implemented and log functions defined here are simply
+    /// exposing APIs of libm.
+    ///
     /// # Examples
     ///
     /// ```
@@ -556,6 +565,13 @@ impl F64Ops for f64 {
     }
 
     /// Returns the base 10 logarithm of the number.
+    ///
+    /// # Note
+    /// Despite not being target for basm-rs, provided log functions in Solaris/Illumos have
+    /// non-standard behavior (e.g., log(-n) returns -Inf instead of NaN). The rust standard
+    /// library is covering this case with a special `log_wrapper` function, but for the sake of
+    /// the purpose of basm-rs, this is not implemented and log functions defined here are simply
+    /// exposing APIs of libm.
     ///
     /// # Examples
     ///
