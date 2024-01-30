@@ -196,9 +196,11 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
         let mut t = vec![0u64; plan.g + plan.n];
         let mut s = vec![0u64; plan.g + plan.n];
 
-        /* convolution with modulo P3 */
-        for i in 0..x.len() { t[plan.g + i] = if x[i] >= P3 { x[i] - P3 } else { x[i] }; }
-        for i in 0..y.len() { s[plan.g + i] = if y[i] >= P3 { y[i] - P3 } else { y[i] }; }
+        /* Convolution with modulo P3. We don't compare with and subtract P3,
+         * since we have already ensured the maximum value is less than P3.
+         */
+        for i in 0..x.len() { t[plan.g + i] = x[i]; }
+        for i in 0..y.len() { s[plan.g + i] = y[i]; }
         conv::<P3>(&plan, &mut t[..plan.g+plan.n], x.len(), &mut s[..plan.g+plan.n], y.len(), 1);
 
         /* copy the result along with modular reduction */
