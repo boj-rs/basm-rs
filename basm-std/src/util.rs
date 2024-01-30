@@ -1,5 +1,3 @@
-use core::{cmp::Ordering, f64::consts, mem, num::FpCategory};
-
 /// Trait for f64 operations. This trait is for easy-to-use f64 functions without explicitly
 /// declaring `libm` functions every single time trying to use methods with `f64`.
 ///
