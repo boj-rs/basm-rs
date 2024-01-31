@@ -134,7 +134,7 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
     let y = if y.len() <= r { y } else { &y[..r] };
 
     // Handle naive cases.
-    if r - l <= 26 {
+    if r - l <= 40 {
         if modulo == 0 {
             for i in l..r {
                 let lt_range = (i + 1).saturating_sub(y.len());
@@ -146,17 +146,33 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
                 out[i - l] = ans;
             }
         } else {
+            // Since modulo operation is expensive, we accumulate non-modulo-reduced data
+            // and reduce only at the end.
+            // Correctness:
+            //   If overflow does not occur, we are all set.
+            //   If overflow does occur, we have w < v.
+            //     Since v <= (2^64 - 1) * (2^64 - 1) = 2^128 - 2 * 2^64 + 1,
+            //       we have w < 2^128 - 2 * 2^64 + 1.
+            //     Thus a second overflow cannot occur if we add to v the number
+            //       pow128 = 2^128 mod modulo < modulo < 2^64 < 2 * 2^64 - 1
+            //       to compensate for the missing 2^128.
+            let pow128 = {
+                let tmp = 0u64.wrapping_sub(modulo) as u128;
+                (tmp * tmp) % modulo as u128
+            };
             for i in l..r {
                 let lt_range = (i + 1).saturating_sub(y.len());
                 let rt_range = min(i, x.len() - 1);
-                let mut ans = 0u64;
+                let mut ans = 0u128;
                 for j in lt_range..=rt_range {
-                    let v = crate::math::modmul(x[j], y[i - j], modulo);
-                    let (w, overflow) = ans.overflowing_sub(v);
-                    ans = if overflow { w.wrapping_add(modulo) } else { w };
+                    let v = x[j] as u128 * y[i - j] as u128;
+                    let (mut w, overflow) = ans.overflowing_add(v);
+                    if overflow {
+                        w = w.wrapping_add(pow128);
+                    }
+                    ans = w;
                 }
-                ans = if ans == 0 { 0 } else { modulo.wrapping_sub(ans) };
-                out[i - l] = ans;
+                out[i - l] = (ans % modulo as u128) as u64;
             }
         }
         return;
@@ -226,24 +242,8 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
 pub fn polymul_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
     if x.is_empty() || y.is_empty() {
         Vec::<u64>::new()
-    } else if min(x.len(), y.len()) <= 16 {
-        // Handle small cases with naive multiplication
-        let mut out = vec![0; x.len() + y.len() - 1];
-        if modulo == 0 {
-            for i in 0..x.len() {
-                for j in 0..y.len() {
-                    out[i + j] = x[i].wrapping_mul(y[j]).wrapping_add(out[i + j]);
-                }
-            }
-        } else {
-            for i in 0..x.len() {
-                for j in 0..y.len() {
-                    out[i + j] = ((x[i] as u128 * y[j] as u128 + out[i + j] as u128) % modulo as u128) as u64;
-                }
-            }
-        }
-        out
     } else {
+        // Naive case optimization is implemented in polymul_ex_u64.
         let out_len = x.len() + y.len() - 1;
         let mut out = vec![0; out_len];
         polymul_ex_u64(&mut out, x, y, 0, out_len, modulo);
