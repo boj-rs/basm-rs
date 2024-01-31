@@ -13,4 +13,4 @@ pub mod platform;
 pub mod serialization;
 pub mod sorts;
 pub mod strings;
-pub mod util;
+pub mod utils;
