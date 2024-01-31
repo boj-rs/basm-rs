@@ -154,15 +154,23 @@ impl LinearSieve {
     /// Ensures that any integers no more than `x` are precomputed.
     fn ensure_upto(&mut self, x: usize) {
         if x > self.upto {
+            let prev_upto = self.upto;
+            // (prev_upto, x] are the numbers which needs computation.
+            // We already know everything about [1, prev_upto].
             self.upto = Self::next_len(self.upto, x);
             self.smallest_prime_factor.resize(self.upto + 1, 0);
-            self.primes.clear();
+            // self.primes.clear(); - We don't need to clear this at all!
             for i in 2..=self.upto {
                 if self.smallest_prime_factor[i] == 0 || self.smallest_prime_factor[i] == i {
-                    self.primes.push(i);
+                    if i > prev_upto {
+                        self.primes.push(i);
+                    }
                     self.smallest_prime_factor[i] = i;
                 }
-                for &p in self.primes.iter() {
+                let look_from = self
+                    .primes
+                    .partition_point(|&p| i.checked_mul(p).is_some_and(|v| v <= prev_upto));
+                for &p in self.primes.iter().skip(look_from) {
                     if i * p > self.upto || p > self.smallest_prime_factor[i] {
                         break;
                     }
