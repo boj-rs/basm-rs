@@ -28,16 +28,19 @@ impl LinearSieve {
             //s: vec![0, 1]
         }
     }
+
     /// Returns true if and only if `x` is a prime number.
     pub fn is_prime(&mut self, x: usize) -> bool {
         let x = Self::sanitize(x);
         x > 0 && self.smallest_prime_factor(x) == x
     }
+
     /// Smallest prime factor of `x` (`x=75` returns `3`).
     pub fn smallest_prime_factor(&mut self, x: usize) -> usize {
         self.ensure_upto(x);
         self.smallest_prime_factor[x]
     }
+
     /// `n`th prime (setting `n=1` returns the 1st prime which is `2`).
     pub fn nth_prime(&mut self, n: usize) -> usize {
         assert!(n >= 1);
@@ -46,6 +49,7 @@ impl LinearSieve {
         }
         self.primes[n - 1]
     }
+
     /// Mobius function.
     pub fn mu(&mut self, x: usize) -> i8 {
         assert!(x >= 1);
@@ -68,6 +72,7 @@ impl LinearSieve {
         }
         self.mu[x]
     }
+
     /// Euler's totient function.
     pub fn phi(&mut self, x: usize) -> usize {
         assert!(x >= 1);
@@ -94,6 +99,7 @@ impl LinearSieve {
         }
         self.phi[x]
     }
+
     /// Number of positive divisors of x.
     /// Note: This function can be slow. Performance optimization will be done later.
     pub fn d(&mut self, mut x: usize) -> usize {
@@ -110,6 +116,7 @@ impl LinearSieve {
         }
         ans
     }
+
     /// Sum of positive divisors of x.
     /// Note: This function can be slow. Performance optimization will be done later.
     pub fn s(&mut self, mut x: usize) -> usize {
@@ -126,6 +133,7 @@ impl LinearSieve {
         }
         ans
     }
+
     /// Returns the positive divisors of x, in ascending order.
     pub fn divisors(&mut self, mut x: usize) -> Vec<usize> {
         x = Self::sanitize(x);
@@ -151,6 +159,7 @@ impl LinearSieve {
             out
         }
     }
+
     /// Ensures that any integers no more than `x` are precomputed.
     fn ensure_upto(&mut self, x: usize) {
         if x > self.upto {
@@ -179,6 +188,7 @@ impl LinearSieve {
             }
         }
     }
+
     /// Ensure that the value of `x` makes sense.
     ///
     /// # Why is sanitization here?
@@ -195,6 +205,7 @@ impl LinearSieve {
         assert!(x > 0);
         out
     }
+
     fn next_len(cur_upto: usize, x: usize) -> usize {
         let out = cur_upto + (cur_upto >> 1) + 1;
         if x > out {
