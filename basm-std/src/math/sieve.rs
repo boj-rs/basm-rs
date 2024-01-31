@@ -31,7 +31,6 @@ impl LinearSieve {
 
     /// Returns true if and only if `x` is a prime number.
     pub fn is_prime(&mut self, x: usize) -> bool {
-        let x = Self::sanitize(x);
         x > 0 && self.smallest_prime_factor(x) == x
     }
 
@@ -190,6 +189,7 @@ impl LinearSieve {
     }
 
     /// Ensure that the value of `x` makes sense.
+    /// All it does is just panicing if `x == 0`.
     ///
     /// # Why is sanitization here?
     /// The original implementation mainly used a sigend integer, so we had to make it to an
@@ -199,7 +199,7 @@ impl LinearSieve {
     /// # Panic
     /// Panics if `x = 0`.
     fn sanitize(x: usize) -> usize {
-        // As x is usize, x<0 is always false.
+        // As x is usize, x < 0 is always false.
         // let out = if x < 0 { -x } else { x };
         let out = x;
         assert!(x > 0);
@@ -225,6 +225,17 @@ impl Default for LinearSieve {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn check_is_prime() {
+        let mut ls = LinearSieve::new();
+        assert_eq!(false, ls.is_prime(0));
+        assert_eq!(false, ls.is_prime(1));
+        assert_eq!(true, ls.is_prime(2));
+        assert_eq!(true, ls.is_prime(3));
+        assert_eq!(false, ls.is_prime(20));
+        assert_eq!(true, ls.is_prime(19));
+    }
 
     #[test]
     fn check_mu() {
