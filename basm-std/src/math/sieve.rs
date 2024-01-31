@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 /// and by using a linear sieve algorithm.
 /// The growth strategy is to increase the upper bound by 50% each time.
 pub struct LinearSieve {
-    upto: usize,
+    upto: usize,  // == smallest_prime_factor.len() - 1
     smallest_prime_factor: Vec<usize>,
     primes: Vec<usize>,
     mu: Vec<i8>,
@@ -31,16 +31,18 @@ impl LinearSieve {
 
     /// Returns true if and only if `x` is a prime number.
     pub fn is_prime(&mut self, x: usize) -> bool {
-        x > 0 && self.smallest_prime_factor(x) == x
+        x > 1 && self.smallest_prime_factor(x) == x
     }
 
-    /// Smallest prime factor of `x` (`x=75` returns `3`).
+    /// Returns the smallest prime factor of `x` (e.g. returns `3` for `x = 75`).
+    /// Returns `x` back if `x <= 1`.
     pub fn smallest_prime_factor(&mut self, x: usize) -> usize {
         self.ensure_upto(x);
         self.smallest_prime_factor[x]
     }
 
-    /// `n`th prime (setting `n=1` returns the 1st prime which is `2`).
+    /// Returns the `n`-th prime in 1-based index (e.g. returns `2` for `n = 1`).
+    /// TODO: Why don't make it 0-based and just remove the assert?
     pub fn nth_prime(&mut self, n: usize) -> usize {
         assert!(n >= 1);
         while self.primes.len() < n {
@@ -159,15 +161,18 @@ impl LinearSieve {
         }
     }
 
-    /// Ensures that any integers no more than `x` are precomputed.
+    /// Ensures that every integer in [1, x] is precomputed.
     fn ensure_upto(&mut self, x: usize) {
         if x > self.upto {
-            let prev_upto = self.upto;
             // (prev_upto, x] are the numbers which needs computation.
             // We already know everything about [1, prev_upto].
+            let prev_upto = self.upto;
+            // next_len below returns max(self.upto*3/2, x). This loop is executed only when
+            // x > self.upto, so the new self.upto is always self.upto*3/2. This ensures
+            // amortization, but the implementation for now is quite weird...
             self.upto = Self::next_len(self.upto, x);
             self.smallest_prime_factor.resize(self.upto + 1, 0);
-            // self.primes.clear(); - We don't need to clear this at all!
+            // self.primes.clear(); - We don't need to clear self.primes at all!
             for i in 2..=self.upto {
                 if self.smallest_prime_factor[i] == 0 || self.smallest_prime_factor[i] == i {
                     if i > prev_upto {
