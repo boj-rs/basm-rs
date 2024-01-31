@@ -3,6 +3,8 @@ pub mod multiply;
 pub use multiply::multiply_u64;
 pub mod polymul;
 pub use polymul::{polymul_u64, polymul_ex_u64};
+mod polyops;
+pub use polyops::{polydiv_u64, polyinv_u64, polymod_u64};
 
 #[cfg(test)]
 mod test {
