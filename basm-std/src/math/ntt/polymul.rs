@@ -153,8 +153,8 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
             //       pow128 = 2^128 mod modulo < modulo < 2^64 < 2 * 2^64 - 1
             //       to compensate for the missing 2^128.
             let pow128 = {
-                let tmp = 0u64.wrapping_sub(modulo) as u128;
-                (tmp * tmp) % modulo as u128
+                let tmp = 0u64.wrapping_sub(modulo) % modulo;
+                (tmp as u128 * tmp as u128) % modulo as u128
             };
             for i in l..r {
                 let lt_range = (i + 1).saturating_sub(y.len());
