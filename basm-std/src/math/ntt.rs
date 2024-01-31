@@ -1,6 +1,8 @@
 pub mod nttcore;
 pub mod multiply;
 pub use multiply::multiply_u64;
+pub mod polyeval;
+pub use polyeval::polyeval_u64;
 pub mod polymul;
 pub use polymul::{polymul_u64, polymul_ex_u64};
 mod polyops;
