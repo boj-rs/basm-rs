@@ -129,10 +129,6 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
     let all_len = x.len() + y.len() - 1; // Output length without truncation
     debug_assert!(r <= all_len);
 
-    // No need to multiply beyond what is actually needed.
-    let x = if x.len() <= r { x } else { &x[..r] };
-    let y = if y.len() <= r { y } else { &y[..r] };
-
     // Handle naive cases.
     if r - l <= 40 {
         if modulo == 0 {
@@ -177,6 +173,10 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
         }
         return;
     }
+
+    // No need to multiply beyond what is actually needed.
+    let x = if x.len() <= r { x } else { &x[..r] };
+    let y = if y.len() <= r { y } else { &y[..r] };
 
     // We ensure the invariants `min_len >= x.len()` and `min_len >= y.len()`.
     let min_len = max(x.len() + y.len() - 1 - l, r);
