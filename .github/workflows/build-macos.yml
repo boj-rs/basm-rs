@@ -30,6 +30,10 @@ jobs:
           profile: default
           override: true
           components: clippy
+      - name: Install Python 3      
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Install node.js
         uses: actions/setup-node@v4
         with:
