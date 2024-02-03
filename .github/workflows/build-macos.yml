@@ -1,0 +1,52 @@
+name: Check
+
+on:
+  - push
+  - pull_request
+
+env:
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  build:
+    name: CI (macOS)
+    runs-on: macos-14
+    strategy:
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - wasm32-unknown-unknown
+    env:
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+          profile: default
+          override: true
+          components: clippy
+      - name: Install node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+      - name: Install System packages
+        run: |
+          brew update
+          brew install gcc
+          rustup component add rust-src --toolchain nightly-aarch64-apple-darwin
+      - name: Clippy
+        run: cargo clippy
+        env:
+          RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+      - name: Test
+        if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
+        run: cargo test --lib -- --test-threads 1
+      - name: Check wasm32
+        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+        run: |
+          python ./scripts/ci.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/ci.json
