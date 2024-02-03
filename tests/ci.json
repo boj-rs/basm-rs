@@ -1,0 +1,37 @@
+[
+    {
+        "solution": "./basm/src/solution.rs",
+        "input": "./tests/boj_1000.in",
+        "output": "./tests/boj_1000.out"
+    },
+    {
+        "solution": "./tests/boj_1001.rs",
+        "input": "./tests/boj_1001.in",
+        "output": "./tests/boj_1001.out"
+    },
+    {
+        "solution": "./tests/boj_2587.rs",
+        "input": "./tests/boj_2587.in",
+        "output": "./tests/boj_2587.out"
+    },
+    {
+        "solution": "./tests/boj_2751.rs",
+        "input": "./tests/boj_2751.in.zip",
+        "output": "./tests/boj_2751.out.zip"
+    },
+    {
+        "solution": "./tests/boj_3745.rs",
+        "input": "./tests/boj_3745.in",
+        "output": "./tests/boj_3745.out"
+    },
+    {
+        "solution": "./tests/boj_14939.rs",
+        "input": "./tests/boj_14939.in",
+        "output": "./tests/boj_14939.out"
+    },
+    {
+        "solution": "./tests/reloc.rs",
+        "input": "./tests/reloc.in",
+        "output": "./tests/reloc.out"
+    }
+]
