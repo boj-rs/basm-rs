@@ -53,4 +53,4 @@ jobs:
       - name: Check wasm32
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         run: |
-          python ./scripts/ci.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/ci.json
+          python3 ./scripts/ci.py ${{ runner.temp }} ./release-wasm32.sh JavaScript 32 ./tests/ci.json
