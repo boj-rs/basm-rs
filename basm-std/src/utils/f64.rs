@@ -369,7 +369,21 @@ impl F64Ops for f64 {
     #[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn powi(self, n: i32) -> f64 {
-        compiler_builtins::float::pow::__powidf2(self, n)
+        let mut r = 1.0;
+        let mut powx = self;
+        let mut m = n;
+        while m != 0 {
+            if (m & 1) != 0 {
+                r *= powx;
+            }
+            powx *= powx;
+            m /= 2;
+        }
+        if n < 0 {
+            1.0 / r
+        } else {
+            r
+        }
     }
 
     /// Raises a number to a floating point power.
