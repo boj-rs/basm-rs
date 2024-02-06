@@ -1,3 +1,5 @@
+pub mod linear_recurrence;
+pub use linear_recurrence::linear_nth;
 pub mod nttcore;
 pub mod multiply;
 pub use multiply::multiply_u64;

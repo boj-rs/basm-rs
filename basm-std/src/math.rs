@@ -125,6 +125,8 @@ pub trait ModOps<T>:
     fn one() -> T;
     fn two() -> T;
     fn my_wrapping_sub(&self, other: T) -> T;
+    fn modadd(x: T, y: T, modulo: T) -> T;
+    fn modsub(x: T, y: T, modulo: T) -> T;
     fn modinv(&self, modulo: T) -> Option<T>;
     fn modmul(x: T, y: T, modulo: T) -> T;
 }
@@ -145,6 +147,17 @@ macro_rules! impl_mod_ops_signed {
                 } else {
                     None
                 }
+            }
+            fn modadd(x: $t, y: $t, modulo: $t) -> $t {
+                Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+            }
+            fn modsub(x: $t, y: $t, modulo: $t) -> $t {
+                debug_assert!(modulo > 0);
+                let (mut x, mut y) = (x % modulo, y % modulo);
+                if x < 0 { x += modulo; }
+                if y < 0 { y += modulo; }
+                let out = x - y;
+                if out < 0 { out + modulo } else { out }
             }
             fn modmul(x: $t, y: $t, modulo: $t) -> $t {
                 debug_assert!(modulo > 0);
@@ -176,14 +189,18 @@ macro_rules! impl_mod_ops_unsigned {
             fn one() -> $t { 1 }
             fn two() -> $t { 2 }
             fn my_wrapping_sub(&self, other: $t) -> $t { self.wrapping_sub(other) }
+            fn modadd(x: $t, y: $t, modulo: $t) -> $t {
+                Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+            }
+            fn modsub(x: $t, y: $t, modulo: $t) -> $t {
+                debug_assert!(modulo > 0);
+                let (x, y) = (x % modulo, y % modulo);
+                let (out, overflow) = x.overflowing_sub(y);
+                if overflow { out.wrapping_add(modulo) } else { out }
+            }
             fn modinv(&self, modulo: $t) -> Option<$t> {
                 if modulo <= 1 {
                     return None;
-                }
-                fn modsub(x: $t, mut y: $t, modulo: $t) -> $t {
-                    y %= modulo;
-                    let (out, overflow) = x.overflowing_sub(y);
-                    if overflow { out.wrapping_add(modulo) } else { out }
                 }
                 let (mut a, mut b) = (*self, modulo);
                 let mut c: [$t; 4] = if a > b {
@@ -225,7 +242,21 @@ macro_rules! impl_mod_ops_unsigned {
 }
 impl_mod_ops_unsigned!(u8, u16, u32, u64, u128, usize);
 
-/// Computes the modular multiplication of `x` and `y`.
+/// Computes the modular addition `x + y`.
+/// 
+/// This function will panic if `modulo` is zero or negative.
+pub fn modadd<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
+    T::modadd(x, y, modulo)
+}
+
+/// Computes the modular subtraction `x - y`.
+/// 
+/// This function will panic if `modulo` is zero or negative.
+pub fn modsub<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
+    T::modsub(x, y, modulo)
+}
+
+/// Computes the modular multiplication `x * y`.
 /// 
 /// This function will panic if `modulo` is zero or negative.
 pub fn modmul<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
@@ -302,6 +333,30 @@ mod test {
         let normal = gcd(a as u64, b as u64) as i128;
         assert_eq!(normal, g);
         assert_eq!(a * s + b * t, g);
+    }
+
+    #[test]
+    fn modadd_returns_modadd() {
+        assert_eq!(6i64, modadd(-3, -5, 7));
+        assert_eq!(6u64, modadd(3, 10, 7));
+        assert_eq!(2_147_483_643i32, modadd(-1_073_741_824, -1_073_741_827, 2_147_483_647));
+        assert_eq!(2_147_483_643i64, modadd(-1_073_741_824, -1_073_741_827, 2_147_483_647));
+        assert_eq!(4i32, modadd(1_073_741_824, 1_073_741_827, 2_147_483_647));
+        assert_eq!(4i64, modadd(1_073_741_824, 1_073_741_827, 2_147_483_647));
+        assert_eq!(2_147_483_645i32, modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647));
+        assert_eq!(2_147_483_645i64, modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647));
+    }
+
+    #[test]
+    fn modsub_returns_modsub() {
+        assert_eq!(6i64, modsub(-3, 5, 7));
+        assert_eq!(6u64, modsub(3, 4, 7));
+        assert_eq!(2_147_483_643i32, modsub(-1_073_741_824, 1_073_741_827, 2_147_483_647));
+        assert_eq!(2_147_483_643i64, modsub(-1_073_741_824, 1_073_741_827, 2_147_483_647));
+        assert_eq!(4i32, modsub(1_073_741_824, -1_073_741_827, 2_147_483_647));
+        assert_eq!(4i64, modsub(1_073_741_824, -1_073_741_827, 2_147_483_647));
+        assert_eq!(4i32, modsub(-2_147_483_648, -5, 2_147_483_647));
+        assert_eq!(4i64, modsub(-2_147_483_648, -5, 2_147_483_647));
     }
 
     #[test]
