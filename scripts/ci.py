@@ -39,8 +39,8 @@ if __name__ == "__main__":
         sol_path = job["solution"]
         indata_path = job["input"]
         outdata_path = job["output"]
-        completed_process = subprocess.run([
-            "python",
+        completed_process = subprocess.run(" ".join([
+            "python" if os.name == 'nt' else "python3",
             "./scripts/build-and-judge.py",
             tmp_dir,
             build_cmd,
@@ -49,7 +49,7 @@ if __name__ == "__main__":
             sol_path,
             indata_path,
             outdata_path
-        ], shell=True, capture_output=False, text=True)
+        ]), shell=True, capture_output=False, text=True)
         if completed_process.returncode != 0:
             raise Exception("Test script terminated with a non-zero exit code {}.".format(completed_process.returncode))
 

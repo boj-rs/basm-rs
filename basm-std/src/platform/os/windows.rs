@@ -8,7 +8,7 @@ macro_rules! ms_abi {
     (fn $args:tt) => { extern "win64" fn $args };
     (fn $args:tt $arrow: tt $rettype: ty) => { extern "win64" fn $args $arrow $rettype };
 }
-#[cfg(target_arch = "x86")]
+#[cfg(not(target_arch = "x86_64"))]
 macro_rules! ms_abi {
     (fn $args:tt) => { extern "stdcall" fn $args };
     (fn $args:tt $arrow: tt $return_type: ty) => { extern "stdcall" fn $args $arrow $return_type };
@@ -24,7 +24,7 @@ macro_rules! basm_abi {
     ($s1:ident $s2:ident fn $name: ident $args:tt -> $rettype:ty $code: block) =>
         {$s1 $s2 extern "win64" fn $name $args -> $rettype $code };
 }
-#[cfg(target_arch = "x86")]
+#[cfg(not(target_arch = "x86_64"))]
 macro_rules! basm_abi {
     (fn $name:ident $args:tt -> $rettype:ty
          $code: block) =>
