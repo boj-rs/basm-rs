@@ -4,3 +4,7 @@ Cargo.lock
 /[Tt]mp
 *.obj
 *.pyc
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
