@@ -142,6 +142,14 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
+macOS (AArch64) 환경에서 빌드하는 방법입니다.
+
+* `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
+
+* `release-html.sh`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
+
+* VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
+
 ## 디버깅
 
 > Windows 11 64비트, Windows Subsystems for Linux 2 (WSL2)에서 테스트되었습니다. 다른 환경에서 작동에 문제가 있을 시 이슈를 남겨주세요.
