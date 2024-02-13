@@ -39,5 +39,5 @@ compiler_builtins = { version = "0.1.103", features = ["mem"] }
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
 
 [features]
-short = []
-submit = []
+short = ["basm-std/short"]
+submit = ["basm-std/submit"]

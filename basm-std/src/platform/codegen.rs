@@ -44,6 +44,9 @@ use crate::platform::loader;
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86", target_arch = "aarch64", target_arch = "wasm32")))]
 compile_error!("The target architecture is not supported.");
 
+#[cfg(all(target_arch = "aarch64", feature = "submit"))]
+compile_error!("AArch64 (aarch64-apple-darwin) is only supported for local execution, not submission; use x86-64 to submit.");
+
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
 #[no_mangle]
 #[naked]

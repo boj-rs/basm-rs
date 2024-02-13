@@ -32,3 +32,5 @@ compiler_builtins = { version = "0.1.103", features = ["mem"] }
 codegen = []
 # Favors short routines for code golf.
 short = []
+# Configures the crate for submission.
+submit = []
