@@ -315,9 +315,14 @@ pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
         }
         ExitProcess(101)
     }
-    #[cfg(target_os = "linux")] {
+    #[cfg(target_os = "linux")]
+    {
         crate::platform::os::linux::syscall::exit_group(101)
     }
-    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        crate::platform::os::macos::syscall::exit_group(101)
+    }
+    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux", target_os = "macos")))]
     core::hint::unreachable_unchecked()
 }
