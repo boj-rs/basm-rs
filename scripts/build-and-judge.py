@@ -9,6 +9,7 @@ Example:
 Limitations: special judges are not yet supported.
 """
 
+import json
 import os
 import platform
 import shutil
@@ -29,13 +30,17 @@ def test_equal(x, y):
 
 if __name__ == '__main__':
     tmp_dir = sys.argv[1]
-    build_cmd = sys.argv[2]
+    build_cmd = [sys.argv[2]]
     language = sys.argv[3]
     bits = int(sys.argv[4])
     sol_path = sys.argv[5]
     indata_path = sys.argv[6]
     outdata_path = sys.argv[7]
-    src_ext = {"C": "c", "Rust": "rs", "JavaScript": "js"}[language]
+    src_ext = {"Cargo": "cargo", "C": "c", "Rust": "rs", "JavaScript": "js"}[language]
+    if language == "Cargo":
+        build_cmd = ["cargo build --release --message-format=json"]
+        if platform.system() == "Windows":
+            build_cmd = build_cmd[0].split()
 
     # Prepare environment
     os.makedirs(tmp_dir, exist_ok=True)
@@ -67,13 +72,25 @@ if __name__ == '__main__':
 
     # Build the project to generate the source code
     try:
-        p = subprocess.run([build_cmd], shell=True, capture_output=True, text=True, encoding="utf8")
+        p = subprocess.run(build_cmd, shell=True, capture_output=True, text=True, encoding="utf8")
         if p.returncode != 0:
             raise Exception("Build failed. The stderr:\n{0}".format(p.stderr))
-        source_code = p.stdout
-        with open(src_path, mode="w", encoding="utf8") as f:
-            f.write(source_code)
-        print(source_code)
+        if language == "Cargo":
+            print(p.stderr)
+            cargo_stdout = [json.loads(x) for x in p.stdout.split('\n') if len(x.strip()) > 0]
+            basm_executable_path = None
+            for obj in cargo_stdout:
+                if obj["reason"] == "compiler-artifact" \
+                   and obj["target"]["name"] == "basm" \
+                   and "bin" in obj["target"]["crate_types"]:
+                    basm_executable_path = obj["executable"]
+                    break
+            assert basm_executable_path is not None
+        else:
+            source_code = p.stdout
+            with open(src_path, mode="w", encoding="utf8") as f:
+                f.write(source_code)
+            print(source_code)
     finally:
         # Restore the original solution
         try_remove("basm/src/solution.rs")
@@ -91,8 +108,12 @@ if __name__ == '__main__':
             os.system("rustc -C opt-level=3 -o {1} --crate-type=bin {0}".format(src_path, bin_path))
         else:
             os.system("rustc -C opt-level=3 -o {1} {0}".format(src_path, bin_path))
-    else: # language == "JavaScript"
+    elif language == "JavaScript":
         run_cmd = ["node", src_path]
+    else: # language == "Cargo"
+        if platform.system() != "Windows":
+            os.system("chmod +x {0}".format(basm_executable_path))
+        run_cmd = [basm_executable_path]
 
     # Run the binary
     with open(indata_path, mode="r", encoding="utf8") as f:
