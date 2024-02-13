@@ -21,6 +21,8 @@ compiler_builtins = { version = "0.1.103", features = ["mem"] }
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
 [target.i686-unknown-linux-gnu.dependencies]
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
+[target.aarch64-apple-darwin.dependencies]
+compiler_builtins = { version = "0.1.103", features = ["mem"] }
 [target.wasm32-unknown-unknown.dependencies]
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
 

@@ -40,14 +40,12 @@ fn main() {
         "aarch64-apple-darwin" => {
             link_args_basm.push("-nostartfiles");
             link_args_basm.push("-nostdlib");
-            link_args_basm.push("-static-pie");
             link_args_basm.push("-fno-exceptions");
             link_args_basm.push("-fno-asynchronous-unwind-tables");
             link_args_basm.push("-fno-unwind-tables");
             link_args_basm.push("-fno-stack-protector");
             link_args_basm.push("-fno-plt");
-            link_args_basm.push("-Wl,--entry=_basm_start,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro");
-            link_args_basm_submit.push("-Wl,-z,max-page-size=128");
+            link_args_basm.push("-e__basm_start");
         },
         "wasm32-unknown-unknown" => {
         },

@@ -1,4 +1,4 @@
-#[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
+#[cfg(not(target_arch = "wasm32"))]
 use core::arch::asm;
 
 use crate::platform;
@@ -230,6 +230,17 @@ pub extern "C" fn _basm_start() {
         .. Default::default()
     };
     _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
+}
+
+#[cfg(target_arch = "aarch64")]
+#[no_mangle]
+#[naked]
+#[repr(align(8))]
+pub unsafe extern "C" fn _basm_start() -> ! {
+    asm!(
+        "",
+        options(noreturn)
+    )
 }
 
 /* We prevent inlining solution::main, since if the user allocates
