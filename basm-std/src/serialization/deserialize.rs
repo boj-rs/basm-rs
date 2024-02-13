@@ -68,7 +68,7 @@ impl De for String {
     fn de(buf: &mut &[u8]) -> Self {
         let size = usize::de(buf);
         let out = String::from_utf8(buf[..size].to_vec()).unwrap();
-        *buf = &mut &buf[size..];
+        *buf = &buf[size..];
         out
     }
 }
