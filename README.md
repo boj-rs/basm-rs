@@ -144,6 +144,10 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 macOS (AArch64) 환경에서 빌드하는 방법입니다.
 
+* `release-64bit-mingw.sh`를 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다.
+
+* `release-rs-mingw.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
+
 * `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
 
 * `release-html.sh`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
@@ -168,11 +172,13 @@ macOS (AArch64) 환경에서 빌드하는 방법입니다.
 
 - Linux에서 Binutils를 요구합니다.
 
-- Windows에서 Python 3 라이브러리 `pefile`을 요구합니다.
+- Windows 및 macOS에서 Python 3 라이브러리 `pefile`을 요구합니다.
 
 - Windows에서 빌드하기 위해서 Microsoft C/C++ 컴파일러가 필요합니다. 가장 간단한 방법은 최신 버전의 Visual Studio를 설치하는 것입니다. 아래 링크를 참고하시면 도움이 됩니다.
   - https://learn.microsoft.com/ko-kr/windows/dev-environment/rust/setup
   - https://rust-lang.github.io/rustup/installation/windows-msvc.html
+
+- macOS에서 빌드하기 위해서 MinGW가 필요합니다. 홈브루(패키지 매니저의 일종)를 설치하신 다음 `brew install mingw-w64`를 통해 설치해주세요.
 
 - `std`를 사용할 수 없습니다. 단, `cargo test` 시에는 `std`를 사용할 수 있습니다.
 
@@ -192,7 +198,7 @@ macOS (AArch64) 환경에서 빌드하는 방법입니다.
 
 - 코드 구조 수정으로 인해 Assembly 코드로 변환하는 기능은 지원되지 않습니다.
 
-- 현재 ARM은 macOS 64비트 (`aarch64-apple-darwin`) 한정으로 `cargo run`이 지원됩니다. 단, ARM 32비트는 지원하지 않습니다. 또한, macOS에서 제출용 빌드는 현재 `./release-wasm32.sh`를 통한 `wasm32-unknown-unknown` 타겟만 가능합니다. 지원이 필요하시면 이슈를 남겨주세요.
+- 현재 ARM은 macOS 64비트 (`aarch64-apple-darwin`) 한정으로 `cargo run`이 지원됩니다. 단, ARM 32비트는 지원하지 않습니다. 또한, macOS에서 ARM 타겟 제출용 빌드는 불가하며, 홈브루를 통해 `MinGW64`를 설치 후(`brew install mingw-w64`) "mingw"로 끝나는 셸 스크립트를 통해 제출용 x86_64 빌드가 가능합니다. 사용상 문제가 있으신 경우 이슈를 남겨주세요.
 
 - 기타 빌드 및 실행 또는 디버깅 등에 문제가 있는 경우 이슈를 남겨주세요.
 
