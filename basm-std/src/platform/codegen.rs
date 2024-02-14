@@ -96,14 +96,14 @@ unsafe extern "sysv64" fn get_kernel32() -> usize {
     LoadLibraryA(b"KERNEL32\0".as_ptr())
 }
 
-#[cfg(target = "x86_64-pc-windows-gnu")]
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
 mod chkstk_gnu {
     extern "C" {
         pub fn ___chkstk_ms();
         pub fn ___chkstk();
     }
 }
-#[cfg(all(target_os = "windows", not(target = "x86_64-pc-windows-gnu")))]
+#[cfg(all(target_os = "windows", not(target_env = "gnu")))]
 mod chkstk_gnu {
     pub extern "C" fn ___chkstk_ms() {}
     pub extern "C" fn ___chkstk() {}
