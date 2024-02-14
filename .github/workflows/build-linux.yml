@@ -17,6 +17,7 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
           - i686-unknown-linux-gnu
           - wasm32-unknown-unknown
     env:
@@ -38,17 +39,18 @@ jobs:
       - name: Install System packages
         run: |
           sudo apt update
-          sudo apt install gcc-multilib nasm
+          sudo apt install gcc-multilib nasm mingw-w64 gcc-mingw-w64
           rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+          python -m pip install pefile
       - name: Clippy
         run: cargo clippy
         env:
           RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
       - name: Test
-        if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
+        if: ${{ matrix.target != 'wasm32-unknown-unknown' && matrix.target != 'x86_64-pc-windows-gnu' }}
         run: cargo test --lib -- --test-threads 1
       - name: Check cargo build --release
-        if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
+        if: ${{ matrix.target != 'wasm32-unknown-unknown' && matrix.target != 'x86_64-pc-windows-gnu' }}
         run: |
           python ./scripts/ci.py ${{ runner.temp }} _ Cargo 0 ./tests/ci.json
       - name: Check C (x86_64)
@@ -59,6 +61,10 @@ jobs:
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: |
           python ./scripts/ci.py ${{ runner.temp }} ./.github/workflows/release-short.sh C 64 ./tests/ci.json
+      - name: Check C (x86_64) - MinGW64
+        if: ${{ matrix.target == 'x86_64-pc-windows-gnu' }}
+        run: |
+          python ./scripts/ci.py ${{ runner.temp }} ./release-64bit-mingw.sh C 64 ./tests/ci.json
       - name: Check C (x86)
         if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
         run: |
@@ -71,6 +77,10 @@ jobs:
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: |
           python ./scripts/ci.py ${{ runner.temp }} ./.github/workflows/release-rs-short.sh Rust 64 ./tests/ci.json
+      - name: Check Rust (x86_64) - MinGW64
+        if: ${{ matrix.target == 'x86_64-pc-windows-gnu' }}
+        run: |
+          python ./scripts/ci.py ${{ runner.temp }} ./release-rs-mingw.sh Rust 64 ./tests/ci.json
       - name: Check wasm32
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         run: |
