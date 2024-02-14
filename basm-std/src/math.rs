@@ -301,6 +301,15 @@ pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T
     Some(out)
 }
 
+/// Computes `x * y^-1 mod modulo`.
+/// If `y^{-1} mod modulo` does not exist, the result is `None`.
+/// If it exists, the result is returned.
+/// 
+/// This function will panic if `modulo` is non-positive.
+pub fn moddiv<T: ModOps<T>>(x: T, y: T, modulo: T) -> Option<T> {
+    modinv(y, modulo).map(|yinv| modmul(x, yinv, modulo))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -380,5 +389,11 @@ mod test {
         assert_eq!(Some(1u64), modpow(2u64, p - 1, p));
         let p128 = 0u128.wrapping_sub(159);
         assert_eq!(Some(1u128), modpow(2u128, p128 - 1, p128));
+    }
+
+    #[test]
+    fn moddiv_returns_moddiv() {
+        assert_eq!(None, moddiv(7i64, 2i64, 24i64));
+        assert_eq!(Some(14i64), moddiv(2i64, 7i64, 24i64));
     }
 }
