@@ -45,7 +45,7 @@ fn main() {
             link_args_basm.push("-fno-plt");
             link_args_basm.push("-mconsole");
             link_args_basm.push("-nodefaultlibs");
-            link_args_basm.push("-Wl,--entry=_basm_start,--dynamicbase,--high-entropy-va,--disable-nxcompat,--stack,268435456,--build-id=none,--gc-sections,--export-all-symbols");
+            link_args_basm.push("-Wl,--entry=_basm_start,--dynamicbase,--high-entropy-va,--disable-nxcompat,--stack,268435456,--build-id=none,--gc-sections,--export-dynamic");
         },
         "x86_64-unknown-linux-gnu" | "x86_64-unknown-linux-gnu-short" | "i686-unknown-linux-gnu" => {
             link_args_basm.push("-nostartfiles");
