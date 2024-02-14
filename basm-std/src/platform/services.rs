@@ -25,6 +25,7 @@ pub const ENV_ID_UNKNOWN: u64 = 0;
 pub const ENV_ID_WINDOWS: u64 = 1;
 pub const ENV_ID_LINUX: u64 = 2;
 pub const ENV_ID_WASM: u64 = 3;
+pub const ENV_ID_MACOS: u64 = 4;
 pub const ENV_FLAGS_LINUX_STYLE_CHKSTK: u64 = 0x0001;   // disables __chkstk in binaries compiled with Windows target
 pub const ENV_FLAGS_NATIVE: u64 = 0x0002;               // indicates the binary is running without the loader
 pub const ENV_FLAGS_NO_EXIT: u64 = 0x0004;              // do not call SYS_exitgroup on Linux (support fn-impl scenarios)

@@ -1,4 +1,4 @@
-#[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
+#[cfg(not(target_arch = "wasm32"))]
 use core::arch::asm;
 
 use crate::platform;
@@ -43,6 +43,9 @@ use crate::platform::loader;
 
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86", target_arch = "aarch64", target_arch = "wasm32")))]
 compile_error!("The target architecture is not supported.");
+
+#[cfg(all(target_arch = "aarch64", feature = "submit"))]
+compile_error!("AArch64 (aarch64-apple-darwin) is only supported for local execution, not submission; use x86-64 to submit.");
 
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
 #[no_mangle]
@@ -93,6 +96,19 @@ unsafe extern "sysv64" fn get_kernel32() -> usize {
     LoadLibraryA(b"KERNEL32\0".as_ptr())
 }
 
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+mod chkstk_gnu {
+    extern "C" {
+        pub fn ___chkstk_ms();
+        pub fn ___chkstk();
+    }
+}
+#[cfg(all(target_os = "windows", not(target_env = "gnu")))]
+mod chkstk_gnu {
+    pub extern "C" fn ___chkstk_ms() {}
+    pub extern "C" fn ___chkstk() {}
+}
+
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 #[no_mangle]
 #[naked]
@@ -134,6 +150,8 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
         // 0:  c3                      ret
         "mov    BYTE PTR [rip + {2}], 0xc3",
+        "mov    BYTE PTR [rip + {5}], 0xc3",
+        "mov    BYTE PTR [rip + {6}], 0xc3",
         // END Linux patch
         "3:",
         "mov    rcx, rbx",
@@ -145,6 +163,8 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         sym __chkstk,
         sym get_kernel32,
         sym GetProcAddress,
+        sym chkstk_gnu::___chkstk_ms,
+        sym chkstk_gnu::___chkstk,
         options(noreturn)
     );
 }
@@ -232,6 +252,24 @@ pub extern "C" fn _basm_start() {
     _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
 
+#[cfg(target_arch = "aarch64")]
+#[no_mangle]
+#[naked]
+#[repr(align(8))]
+pub unsafe extern "C" fn _basm_start() -> ! {
+    asm!(
+        "sub    sp, sp, #96",
+        "mov    x0, #4",    // 4 = ENV_ID_MACOS
+        "str    x0, [sp, #(8 * 0)]",
+        "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
+        "str    x0, [sp, #(8 * 1)]",
+        "mov    x0, sp",
+        "bl     {0}",
+        sym _start_rust,
+        options(noreturn)
+    )
+}
+
 /* We prevent inlining solution::main, since if the user allocates
  * a large amount of stack memory there, it will be zero-initialized (or probed)
  * *before* we increase the stack limits if it is inlined into _start_rust.
@@ -294,9 +332,14 @@ pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
         }
         ExitProcess(101)
     }
-    #[cfg(target_os = "linux")] {
+    #[cfg(target_os = "linux")]
+    {
         crate::platform::os::linux::syscall::exit_group(101)
     }
-    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        crate::platform::os::macos::syscall::exit_group(101)
+    }
+    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux", target_os = "macos")))]
     core::hint::unreachable_unchecked()
 }

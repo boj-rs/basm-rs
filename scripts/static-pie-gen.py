@@ -23,7 +23,7 @@ if lang_name not in ["C", "Rust"]:
     print(f"Unsupported language {lang_name}", file=sys.stderr)
     sys.exit(1)
 
-if target_name == "x86_64-pc-windows-msvc":
+if target_name in ["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"]:
     binary_path = elf_path + ".bin"
     compressed_binary_path = binary_path + ".lzma"
     elf2bin = subprocess.check_output([sys.executable, "scripts/static-pie-pe2bin.py", elf_path, binary_path]).decode("utf-8")

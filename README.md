@@ -142,6 +142,18 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
+macOS (AArch64) 환경에서 빌드하는 방법입니다.
+
+* `release-64bit-mingw.sh`를 실행하면 64비트 환경(백준 온라인 저지, 코드포스 등)에 제출 가능한 C 코드가 출력됩니다.
+
+* `release-rs-mingw.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
+
+* `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
+
+* `release-html.sh`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
+
+* VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
+
 ## 디버깅
 
 > Windows 11 64비트, Windows Subsystems for Linux 2 (WSL2)에서 테스트되었습니다. 다른 환경에서 작동에 문제가 있을 시 이슈를 남겨주세요.
@@ -160,11 +172,13 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 - Linux에서 Binutils를 요구합니다.
 
-- Windows에서 Python 3 라이브러리 `pefile`을 요구합니다.
+- Windows 및 macOS에서 Python 3 라이브러리 `pefile`을 요구합니다.
 
 - Windows에서 빌드하기 위해서 Microsoft C/C++ 컴파일러가 필요합니다. 가장 간단한 방법은 최신 버전의 Visual Studio를 설치하는 것입니다. 아래 링크를 참고하시면 도움이 됩니다.
   - https://learn.microsoft.com/ko-kr/windows/dev-environment/rust/setup
   - https://rust-lang.github.io/rustup/installation/windows-msvc.html
+
+- macOS에서 빌드하기 위해서 MinGW가 필요합니다. 홈브루(패키지 매니저의 일종)를 설치하신 다음 `brew install mingw-w64`를 통해 설치해주세요.
 
 - `std`를 사용할 수 없습니다. 단, `cargo test` 시에는 `std`를 사용할 수 있습니다.
 
@@ -176,7 +190,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 - 메모리 할당을 C runtime 없이 구현하기 위해 [dlmalloc](https://github.com/alexcrichton/dlmalloc-rs)이 적용되어 있습니다. 대부분의 경우 잘 작동하지만, 만약 실행시간이나 메모리 사용량이 2-3배 이상 과도하게 증가하는 등의 문제를 겪으신다면 꼭(!) 이슈를 남겨주세요.
 
-- Windows도 아니고 Linux도 아닌 환경에서는 테스트되지 않았습니다. 이러한 환경에서는 현재 구현상 C runtime의 malloc을 사용하므로 메모리 할당이 정렬되지 않기 때문에 문제가 발생할 수 있습니다. 문제를 겪으시는 경우 이슈를 남겨주세요.
+- Windows, Linux, macOS에서만 테스트되었습니다. 그 외의 환경에서 문제를 겪으시는 경우 이슈를 남겨주세요.
 
 - Linux 환경에서 빌드하여 출력된 코드를 Windows 환경에서 컴파일하여 실행하는 경우 정상 작동을 보장할 수 없습니다. 이는 Linux 컴파일러가 Windows에서 사용하는 `__chkstk` 메커니즘을 지원하지 않기 때문입니다. Windows 환경에서 컴파일하여 실행해야 하는 경우 가급적 Windows 환경에서 빌드해 주세요. 이것이 어렵다면 하나의 함수 내에서 스택을 한 번에 4KB를 초과하여 이용하지 않도록 주의해주세요. 한편, Windows 환경에서 빌드하여 출력된 코드는 `__chkstk` 메커니즘을 포함하고 있으나 Windows가 아닌 환경에서 실행되는 경우 이를 비활성화하도록 구현되어 있기 때문에 Windows 및 Linux에서 모두 정상 작동이 가능합니다.
 
@@ -184,7 +198,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 - 코드 구조 수정으로 인해 Assembly 코드로 변환하는 기능은 지원되지 않습니다.
 
-- 현재 ARM은 32비트/64비트 둘 다 지원되지 않습니다. 지원이 필요하시면 이슈를 남겨주세요.
+- 현재 ARM은 macOS 64비트 (`aarch64-apple-darwin`) 한정으로 `cargo run`이 지원됩니다. 단, ARM 32비트는 지원하지 않습니다. 또한, macOS에서 ARM 타겟 제출용 빌드는 불가하며, 홈브루를 통해 `MinGW64`를 설치 후(`brew install mingw-w64`) "mingw"로 끝나는 셸 스크립트를 통해 제출용 x86_64 빌드가 가능합니다. 사용상 문제가 있으신 경우 이슈를 남겨주세요.
 
 - 기타 빌드 및 실행 또는 디버깅 등에 문제가 있는 경우 이슈를 남겨주세요.
 
