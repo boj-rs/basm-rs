@@ -96,6 +96,19 @@ unsafe extern "sysv64" fn get_kernel32() -> usize {
     LoadLibraryA(b"KERNEL32\0".as_ptr())
 }
 
+#[cfg(target = "x86_64-pc-windows-gnu")]
+mod chkstk_gnu {
+    extern "C" {
+        pub fn ___chkstk_ms();
+        pub fn ___chkstk();
+    }
+}
+#[cfg(all(target_os = "windows", not(target = "x86_64-pc-windows-gnu")))]
+mod chkstk_gnu {
+    pub extern "C" fn ___chkstk_ms() {}
+    pub extern "C" fn ___chkstk() {}
+}
+
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 #[no_mangle]
 #[naked]
@@ -137,6 +150,8 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
         // 0:  c3                      ret
         "mov    BYTE PTR [rip + {2}], 0xc3",
+        "mov    BYTE PTR [rip + {5}], 0xc3",
+        "mov    BYTE PTR [rip + {6}], 0xc3",
         // END Linux patch
         "3:",
         "mov    rcx, rbx",
@@ -148,6 +163,8 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         sym __chkstk,
         sym get_kernel32,
         sym GetProcAddress,
+        sym chkstk_gnu::___chkstk_ms,
+        sym chkstk_gnu::___chkstk,
         options(noreturn)
     );
 }

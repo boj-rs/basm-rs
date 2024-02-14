@@ -36,7 +36,7 @@ elif [[ "$target_name" == "i686-unknown-linux-gnu" ]]; then
     >&2 echo "Language ${lang_name} is not supported for target ${target_name}"
     exit
   fi
-elif [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
+elif [[ "$target_name" == "x86_64-pc-windows-msvc" ]] || [[ "$target_name" == "x86_64-pc-windows-gnu" ]]; then
   stub="static-pie-stub-amd64.bin"
   if [[ "$lang_name" == "C" ]]; then
     template="static-pie-template-amd64.c"
@@ -76,14 +76,13 @@ fi
 
 >&2 echo "Building project for target ${target_name}, language ${lang_name}, build mode ${build_mode}"
 
-binary_path=basm.bin
 if [[ "$build_mode" == "Debug" ]]; then
   cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit --features=submit "$@"
 else
   cargo +nightly build $extra_config --target "$target_name_cargo" --bin basm-submit --features=submit --release "$@"
 fi
 
-if [[ "$target_name" == "x86_64-pc-windows-msvc" ]]; then
+if [[ "$target_name" == "x86_64-pc-windows-msvc" ]] || [[ "$target_name" == "x86_64-pc-windows-gnu" ]]; then
   python3 scripts/static-pie-gen.py basm/ "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit.exe "$stub" "$lang_name" "$template"
 else
   cp target/"$target_name"/"$build_mode_dir"/basm-submit target/"$target_name"/"$build_mode_dir"/basm-submit-stripped

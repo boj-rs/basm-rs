@@ -1,4 +1,5 @@
 use std::env;
+use std::process::Command;
 
 fn main() {
     let target = env::var("TARGET").unwrap();
@@ -18,6 +19,33 @@ fn main() {
             link_args_basm.push("/EMITPOGOPHASEINFO");
             link_args_basm_submit.push("/ALIGN:128");
             link_args_basm_submit.push("/OPT:REF,ICF");
+        },
+        "x86_64-pc-windows-gnu" => {
+            if env::consts::OS == "windows" {
+                panic!("Please use the x86_64-pc-windows-msvc target (not -gnu) on Windows.\n{0}",
+                    "(The x86_64-pc-windows-gnu target is for cross-compilation only.)");
+            }
+            let output = Command::new("which")
+                     .arg("x86_64-w64-mingw32-gcc")
+                     .output()
+                     .expect("Failed to check whether MinGW64 is installed.");
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stdout = stdout.trim();
+            if !stdout.contains("x86_64-w64-mingw32-gcc") {
+                panic!("Failed to locate MinGW64 (x86_64-w64-mingw32-gcc).\n{0}",
+                    "Please make sure MinGW64 is installed and added in the PATH environment variable.");
+            }
+            link_args_basm.push("-nostartfiles");
+            link_args_basm.push("-nostdlib");
+            link_args_basm.push("-static-pie");
+            link_args_basm.push("-fno-exceptions");
+            link_args_basm.push("-fno-asynchronous-unwind-tables");
+            link_args_basm.push("-fno-unwind-tables");
+            link_args_basm.push("-fno-stack-protector");
+            link_args_basm.push("-fno-plt");
+            link_args_basm.push("-mconsole");
+            link_args_basm.push("-nodefaultlibs");
+            link_args_basm.push("-Wl,--entry=_basm_start,--dynamicbase,--high-entropy-va,--disable-nxcompat,--stack,268435456,--build-id=none,--gc-sections,--export-all-symbols");
         },
         "x86_64-unknown-linux-gnu" | "x86_64-unknown-linux-gnu-short" | "i686-unknown-linux-gnu" => {
             link_args_basm.push("-nostartfiles");

@@ -17,6 +17,8 @@ rand = { version = "0.8.5", default-features = false, features = ["small_rng"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
+[target.x86_64-pc-windows-gnu.dependencies]
+compiler_builtins = { version = "0.1.103", features = ["mem"] }
 [target.x86_64-unknown-linux-gnu.dependencies]
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
 [target.i686-unknown-linux-gnu.dependencies]

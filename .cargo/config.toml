@@ -4,5 +4,9 @@ rustflags = ["-Z", "share-generics=no", "-Z", "export-executable-symbols", "-C",
 [target.aarch64-apple-darwin]
 rustflags = ["-Z", "share-generics=no", "-C", "relocation-model=pie"]
 
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-Z", "share-generics=no", "-Z", "export-executable-symbols", "-C", "lto=thin", "-C", "target-feature=+avx,+avx2,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+fma,+f16c,+aes", "-C", "relocation-model=pie", "-C", "target-cpu=haswell"]
+linker = "x86_64-w64-mingw32-gcc"
+
 [target.wasm32-unknown-unknown]
 rustflags = ["-Z", "share-generics=no", "-C", "link-args=-z stack-size=67108864"]
