@@ -105,5 +105,10 @@ mod test {
     fn check_factorize() {
         assert_eq!(vec![2, 2, 3], factorize(12));
         assert_eq!(vec![3, 3, 13, 179, 271, 1381, 2423], factorize(18991325453139));
+        assert_eq!(vec![34421, 133978850655919], factorize(4611686018427387899));
+        assert_eq!(vec![2, 2, 3, 3, 5, 5, 7, 11, 13, 31, 41, 61, 151, 331, 1321], factorize(4611686018427387900));
+        assert_eq!(vec![37, 9902437, 12586817029], factorize(4611686018427387901));
+        assert_eq!(vec![2, 2305843009213693951], factorize(4611686018427387902));
+        assert_eq!(vec![3, 715827883, 2147483647], factorize(4611686018427387903));
     }
 }
