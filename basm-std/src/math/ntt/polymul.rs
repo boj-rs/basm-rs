@@ -1,6 +1,5 @@
 use super::nttcore::*;
 use alloc::{vec, vec::Vec};
-use core::cmp::min;
 
 fn mul_two_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: usize, r: usize, modulo: u64) {
     let plan_x = NttPlan::build::<P2>(min_len);

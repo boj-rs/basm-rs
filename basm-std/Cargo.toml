@@ -13,7 +13,6 @@ path = "src/lib.rs"
 [dependencies]
 libm = "0.2.7"
 ryu = "1.0"
-rand = { version = "0.8.5", default-features = false, features = ["small_rng"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 compiler_builtins = { version = "0.1.103", features = ["mem"] }
