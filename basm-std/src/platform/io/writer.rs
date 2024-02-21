@@ -310,6 +310,30 @@ impl<const N: usize> Writer<N> {
         let printed = buffer.format(f);
         self.bytes(printed.as_bytes());
     }
+    pub fn char(&mut self, c: char) {
+        self.try_flush(6);
+        let u = c as u32;
+        if u < 0x80 {
+            self.byte_unchecked(u as u8);
+        } else if u < 0x800 {
+            self.byte_unchecked(0b11000000 | (u >> 6) as u8);
+            self.byte_unchecked(0b10000000 | (u & 0x3F) as u8);
+        } else if u < 0xFFFF {
+            self.byte_unchecked(0b11100000 | (u >> 12) as u8);
+            self.byte_unchecked(0b10000000 | ((u >> 6) & 0x3F) as u8);
+            self.byte_unchecked(0b10000000 | (u & 0x3F) as u8);
+        } else {
+            // The Unicode standard dictates that every codepoint
+            // that is not representable in UTF-16 (including the use of surrogates)
+            // should be considered invalid. Hence, we put an assert here
+            // and do not deal with the case of u > 0x10_FFFF.
+            assert!(u <= 0x10_FFFF);
+            self.byte_unchecked(0b11110000 | (u >> 18) as u8);
+            self.byte_unchecked(0b10000000 | ((u >> 12) & 0x3F) as u8);
+            self.byte_unchecked(0b10000000 | ((u >> 6) & 0x3F) as u8);
+            self.byte_unchecked(0b10000000 | (u & 0x3F) as u8);
+        }
+    }
 }
 
 pub trait Print<T> {
@@ -363,7 +387,7 @@ macro_rules! impl_print{
     }
 }
 
-impl_print!(i16 u16 i32 u32 i64 u64 f64 i128 u128 isize usize);
+impl_print!(i8 u8 i16 u16 i32 u32 i64 u64 f64 i128 u128 isize usize char);
 
 /*
 #[cfg(test)]

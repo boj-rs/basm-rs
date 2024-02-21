@@ -33,5 +33,10 @@
         "solution": "./tests/reloc.rs",
         "input": "./tests/reloc.in",
         "output": "./tests/reloc.out"
+    },
+    {
+        "solution": "./tests/utf8.rs",
+        "input": "./tests/utf8.in",
+        "output": "./tests/utf8.out"
     }
 ]
