@@ -68,6 +68,7 @@ impl WinApi {
     pub const STD_OUTPUT_HANDLE: u32 = -11i32 as u32;
     pub const STD_ERROR_HANDLE: u32 = -12i32 as u32;
     pub const ERROR_IO_PENDING: u32 = 997;
+    pub const CP_UTF8: u32 = 65001;
     #[inline(always)]
     pub unsafe fn VirtualAlloc(&self, lpAddress: *mut u8, dwSize: usize, flAllocationType: u32, flProtect: u32) -> *mut u8 {
         (self.ptr_VirtualAlloc.unwrap())(lpAddress, dwSize, flAllocationType, flProtect)
@@ -195,6 +196,15 @@ pub unsafe fn init() {
     WINAPI.ptr_WriteFile = Some(core::mem::transmute(GetProcAddress(kernel32, b"WriteFile\0".as_ptr())));
     WINAPI.ptr_GetOverlappedResult = Some(core::mem::transmute(GetProcAddress(kernel32, b"GetOverlappedResult\0".as_ptr())));
     WINAPI.ptr_GetLastError = Some(core::mem::transmute(GetProcAddress(kernel32, b"GetLastError\0".as_ptr())));
+
+    // On Windows, set console codepage to UTF-8,
+    // since the default encoding is (historically) MBCS
+    // which depends on the host platform's language and
+    // other factors.
+    let SetConsoleCP: ms_abi!{fn(u32) -> i32} = core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleCP\0".as_ptr()));
+    SetConsoleCP(WinApi::CP_UTF8); // for stdin
+    let SetConsoleOutputCP: ms_abi!{fn(u32) -> i32} = core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleOutputCP\0".as_ptr()));
+    SetConsoleOutputCP(WinApi::CP_UTF8); // for stdout
 
     allocator::install_malloc_impl(
         dlmalloc_alloc,
