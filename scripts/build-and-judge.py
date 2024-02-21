@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     # Run the binary
     with open(indata_path, mode="r", encoding="utf8") as f:
-        completed_process = subprocess.run(run_cmd, shell=False, stdin=f, capture_output=True, text=True)
+        completed_process = subprocess.run(run_cmd, shell=False, stdin=f, capture_output=True, text=True, encoding="utf8")
     if completed_process.returncode != 0:
         raise Exception("Program {0} exited with non-zero code {3} (hex {3:X}) for input {1} and output {2}\n\n{4}"
             .format(sol_path, indata_path, outdata_path, completed_process.returncode, completed_process.stderr))
