@@ -1,3 +1,4 @@
+use alloc::string::String;
 use core::mem::MaybeUninit;
 use crate::platform::services;
 
@@ -368,6 +369,24 @@ impl<const N: usize> Print<&str> for Writer<N> {
     fn println(&mut self, x: &str) {
         self.bytes(x.as_bytes());
         self.byte_unchecked(b'\n');
+    }
+}
+
+impl<const N: usize> Print<String> for Writer<N> {
+    fn print(&mut self, x: String) {
+        self.print(x.as_str());
+    }
+    fn println(&mut self, x: String) {
+        self.println(x.as_str());
+    }
+}
+
+impl<const N: usize> Print<&String> for Writer<N> {
+    fn print(&mut self, x: &String) {
+        self.print(x.as_str());
+    }
+    fn println(&mut self, x: &String) {
+        self.println(x.as_str());
     }
 }
 

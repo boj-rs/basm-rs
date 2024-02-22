@@ -39,8 +39,8 @@ fn main() {
     let mut s = String::new();
     std::io::stdin().read_to_string(&mut s).unwrap();
     let mut input = s.split_whitespace().flat_map(str::parse);
-    let a: usize = input.next().unwrap();
-    let b: usize = input.next().unwrap();
+    let a: i64 = input.next().unwrap();
+    let b: i64 = input.next().unwrap();
     println!("{}", a + b);
 }
 ```
@@ -51,13 +51,13 @@ fn main() {
 
 ```rust
 // basm/src/solution.rs
-use basm::platform::io::{Reader, ReaderTrait, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
-    let a = reader.usize();
-    let b = reader.usize();
-    writer.usize(a + b);
+    let a = reader.i64();
+    let b = reader.i64();
+    writer.println(a + b);
 }
 ```
 
@@ -70,9 +70,9 @@ use basm::platform::io::{Reader, ReaderTrait, Writer};
 pub fn main() {
     let mut reader = Reader::<128>::new();
     let mut writer = Writer::<128>::new();
-    let a = reader.usize();
-    let b = reader.usize();
-    writer.usize(a + b);
+    let a = reader.i64();
+    let b = reader.i64();
+    writer.i64(a + b);
 }
 ```
 
@@ -215,7 +215,7 @@ dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-
 basm/src/solution.rs를 다음과 같이 수정합니다.
 
 ```rust
-use basm::platform::io::{Reader, ReaderTrait, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -226,8 +226,7 @@ pub fn main() {
     let a = Integer::from_str(&reader.word()).unwrap();
     let b = Integer::from_str(&reader.word()).unwrap();
     let ans = &a + &b;
-    writer.str(&ans.to_string());
-    writer.byte(b'\n');
+    writer.println(ans.to_string());
 }
 ```
 
@@ -294,7 +293,7 @@ basm/src/solution.rs를 다음과 같이 수정합니다.
 
 
 ```rust
-use basm::platform::io::{Reader, ReaderTrait, Writer};
+use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
 use alloc::string::ToString;
 use core::str::FromStr;
 use dashu::Integer;
@@ -309,7 +308,6 @@ use nom::{
     multi::many0,
     sequence::{delimited, pair},
 };
-
 
 fn number_literal(input: &str) -> IResult<&str, Integer> {
     map_res(take_while(|x: char| is_digit(x as u8)), |s: &str| Integer::from_str(s))(input)
@@ -347,11 +345,10 @@ pub fn main() {
     let mut writer: Writer = Default::default();
     let input = reader.word();
     if let Ok((_, ans)) = all_consuming(expr)(&input) {
-        writer.str(&ans.to_string());
+        writer.println(ans.to_string());
     } else {
-        writer.str("ROCK");
-    }
-    writer.byte(b'\n');
+        writer.println("ROCK");
+    };
 }
 ```
 
@@ -621,17 +618,18 @@ basm/src/solution.rs를 다음과 같이 수정합니다.
 ```rust
 use alloc::{format, string::String, vec::Vec};
 use basm::serialization::Pair;
+use basm_macro::{basm_export, basm_import};
 pub fn main() {
 }
 
-basm_macro::basm_import! {
+basm_import! {
     fn guess(b: String) -> Pair::<i32, i32>;
 }
 
 static mut ALL: Vec<i32> = Vec::new();
 static mut N: i32 = 0;
 
-#[basm_macro::basm_export]
+#[basm_export]
 fn init(_t: i32, n: i32) {
     unsafe {
         ALL.clear();
@@ -672,7 +670,7 @@ fn check(mut x: i32, mut y: i32) -> Pair::<i32, i32> {
     Pair::<i32, i32>(strikes, balls)
 }
 
-#[basm_macro::basm_export]
+#[basm_export]
 fn game() {
     let mut all = unsafe { ALL.clone() };
     let n = unsafe { N };
