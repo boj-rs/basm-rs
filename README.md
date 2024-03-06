@@ -209,7 +209,7 @@ macOS (AArch64) 환경에서 빌드하는 방법입니다.
 그런 다음, Cargo.toml의 [dependencies] 항목에 다음을 추가합니다.
 
 ```
-dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
+dashu = { version = "0.4.2", default-features = false }
 ```
 
 basm/src/solution.rs를 다음과 같이 수정합니다.
@@ -286,7 +286,7 @@ chmod +x ./output-32
 
 ```
 nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
-dashu = { git = "https://github.com/cmpute/dashu.git", rev = "22f3935", default-features = false, features = [] }
+dashu = { version = "0.4.2", default-features = false }
 ```
 
 basm/src/solution.rs를 다음과 같이 수정합니다.
