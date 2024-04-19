@@ -1282,7 +1282,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             released += self.release_unused_segments();
 
             if released == 0 && self.topsize > self.trim_check {
-                self.trim_check = usize::max_value();
+                self.trim_check = usize::MAX;
             }
         }
 
