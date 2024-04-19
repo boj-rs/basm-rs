@@ -102,7 +102,7 @@ if __name__ == '__main__':
         if platform.system() == "Windows":
             os.system("cl {0} /F268435456 /Fe{1} /link /SUBSYSTEM:CONSOLE".format(src_path, bin_path))
         else:
-            os.system("gcc -o {1} {2} {0}".format(src_path, bin_path, "-O3 -m32" if bits == 32 else "-O3"))
+            os.system("gcc -DBASM_CI -o {1} {2} {0}".format(src_path, bin_path, "-O3 -m32" if bits == 32 else "-O3"))
     elif language == "Rust":
         if platform.system() == "Windows":
             os.system("rustc -C opt-level=3 -o {1} --crate-type=bin {0}".format(src_path, bin_path))

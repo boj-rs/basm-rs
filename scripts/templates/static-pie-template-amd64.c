@@ -141,7 +141,7 @@ stub_ptr get_stub() {
 #endif
 char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
 
-#if defined(__linux__) && defined(BOJ)
+#if defined(__linux__) && (defined(BOJ) || defined(BASM_CI))
 int main() {}
 #ifdef __cplusplus
 extern "C"
