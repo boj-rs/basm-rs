@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(clippy::missing_transmute_annotations)]
 
 use super::super::{allocator, services};
 use super::super::malloc::{dlmalloc, dlmalloc_windows};
