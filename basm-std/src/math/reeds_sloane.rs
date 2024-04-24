@@ -2,7 +2,7 @@ use alloc::{vec, vec::Vec};
 use core::cmp::max;
 use crate::math::{factorize, modadd, modinv, modmul, modsub};
 
-fn linear_fit_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
+fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     let n = first_terms.len();
     assert!(n >= 2);
     assert!(p >= 2);
@@ -153,7 +153,7 @@ fn linear_fit_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
 /// under modulo `modulo`, via the Reeds-Sloane algorithm.
 /// 
 /// Note that `modulo` of `0` is interpreted as `2**64`.
-pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
+pub fn reeds_sloane(first_terms: &[u64], modulo: u64) -> Vec<u64> {
     if first_terms.len() <= 1 {
         return vec![];
     }
@@ -162,7 +162,7 @@ pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
     }
     if modulo == 0 {
         // We deal with 2**64 first, to ensure modulo > 0 below.
-        return linear_fit_prime_power(first_terms, 2, 64);
+        return reeds_sloane_prime_power(first_terms, 2, 64);
     }
 
     let factors = {
@@ -187,7 +187,7 @@ pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
     let mut out_prime = vec![];
     let mut max_len = 0;
     for &(p, e) in factors.iter() {
-        let val = linear_fit_prime_power(first_terms, p, e);
+        let val = reeds_sloane_prime_power(first_terms, p, e);
         max_len = max(val.len(), max_len);
         out_prime.push((val, p.pow(e as u32)));
     }
@@ -213,4 +213,14 @@ pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
         cumul_mod *= cur_mod;
     }
     out
+}
+
+/// This function is an alias for the function `reeds_sloane`.
+///
+/// Finds a minimal length linear recurrence for `first_terms`
+/// under modulo `modulo`, via the Reeds-Sloane algorithm.
+/// 
+/// Note that `modulo` of `0` is interpreted as `2**64`.
+pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
+    reeds_sloane(first_terms, modulo)
 }

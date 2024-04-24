@@ -5,7 +5,7 @@ pub use sieve::LinearSieve;
 mod pollard_rho;
 pub use pollard_rho::factorize;
 mod reeds_sloane;
-pub use reeds_sloane::linear_fit;
+pub use reeds_sloane::{linear_fit, reeds_sloane};
 
 pub mod ntt;
 pub use ntt::*;
