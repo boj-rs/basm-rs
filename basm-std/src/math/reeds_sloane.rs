@@ -224,3 +224,27 @@ pub fn reeds_sloane(first_terms: &[u64], modulo: u64) -> Vec<u64> {
 pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
     reeds_sloane(first_terms, modulo)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn check_reeds_sloane_fibosqsum() {
+        let mut first_terms = [0, 1, 1, 2*2, 3*3, 5*5, 8*8, 13*13, 21*21, 34*34, 55*55, 89*89, 144*144, 233*233, 377*377, 610*610, 987*987, 1597*1597];
+        for i in 1..first_terms.len() {
+            first_terms[i] += first_terms[i - 1];
+        }
+        let modulo = 1_000_000_007;
+        let coeff = linear_fit(&first_terms, modulo);
+        assert!(coeff == vec![2, 2, modulo - 1]);
+    }
+
+    #[test]
+    fn check_reeds_sloane_example_in_paper() {
+        let first_terms = [6, 3, 1, 5, 6];
+        let modulo = 9;
+        let coeff = linear_fit(&first_terms, modulo);
+        assert!(coeff == vec![5, 2, 8]);
+    }
+}
