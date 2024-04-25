@@ -36,13 +36,22 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
         let (mut lo, mut hi) = (0, e);
         while lo < hi {
             let mid = (lo + hi + 1) / 2;
-            if x % ppow[mid] == 0 {
-                lo = mid;
+            #[allow(clippy::collapsible_else_if)]
+            if ppow[mid] == 0 {
+                if x == 0 {
+                    lo = mid;
+                } else {
+                    hi = mid - 1;
+                }
             } else {
-                hi = mid - 1;
+                if x % ppow[mid] == 0 {
+                    lo = mid;
+                } else {
+                    hi = mid - 1;
+                }
             }
         }
-        (x / ppow[lo], lo)
+        (if ppow[lo] == 0 { 0 } else { x / ppow[lo]}, lo)
     };
 
     // Step 0
@@ -239,6 +248,8 @@ mod test {
         let modulo = 1_000_000_007;
         let coeff = linear_fit(&first_terms, modulo);
         assert!(coeff == vec![2, 2, modulo - 1]);
+        let coeff = linear_fit(&first_terms, 0);
+        assert!(coeff == vec![2, 2, u64::MAX]);
     }
 
     #[test]
