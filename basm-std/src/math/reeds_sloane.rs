@@ -8,7 +8,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     assert!(p >= 2);
     assert!(e >= 1);
 
-    let ppow: Vec<u64> = (0..=e).map(|x| p.pow(x as u32)).collect();
+    let ppow: Vec<u64> = (0..=e).map(|x| p.wrapping_pow(x as u32)).collect();
 
     let p_e = ppow[e];
     let s: Vec<u64> = first_terms.iter().map(|&x| if p_e > 0 { x % p_e } else { x }).collect();
@@ -82,7 +82,8 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
             }
         }
         // Part 2
-        a.clone_from_slice(&a_new);
+        a.clone_from(&a_new);
+        b.clone_from(&b_new);
         // Part 3
         for eta in 0..e {
             let mut c = modsub_p_e(0, if b[eta].len() > k { b[eta][k] } else { 0 });
