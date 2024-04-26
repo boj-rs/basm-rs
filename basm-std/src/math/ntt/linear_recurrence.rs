@@ -23,7 +23,7 @@ pub fn linear_nth(first_terms: &[u64], coeff: &[u64], mut n: u128, modulo: u64) 
     } else {
         let mut p_base = vec![]; // The modulo base polynomial of Kitamasa
         for x in coeff.iter().rev() {
-            p_base.push(if modulo == 0 { 0u64.wrapping_sub(modulo) } else { modsub(0, *x, modulo) });
+            p_base.push(if modulo == 0 { 0u64.wrapping_sub(*x) } else { modsub(0, *x, modulo) });
         }
         p_base.push(1);
         let mut p_pow2 = vec![0, 1];
@@ -46,5 +46,18 @@ pub fn linear_nth(first_terms: &[u64], coeff: &[u64], mut n: u128, modulo: u64) 
             ans = if modulo == 0 { ans.wrapping_add(term) } else { modadd(ans, term, modulo) };
         }
         ans
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn check_linear_nth() {
+        let first_terms = [1, 1];
+        let coeff = [1, 1];
+        assert_eq!(34, linear_nth(&first_terms, &coeff, 8, 1_000_000_007));
+        assert_eq!(34, linear_nth(&first_terms, &coeff, 8, 0));
     }
 }
