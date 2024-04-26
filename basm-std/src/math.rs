@@ -122,6 +122,7 @@ pub trait ModOps<T>:
     + Mul<Output = Self>
     + Div<Output = Self>
     + Rem<Output = Self>
+    where T: PartialEq
 {
     fn zero() -> T;
     fn one() -> T;
@@ -141,29 +142,50 @@ macro_rules! impl_mod_ops_signed {
             fn two() -> $t { 2 }
             fn my_wrapping_sub(&self, other: $t) -> $t { self.wrapping_sub(other) }
             fn modinv(&self, modulo: $t) -> Option<$t> {
-                assert!(modulo > 0);
+                assert!(modulo >= 0);
+                if modulo == 0 {
+                    if self & 1 == 1 {
+                        let mut out = *self;
+                        for _ in 0..6 {
+                            out = out.wrapping_mul((2 as $t).wrapping_sub(self.wrapping_mul(out)));
+                        }
+                        return Some(out);
+                    } else {
+                        return None;
+                    }
+                }
                 let (g, x, _y) = egcd(*self, modulo);
                 if g == 1 {
-                    let out = x % modulo;
+                    let out = if modulo != 0 { x % modulo } else { x };
                     Some(if out < 0 { out + modulo } else { out })
                 } else {
                     None
                 }
             }
             fn modadd(x: $t, y: $t, modulo: $t) -> $t {
-                Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+                if modulo == 0 {
+                    x.wrapping_add(y)
+                } else {
+                    Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+                }
             }
             fn modsub(x: $t, y: $t, modulo: $t) -> $t {
-                debug_assert!(modulo > 0);
-                let (mut x, mut y) = (x % modulo, y % modulo);
-                if x < 0 { x += modulo; }
-                if y < 0 { y += modulo; }
-                let out = x - y;
-                if out < 0 { out + modulo } else { out }
+                debug_assert!(modulo >= 0);
+                if modulo == 0 {
+                    x.wrapping_sub(y)
+                } else {
+                    let (mut x, mut y) = (x % modulo, y % modulo);
+                    if x < 0 { x += modulo; }
+                    if y < 0 { y += modulo; }
+                    let out = x - y;
+                    if out < 0 { out + modulo } else { out }
+                }
             }
             fn modmul(x: $t, y: $t, modulo: $t) -> $t {
-                debug_assert!(modulo > 0);
-                if <$t>::BITS <= 16 {
+                debug_assert!(modulo >= 0);
+                if modulo == 0 {
+                    x.wrapping_mul(y)
+                } else if <$t>::BITS <= 16 {
                     ((x as i32) * (y as i32) % (modulo as i32)) as $t
                 } else if <$t>::BITS <= 32 {
                     ((x as i64) * (y as i64) % (modulo as i64)) as $t
@@ -192,17 +214,35 @@ macro_rules! impl_mod_ops_unsigned {
             fn two() -> $t { 2 }
             fn my_wrapping_sub(&self, other: $t) -> $t { self.wrapping_sub(other) }
             fn modadd(x: $t, y: $t, modulo: $t) -> $t {
-                Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+                if modulo == 0 {
+                    x.wrapping_add(y)
+                } else {
+                    Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+                }
             }
             fn modsub(x: $t, y: $t, modulo: $t) -> $t {
-                debug_assert!(modulo > 0);
-                let (x, y) = (x % modulo, y % modulo);
-                let (out, overflow) = x.overflowing_sub(y);
-                if overflow { out.wrapping_add(modulo) } else { out }
+                if modulo == 0 {
+                    x.wrapping_sub(y)
+                } else {
+                    let (x, y) = (x % modulo, y % modulo);
+                    let (out, overflow) = x.overflowing_sub(y);
+                    if overflow { out.wrapping_add(modulo) } else { out }
+                }
             }
             fn modinv(&self, modulo: $t) -> Option<$t> {
-                if modulo <= 1 {
+                if modulo == 1 {
                     return None;
+                }
+                if modulo == 0 {
+                    if self & 1 == 1 {
+                        let mut out = *self;
+                        for _ in 0..6 {
+                            out = out.wrapping_mul(2.wrapping_sub(self.wrapping_mul(out)));
+                        }
+                        return Some(out);
+                    } else {
+                        return None;
+                    }
                 }
                 let (mut a, mut b) = (*self, modulo);
                 let mut c: [$t; 4] = if a > b {
@@ -227,7 +267,9 @@ macro_rules! impl_mod_ops_unsigned {
                 }
             }
             fn modmul(x: $t, y: $t, modulo: $t) -> $t {
-                if <$t>::BITS <= 16 {
+                if modulo == 0 {
+                    x.wrapping_mul(y)
+                } else if <$t>::BITS <= 16 {
                     ((x as u32) * (y as u32) % (modulo as u32)) as $t
                 } else if <$t>::BITS <= 32 {
                     ((x as u64) * (y as u64) % (modulo as u64)) as $t
@@ -246,21 +288,21 @@ impl_mod_ops_unsigned!(u8, u16, u32, u64, u128, usize);
 
 /// Computes the modular addition `x + y`.
 /// 
-/// This function will panic if `modulo` is zero or negative.
+/// This function will panic if `modulo` is negative.
 pub fn modadd<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     T::modadd(x, y, modulo)
 }
 
 /// Computes the modular subtraction `x - y`.
 /// 
-/// This function will panic if `modulo` is zero or negative.
+/// This function will panic if `modulo` is negative.
 pub fn modsub<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     T::modsub(x, y, modulo)
 }
 
 /// Computes the modular multiplication `x * y`.
 /// 
-/// This function will panic if `modulo` is zero or negative.
+/// This function will panic if `modulo` is negative.
 pub fn modmul<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     T::modmul(x, y, modulo)
 }
@@ -268,7 +310,7 @@ pub fn modmul<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
 /// Computes the inverse of `x` mod `modulo`, if it exists.
 /// Returns `None` if the inverse does not exist.
 ///
-/// This function will panic if `modulo` is non-positive.
+/// This function will panic if `modulo` is negative.
 pub fn modinv<T: ModOps<T>>(x: T, modulo: T) -> Option<T> {
     x.modinv(modulo)
 }
@@ -276,9 +318,9 @@ pub fn modinv<T: ModOps<T>>(x: T, modulo: T) -> Option<T> {
 /// Computes `base ** exponent` mod `modulo` in `O(lg exponent)` time.
 /// Returns `None` if the exponent is negative and `base` is not invertible mod `modulo`.
 ///
-/// This function will panic if `modulo` is non-positive.
+/// This function will panic if `modulo` is negative.
 pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T> {
-    assert!(modulo > T::zero());
+    assert!(modulo >= T::zero());
     let mut out = T::one();
     if exponent < T::zero() {
         /* check for invertibility of base with respect to mod modulo */
@@ -290,9 +332,9 @@ pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T
         exponent = T::zero()
             .my_wrapping_sub(exponent)
             .my_wrapping_sub(T::one());
-        out = base % modulo;
+        if modulo != T::zero() { out = base % modulo; }
     }
-    let mut base_pow = base % modulo;
+    let mut base_pow = if modulo != T::zero() { base % modulo } else { base };
     while exponent > T::zero() {
         if (exponent % T::two()) != T::zero() {
             out = T::modmul(out, base_pow, modulo);
@@ -307,9 +349,61 @@ pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T
 /// If `y^{-1} mod modulo` does not exist, the result is `None`.
 /// If it exists, the result is returned.
 /// 
-/// This function will panic if `modulo` is non-positive.
+/// This function will panic if `modulo` is negative.
 pub fn moddiv<T: ModOps<T>>(x: T, y: T, modulo: T) -> Option<T> {
     modinv(y, modulo).map(|yinv| modmul(x, yinv, modulo))
+}
+
+/// Computes the modular addition `x + y`.
+/// 
+/// This function will panic if `modulo` is zero or negative.
+pub fn checked_modadd<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
+    assert!(modulo != T::zero());
+    modadd(x, y, modulo)
+}
+
+/// Computes the modular subtraction `x - y`.
+/// 
+/// This function will panic if `modulo` is zero or negative.
+pub fn checked_modsub<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
+    assert!(modulo != T::zero());
+    modsub(x, y, modulo)
+}
+
+/// Computes the modular multiplication `x * y`.
+/// 
+/// This function will panic if `modulo` is zero or negative.
+pub fn checked_modmul<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
+    assert!(modulo != T::zero());
+    modmul(x, y, modulo)
+}
+
+/// Computes the inverse of `x` mod `modulo`, if it exists.
+/// Returns `None` if the inverse does not exist.
+///
+/// This function will panic if `modulo` is zero or negative.
+pub fn checked_modinv<T: ModOps<T>>(x: T, modulo: T) -> Option<T> {
+    assert!(modulo != T::zero());
+    modinv(x, modulo)
+}
+
+/// Computes `base ** exponent` mod `modulo` in `O(lg exponent)` time.
+/// Returns `None` if the exponent is negative and `base` is not invertible mod `modulo`.
+///
+/// This function will panic if `modulo` is zero or negative.
+pub fn checked_modpow<T: ModOps<T>>(base: T, exponent: T, modulo: T) -> Option<T> {
+    assert!(modulo != T::zero());
+    modpow(base, exponent, modulo)
+}
+
+/// Computes `x * y^-1 mod modulo`.
+/// If `y^{-1} mod modulo` does not exist, the result is `None`.
+/// If it exists, the result is returned.
+/// 
+/// This function will panic if `modulo` is zero or negative.
+pub fn checked_moddiv<T: ModOps<T>>(x: T, y: T, modulo: T) -> Option<T> {
+    assert!(modulo != T::zero());
+    moddiv(x, y, modulo)
 }
 
 #[cfg(test)]
@@ -356,6 +450,8 @@ mod test {
         assert_eq!(4i64, modadd(1_073_741_824, 1_073_741_827, 2_147_483_647));
         assert_eq!(2_147_483_645i32, modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647));
         assert_eq!(2_147_483_645i64, modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647));
+        assert_eq!(8, modadd(5, 3, 0i64));
+        assert_eq!(8, modadd(5, 3, 0u64));
     }
 
     #[test]
@@ -368,6 +464,8 @@ mod test {
         assert_eq!(4i64, modsub(1_073_741_824, -1_073_741_827, 2_147_483_647));
         assert_eq!(4i32, modsub(-2_147_483_648, -5, 2_147_483_647));
         assert_eq!(4i64, modsub(-2_147_483_648, -5, 2_147_483_647));
+        assert_eq!(2, modsub(5, 3, 0i64));
+        assert_eq!(2, modsub(5, 3, 0u64));
     }
 
     #[test]
@@ -379,6 +477,9 @@ mod test {
         let p = 0u64.wrapping_sub((1u64 << 32) - 1);
         assert_eq!(Some((p + 1) / 2), modinv(2u64, p));
         assert_eq!(Some(9999999966u64), modinv(9999999966u64, 9999999967u64));
+        assert_eq!(Some(12297829382473034411u64), modinv(3, 0u64));
+        assert_eq!(Some(102271515336455672821735593367980000139i128), modinv(19491, 0i128));
+        assert_eq!(Some(19491i128), modinv(102271515336455672821735593367980000139i128, 0i128));
     }
 
     #[test]
@@ -387,6 +488,7 @@ mod test {
         assert_eq!(None, modpow(4i64, -4i64, 16i64));
         assert_eq!(Some(1i64), modpow(2i64, 1_000_000_006i64, 1_000_000_007i64));
         assert_eq!(Some(1u64), modpow(2u64, 1_000_000_006u64, 1_000_000_007u64));
+        assert_eq!(Some(0u64), modpow(2, 64, 0u64));
         let p = 0u64.wrapping_sub((1u64 << 32) - 1);
         assert_eq!(Some(1u64), modpow(2u64, p - 1, p));
         let p128 = 0u128.wrapping_sub(159);
@@ -397,5 +499,7 @@ mod test {
     fn moddiv_returns_moddiv() {
         assert_eq!(None, moddiv(7i64, 2i64, 24i64));
         assert_eq!(Some(14i64), moddiv(2i64, 7i64, 24i64));
+        assert_eq!(Some(17361641481138401521u64), moddiv(1u64, 17u64, 0u64));
+        assert_eq!(Some(3i64), moddiv(15i64, 5i64, 0i64));
     }
 }
