@@ -13,20 +13,6 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     let p_e = ppow[e];
     let s: Vec<u64> = first_terms.iter().map(|&x| if p_e > 0 { x % p_e } else { x }).collect();
 
-    // Utility functions (modulo operations)
-    let modadd_p_e = |x: u64, y: u64| -> u64 {
-        if p_e == 0 { x.wrapping_add(y) } else { modadd(x, y, p_e) }
-    };
-    let modsub_p_e = |x: u64, y: u64| -> u64 {
-        if p_e == 0 { x.wrapping_sub(y) } else { modsub(x, y, p_e) }
-    };
-    let modmul_p_e = |x: u64, y: u64| -> u64 {
-        if p_e == 0 { x.wrapping_mul(y) } else { modmul(x, y, p_e) }
-    };
-    let modinv_p_e = |x: u64| -> u64 {
-        if p_e == 0 { modinv(x as u128, 1u128 << 64).unwrap() as u64 } else { modinv(x, p_e).unwrap() }
-    };
-
     // Utility functions (core logic)
     fn l(a: &[u64], b: &[u64]) -> usize {
         max(a.len() - 1, b.len())
@@ -66,9 +52,9 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
         a.push(vec![p_eta]);
         b.push(vec![]);
         a_new.push(vec![p_eta]);
-        let p_eta_s0 = modmul_p_e(p_eta, s[0]);
+        let p_eta_s0 = modmul(p_eta, s[0], p_e);
         b_new.push(if p_eta_s0 == 0 { vec![] } else { vec![p_eta_s0] } );
-        let c = modmul_p_e(s[0], p_eta);
+        let c = modmul(s[0], p_eta, p_e);
         (theta[eta], u[eta]) = factor_by_p(c);
     }
 
@@ -95,10 +81,10 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
         b.clone_from(&b_new);
         // Part 3
         for eta in 0..e {
-            let mut c = modsub_p_e(0, if b[eta].len() > k { b[eta][k] } else { 0 });
+            let mut c = modsub(0, if b[eta].len() > k { b[eta][k] } else { 0 }, p_e);
             for j in 0..=k {
                 if a[eta].len() > j {
-                    c = modadd_p_e(c, modmul_p_e(s[k - j], a[eta][j]));
+                    c = modadd(c, modmul(s[k - j], a[eta][j], p_e), p_e);
                 }
             }
             (theta[eta], u[eta]) = factor_by_p(c);
@@ -116,20 +102,20 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
                     if tmp.len() <= k {
                         tmp.resize(k + 1, 0);
                     }
-                    tmp[k] = modadd_p_e(tmp[k], modmul_p_e(theta[eta], ppow[eta]));
+                    tmp[k] = modadd(tmp[k], modmul(theta[eta], ppow[eta], p_e), p_e);
                     b_new[eta] = tmp;
                 } else {
                     // Case IIb
-                    let theta_g_old_inv = modinv_p_e(theta_old[g]);
-                    let m = modmul_p_e(theta[eta], theta_g_old_inv);
-                    let m = modmul_p_e(m, ppow[u[eta] - u_old[g]]);
+                    let theta_g_old_inv = modinv(theta_old[g], p_e).unwrap();
+                    let m = modmul(theta[eta], theta_g_old_inv, p_e);
+                    let m = modmul(m, ppow[u[eta] - u_old[g]], p_e);
                     let d = k - r[g];
                     let mut tmp = a[eta].clone();
                     if tmp.len() < a_old[g].len() + d {
                         tmp.resize(a_old[g].len() + d, 0);
                     }
                     for j in 0..a_old[g].len() {
-                        tmp[j + d] = modsub_p_e(tmp[j + d], modmul_p_e(m, a_old[g][j]));
+                        tmp[j + d] = modsub(tmp[j + d], modmul(m, a_old[g][j], p_e), p_e);
                     }
                     while tmp.last() == Some(&0) {
                         tmp.pop();
@@ -140,7 +126,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
                         tmp.resize(b_old[g].len() + d, 0);
                     }
                     for j in 0..b_old[g].len() {
-                        tmp[j + d] = modsub_p_e(tmp[j + d], modmul_p_e(m, b_old[g][j]));
+                        tmp[j + d] = modsub(tmp[j + d], modmul(m, b_old[g][j], p_e), p_e);
                     }
                     while tmp.last() == Some(&0) {
                         tmp.pop();
@@ -154,7 +140,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     // Extract output
     let mut out = vec![];
     for i in 1..a_new[0].len() {
-        out.push(modsub_p_e(0, a_new[0][i]));
+        out.push(modsub(0, a_new[0][i], p_e));
     }
     out
 }
