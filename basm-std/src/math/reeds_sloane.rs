@@ -37,7 +37,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
                 }
             }
         }
-        (if ppow[lo] == 0 { 0 } else { x / ppow[lo]}, lo)
+        (if ppow[lo] == 0 { 0 } else { x / ppow[lo] }, lo)
     };
 
     // Step 0
@@ -102,7 +102,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
                     if tmp.len() <= k {
                         tmp.resize(k + 1, 0);
                     }
-                    tmp[k] = modadd(tmp[k], modmul(theta[eta], ppow[eta], p_e), p_e);
+                    tmp[k] = modadd(tmp[k], modmul(theta[eta], ppow[u[eta]], p_e), p_e);
                     b_new[eta] = tmp;
                 } else {
                     // Case IIb
@@ -139,8 +139,8 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
 
     // Extract output
     let mut out = vec![];
-    for i in 1..a_new[0].len() {
-        out.push(modsub(0, a_new[0][i], p_e));
+    for i in 1..=l(&a_new[0], &b_new[0]) {
+        out.push(if i < a_new[0].len() { modsub(0, a_new[0][i], p_e) } else { 0 });
     }
     out
 }
@@ -244,5 +244,13 @@ mod test {
         let modulo = 9;
         let coeff = linear_fit(&first_terms, modulo);
         assert!(coeff == vec![5, 2, 8]);
+    }
+
+    #[test]
+    fn check_reeds_sloane_many_zeros() {
+        let first_terms = [0, 0, 0, 0, 1];
+        let modulo = 998_244_353;
+        let coeff = linear_fit(&first_terms, modulo);
+        assert!(coeff == vec![0, 0, 0, 0, 0]);
     }
 }
