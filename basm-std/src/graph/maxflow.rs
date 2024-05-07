@@ -16,6 +16,12 @@ pub struct FlowGraph {
     e: Vec<Edge>
 }
 
+impl Default for FlowGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowGraph {
     pub fn new() -> Self {
         Self { adj: vec![], e: vec![] }
@@ -25,7 +31,7 @@ impl FlowGraph {
         if self.adj.len() < u + 1 { self.adj.resize(u + 1, vec![]); }
         if self.adj.len() < v + 1 { self.adj.resize(v + 1, vec![]); }
         self.adj[u].push(self.e.len());
-        self.e.push(Edge { v: v, c: c, f: 0 });
+        self.e.push(Edge { v, c, f: 0 });
         self.adj[v].push(self.e.len());
         self.e.push(Edge { v: u, c: if bidirectional { c } else { 0 }, f: 0 });
     }
@@ -102,8 +108,8 @@ impl FlowGraph {
                     (head, next[h[u]]) = (h[u], if active[head].is_empty() { next[head] } else { head });
                 }
             } else {
-                // Assert for debugging
-                assert!(false);
+                // Panic for debugging
+                panic!();
             }
         }
 
@@ -124,8 +130,8 @@ impl FlowGraph {
             }
         }
         let mut out = vec![];
-        for u in 0..adj.len() {
-            if !visited[u] {
+        for (u, visited_u) in visited.iter().enumerate().take(n) {
+            if !visited_u {
                 out.push(u);
             }
         }
