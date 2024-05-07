@@ -35,7 +35,11 @@ impl FlowGraph {
         self.adj[v].push(self.e.len());
         self.e.push(Edge { v: u, c: if bidirectional { c } else { 0 }, f: 0 });
     }
-    pub fn solve(&self, s: usize, t: usize) -> (i64, Vec<usize>) {
+    /// Solves the maximum flow problem with source `s` and sink `t`.
+    /// `s` and `t` must be distinct.
+    /// 
+    /// Return value: (maximum flow value, vertices in s-cut, vertices in t-cut)
+    pub fn solve(&self, s: usize, t: usize) -> (i64, Vec<usize>, Vec<usize>) {
         assert!(s != t);
         let (mut adj, mut e) = (self.adj.clone(), self.e.clone());
         let bound = max(s, t);
@@ -129,12 +133,15 @@ impl FlowGraph {
                 }
             }
         }
-        let mut out = vec![];
-        for (u, visited_u) in visited.iter().enumerate().take(n) {
-            if !visited_u {
-                out.push(u);
+        let mut s_cut = vec![];
+        let mut t_cut = vec![];
+        for (u, &visited_u) in visited.iter().enumerate().take(n) {
+            if visited_u {
+                s_cut.push(u);
+            } else {
+                t_cut.push(u);
             }
         }
-        (p[t], out)
+        (p[t], s_cut, t_cut)
     }
 }
