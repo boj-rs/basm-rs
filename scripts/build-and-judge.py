@@ -74,7 +74,7 @@ if __name__ == '__main__':
     try:
         p = subprocess.run(build_cmd, shell=True, capture_output=True, text=True, encoding="utf8")
         if p.returncode != 0:
-            raise Exception("Build failed. The stderr:\n{0}".format(p.stderr))
+            raise Exception("Build failed. The stdout:\n{0}\n\nThe stderr:\n{1}".format(p.stdout, p.stderr))
         if language == "Cargo":
             print(p.stderr)
             cargo_stdout = [json.loads(x) for x in p.stdout.split('\n') if len(x.strip()) > 0]
