@@ -95,7 +95,7 @@ if lang_name == "C":
     s = []
     for i in range(0, len(code_b85), L):
         x = code_b85[i:min(i+L,len(code_b85))]
-        x = x.replace("?", "\?")
+        x = x.replace("?", "\\?")
         x = '"' + x + '",\n'
         s.append(x)
     r = "{\n" + "".join(s) + "}"
@@ -121,7 +121,7 @@ stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 stub_b85 = base64.b85encode(stub, pad=False).decode('ascii') + ']'
 stub_b85_len = len(stub_b85)
 if lang_name == "C":
-    stub_b85 = stub_b85.replace("?", "\?")
+    stub_b85 = stub_b85.replace("?", "\\?")
 stub_b85 = '"' + stub_b85 + '"'
 
 # template
