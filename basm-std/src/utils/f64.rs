@@ -352,11 +352,9 @@ impl F64Ops for f64 {
     /// It might have a different sequence of rounding operations than `powf`,
     /// so the results are not guaranteed to agree.
     ///
-    /// # Precision
-    /// The rust compiler's implementation uses "rust-intrinsic" function `intrinsic::powif64`,
-    /// which is not available on `libm`. In the context of competitive programming, the point
-    /// where the user is using `f64` means that the precision is not a huge concern. For this
-    /// reason, for now this function is equivalent to `self.powf(n as f64)`.
+    /// # Platform-specific precision
+    ///
+    /// The precision of this function varies by platform and Rust version.
     ///
     /// # Examples
     ///
