@@ -76,6 +76,15 @@ fn sort_radix_by_key_rec<T, F: (Fn(&T) -> K) + Copy, K: Binary>(arr: &mut [T], k
     }
 }
 
+impl Binary for u8 {
+    fn bits() -> u32 {
+        u8::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        self >> pos
+    }
+}
+
 impl Binary for u16 {
     fn bits() -> u32 {
         u16::BITS
@@ -103,11 +112,74 @@ impl Binary for u64 {
     }
 }
 
+impl Binary for u128 {
+    fn bits() -> u32 {
+        u128::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        (self >> pos) as u8
+    }
+}
+
 impl Binary for usize {
     fn bits() -> u32 {
         usize::BITS
     }
     fn get_byte_at(&self, pos: u32) -> u8 {
         (self >> pos) as u8
+    }
+}
+
+impl Binary for i8 {
+    fn bits() -> u32 {
+        i8::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        self.wrapping_sub(i8::MIN) as u8 >> pos
+    }
+}
+
+impl Binary for i16 {
+    fn bits() -> u32 {
+        i16::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        (self.wrapping_sub(i16::MIN) as u16 >> pos) as u8
+    }
+}
+
+impl Binary for i32 {
+    fn bits() -> u32 {
+        i32::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        (self.wrapping_sub(i32::MIN) as u32 >> pos) as u8
+    }
+}
+
+impl Binary for i64 {
+    fn bits() -> u32 {
+        i64::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        (self.wrapping_sub(i64::MIN) as u64 >> pos) as u8
+    }
+}
+
+impl Binary for i128 {
+    fn bits() -> u32 {
+        i128::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        (self.wrapping_sub(i128::MIN) as u128 >> pos) as u8
+    }
+}
+
+impl Binary for isize {
+    fn bits() -> u32 {
+        isize::BITS
+    }
+    fn get_byte_at(&self, pos: u32) -> u8 {
+        (self.wrapping_sub(isize::MIN) as usize >> pos) as u8
     }
 }
