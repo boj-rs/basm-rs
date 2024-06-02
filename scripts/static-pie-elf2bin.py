@@ -42,9 +42,9 @@ has kindly granted us permission to confine the GPLv2+ license to
 the parts explicitly derived from "Loader.c".
 
 There are currently three files licensed under GPLv2+:
-    scripts/static-pie-elf2bin.py       (current file)
-    src/platform/loader/amd64_elf.rs
-    src/platform/loader/i686_elf.rs
+    scripts/static-pie-elf2bin.py                (current file)
+    basm-std/src/platform/loader/amd64_elf.rs
+    basm-std/src/platform/loader/i686_elf.rs
 """
 
 import json

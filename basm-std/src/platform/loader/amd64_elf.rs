@@ -43,8 +43,8 @@ the parts explicitly derived from "Loader.c".
 
 There are currently three files licensed under GPLv2+:
     scripts/static-pie-elf2bin.py
-    src/platform/loader/amd64_elf.rs    (current file)
-    src/platform/loader/i686_elf.rs
+    basm-std/src/platform/loader/amd64_elf.rs    (current file)
+    basm-std/src/platform/loader/i686_elf.rs
 */
 
 #![allow(clippy::cmp_null)]
