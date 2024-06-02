@@ -23,13 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          target: ${{ matrix.target }}
-          profile: default
-          override: true
-          components: clippy
+        run: |
+          rustup toolchain install nightly --target ${{ matrix.target }} --profile default --component clippy
       - name: Install Python 3      
         uses: actions/setup-python@v5
         with:
