@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m pip install pefile
       - name: Clippy
-        run: cargo clippy
+        run: cargo clippy --all-targets
         env:
           RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
       - name: Test

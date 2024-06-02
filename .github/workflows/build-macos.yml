@@ -39,7 +39,7 @@ jobs:
           brew install gcc
           rustup component add rust-src --toolchain nightly-aarch64-apple-darwin
       - name: Clippy
-        run: cargo clippy
+        run: cargo clippy --all-targets
         env:
           RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
       - name: Test
