@@ -234,12 +234,12 @@ mod test {
     #[test]
     fn check_is_prime() {
         let mut ls = LinearSieve::new();
-        assert_eq!(false, ls.is_prime(0));
-        assert_eq!(false, ls.is_prime(1));
-        assert_eq!(true, ls.is_prime(2));
-        assert_eq!(true, ls.is_prime(3));
-        assert_eq!(false, ls.is_prime(20));
-        assert_eq!(true, ls.is_prime(19));
+        assert!(!ls.is_prime(0));
+        assert!(!ls.is_prime(1));
+        assert!(ls.is_prime(2));
+        assert!(ls.is_prime(3));
+        assert!(!ls.is_prime(20));
+        assert!(ls.is_prime(19));
     }
 
     #[test]

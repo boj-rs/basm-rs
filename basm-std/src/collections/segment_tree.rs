@@ -126,7 +126,7 @@ mod test {
     }
     #[test]
     fn from_iter() {
-        let tree: SegmentTree<Add> = SegmentTree::from_iter(3, [1, 2, 3].into_iter());
+        let tree: SegmentTree<Add> = SegmentTree::from_iter(3, [1, 2, 3]);
         assert_eq!(tree.n, 4);
         assert_eq!(&tree.v[1..], [6, 3, 3, 1, 2, 3, 0]);
     }

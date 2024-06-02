@@ -119,7 +119,7 @@ mod test {
         let mut before = vec![];
         let mut after = vec![];
         let mut end = vec![];
-        let mut visited = vec![false; 5];
+        let mut visited = [false; 5];
         dfs! {
             (vec, 0)
             |from, to, data, edge| => {

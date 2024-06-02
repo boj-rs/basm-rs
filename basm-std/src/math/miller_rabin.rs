@@ -165,16 +165,16 @@ mod test {
 
     #[test]
     fn check_is_prime_u32() {
-        assert_eq!(true, is_prime_u32(101));
-        assert_eq!(false, is_prime_u32(906810173));
-        assert_eq!(false, is_prime_u32(598963177));
+        assert!(is_prime_u32(101));
+        assert!(!is_prime_u32(906810173));
+        assert!(!is_prime_u32(598963177));
     }
 
     #[test]
     fn check_is_prime_u64() {
-        assert_eq!(true, is_prime_u64(101));
-        assert_eq!(false, is_prime_u64(906810173));
-        assert_eq!(false, is_prime_u64(598963177));
-        assert_eq!(false, is_prime_u64(162319020967));
+        assert!(is_prime_u64(101));
+        assert!(!is_prime_u64(906810173));
+        assert!(!is_prime_u64(598963177));
+        assert!(!is_prime_u64(162319020967));
     }
 }
