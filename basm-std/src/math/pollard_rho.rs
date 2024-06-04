@@ -1,7 +1,10 @@
 // This is a Rust port of the implementation originally written in C++ by wider93.
 
+use crate::math::{
+    gcd, is_prime_u64,
+    miller_rabin::{OddMont, M},
+};
 use alloc::{vec, vec::Vec};
-use crate::math::{gcd, is_prime_u64, miller_rabin::{M, OddMont}};
 
 trait PollardRhoOp<T> {
     fn pollard_rho_type(r: T, init: T) -> T;
@@ -24,9 +27,12 @@ macro_rules! impl_pollard_rho_type {
                         let mut g = M::<$ty> { v: 1 };
                         let x = y;
                         for _ in (0..itr).step_by(STEP as usize) {
-                            if k != 1 { break; }
+                            if k != 1 {
+                                break;
+                            }
                             for _ in 0..STEP {
-                                y = rm.redc(y.v as $ty_large * y.v as $ty_large + init as $ty_large);
+                                y = rm
+                                    .redc(y.v as $ty_large * y.v as $ty_large + init as $ty_large);
                                 g = rm.mul(g, rm.to_mont(x.v.abs_diff(y.v)));
                             }
                             k = gcd(g.v, r);
@@ -34,9 +40,13 @@ macro_rules! impl_pollard_rho_type {
                                 k = 1;
                                 let mut py = x;
                                 for _ in 0..STEP {
-                                    py = rm.redc(py.v as $ty_large * py.v as $ty_large + init as $ty_large);
+                                    py = rm.redc(
+                                        py.v as $ty_large * py.v as $ty_large + init as $ty_large,
+                                    );
                                     k = gcd(r, x.v.abs_diff(py.v));
-                                    if k != 1 { break; }
+                                    if k != 1 {
+                                        break;
+                                    }
                                 }
                                 if k == 1 {
                                     k = r;
@@ -49,7 +59,7 @@ macro_rules! impl_pollard_rho_type {
                 k
             }
         }
-    }
+    };
 }
 impl_pollard_rho_type!(u32, u64);
 impl_pollard_rho_type!(u64, u128);
@@ -63,11 +73,11 @@ fn pollard_rho(r: u64) -> u64 {
 }
 
 /// Return Vector contains result of prime factorization in ascending order
-/// 
-/// # Examples
+///
 /// ```
-/// assert_eq!(vec![2, 2, 2, 3], basm::math::factorize(24));
-/// assert_eq!(vec![2, 2, 5, 17], basm::math::factorize(340));
+/// use basm_std::math::factorize;
+/// assert_eq!(vec![2, 2, 2, 3], factorize(24));
+/// assert_eq!(vec![2, 2, 5, 17], factorize(340));
 /// ```
 pub fn factorize(mut n: u64) -> Vec<u64> {
     let mut v = Vec::new();
@@ -111,11 +121,23 @@ mod test {
     #[test]
     fn check_factorize() {
         assert_eq!(vec![2, 2, 3], factorize(12));
-        assert_eq!(vec![3, 3, 13, 179, 271, 1381, 2423], factorize(18991325453139));
+        assert_eq!(
+            vec![3, 3, 13, 179, 271, 1381, 2423],
+            factorize(18991325453139)
+        );
         assert_eq!(vec![34421, 133978850655919], factorize(4611686018427387899));
-        assert_eq!(vec![2, 2, 3, 3, 5, 5, 7, 11, 13, 31, 41, 61, 151, 331, 1321], factorize(4611686018427387900));
-        assert_eq!(vec![37, 9902437, 12586817029], factorize(4611686018427387901));
+        assert_eq!(
+            vec![2, 2, 3, 3, 5, 5, 7, 11, 13, 31, 41, 61, 151, 331, 1321],
+            factorize(4611686018427387900)
+        );
+        assert_eq!(
+            vec![37, 9902437, 12586817029],
+            factorize(4611686018427387901)
+        );
         assert_eq!(vec![2, 2305843009213693951], factorize(4611686018427387902));
-        assert_eq!(vec![3, 715827883, 2147483647], factorize(4611686018427387903));
+        assert_eq!(
+            vec![3, 715827883, 2147483647],
+            factorize(4611686018427387903)
+        );
     }
 }
