@@ -1,6 +1,6 @@
+use crate::platform::services;
 use alloc::string::String;
 use core::mem::MaybeUninit;
-use crate::platform::services;
 
 pub struct Writer<const N: usize = { super::DEFAULT_BUF_SIZE }> {
     buf: [MaybeUninit<u8>; N],
@@ -26,10 +26,10 @@ struct B128([u8; 16]);
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use core::arch::x86_64::*;
     let x = _mm_cvtsi32_si128(n as i32);
     let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
     let mul_10000_merge = _mm_set1_epi32(55536);
@@ -95,21 +95,31 @@ unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
 
 impl<const N: usize> Writer<N> {
     const _DUMMY: usize = {
-        assert!(N >= super::MIN_BUF_SIZE, "Buffer size for Writer must be at least MIN_BUF_SIZE");
+        assert!(
+            N >= super::MIN_BUF_SIZE,
+            "Buffer size for Writer must be at least MIN_BUF_SIZE"
+        );
         0
     };
+    /// Make new `Writer` with type parameter `N` buffer size. For convenient use, check out `Default::default()`
+    /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer = Writer::<100>::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             buf: MaybeUninit::uninit_array(),
-            off: 0
+            off: 0,
         }
     }
+    /// Flush buffer of `Writer`.
     pub fn flush(&mut self) {
         services::write_stdio(1, unsafe {
             MaybeUninit::slice_assume_init_ref(&self.buf[..self.off])
         });
         self.off = 0;
     }
+    /// Check readahed from offset is bigger than current buffer length, then call [`Writer::flush`].
     pub fn try_flush(&mut self, readahead: usize) {
         if self.off + readahead > self.buf.len() {
             self.flush();
@@ -124,17 +134,28 @@ impl<const N: usize> Writer<N> {
         self.buf[self.off].write(b);
         self.off += 1;
     }
+    /// Write a single byte.
+    /// ```no_run
+    /// let writer : Writer = Default::default();
+    /// writer.byte(b'c"); // c
+    /// ```
     pub fn byte(&mut self, b: u8) {
         self.try_flush(2);
         self.byte_unchecked(b);
     }
-    // This function ensures an extra byte in the buffer to make sure that
-    // println() can safely use `byte_unchecked`.
+    /// Write multiple bytes. This function ensures an extra byte in the buffer to make sure that println() can safely use private method `byte_unchecked`.
+    /// ```no_run
+    /// let writer : Writer = Default::default();
+    /// writer.bytes("Hello World".as_bytes()); // Hello World
+    /// ```
     #[cfg(not(feature = "short"))]
     pub fn bytes(&mut self, mut s: &[u8]) {
         while !s.is_empty() {
             let rem = s.len().min(self.buf[self.off..].len());
-            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[..rem]); }
+            unsafe {
+                MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem])
+                    .copy_from_slice(&s[..rem]);
+            }
             self.off += rem;
             s = &s[rem..];
             self.try_flush(1);
@@ -149,21 +170,45 @@ impl<const N: usize> Writer<N> {
             self.byte(*x);
         }
     }
+    /// Write `&str`.
+    /// ```no_run
+    /// writer.bytes("Hello, World"); // Hello, World
+    /// ```
     pub fn str(&mut self, s: &str) {
         self.bytes(s.as_bytes());
     }
+    /// Write `i8`
+    /// ```no run
+    /// writer.bytes(i8::MIN); // -128
+    /// ```
     pub fn i8(&mut self, n: i8) {
         self.i32(n as i32);
     }
+    /// Write `u8`
+    /// ```no run
+    /// writer.u8(u8::MAX); // 255
+    /// ```
     pub fn u8(&mut self, n: u8) {
         self.u32(n as u32);
     }
+    /// Write `i16`
+    /// ```no run
+    /// writer.i16(i16::MIN); // -32768
+    /// ```
     pub fn i16(&mut self, n: i16) {
         self.i32(n as i32);
     }
+    /// Write `u16`
+    /// ```no run
+    /// writer.u16(u16::MAX); // 65535
+    /// ```
     pub fn u16(&mut self, n: u16) {
         self.u32(n as u32);
     }
+    /// Write `i32`
+    /// ```no run
+    /// writer.i32(i32::MIN); // -2147483648
+    /// ```
     pub fn i32(&mut self, n: i32) {
         if n < 0 {
             self.byte(b'-');
@@ -172,6 +217,10 @@ impl<const N: usize> Writer<N> {
             self.u32(n as u32);
         }
     }
+    /// Write `u32`
+    /// ```no_run
+    /// writer.u32(u32::MAX); // 4294967295
+    /// ```
     #[cfg(not(feature = "short"))]
     pub fn u32(&mut self, n: u32) {
         self.try_flush(11);
@@ -191,13 +240,20 @@ impl<const N: usize> Writer<N> {
             }
         }
         let len = 16 - off;
-        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&b128.0[off..]); }
+        unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+                .copy_from_slice(&b128.0[off..]);
+        }
         self.off += len;
     }
     #[cfg(feature = "short")]
     pub fn u32(&mut self, n: u32) {
         self.u64(n as u64)
     }
+    /// Write `i64`
+    /// ```no_run
+    /// writer.i64(i64::MIN); // -9223372036854775808
+    /// ```
     pub fn i64(&mut self, n: i64) {
         if n < 0 {
             self.byte(b'-');
@@ -206,6 +262,10 @@ impl<const N: usize> Writer<N> {
             self.u64(n as u64);
         }
     }
+    /// Write `u64`
+    /// ```no_run
+    /// writer.u64(u64::MAX); // 18446744073709551615
+    /// ```
     #[cfg(not(feature = "short"))]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21);
@@ -238,10 +298,16 @@ impl<const N: usize> Writer<N> {
             }
         }
         let len = 16 - hioff;
-        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&hi128.0[hioff..]); }
+        unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+                .copy_from_slice(&hi128.0[hioff..]);
+        }
         self.off += len;
         let len = 16 - looff;
-        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&lo128.0[looff..]); }
+        unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+                .copy_from_slice(&lo128.0[looff..]);
+        }
         self.off += len;
     }
     #[cfg(feature = "short")]
@@ -252,16 +318,24 @@ impl<const N: usize> Writer<N> {
             self.buf[i].write(b'0' + (n % 10) as u8);
             n /= 10;
             i += 1;
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
         }
         let mut j = self.off;
         self.off = i;
         while j < i {
             i -= 1;
-            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i); }
+            unsafe {
+                MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i);
+            }
             j += 1;
         }
     }
+    /// Write `i128`
+    /// ```no_run
+    /// writer.i128(i128::MIN); // -170141183460469231731687303715884105728
+    /// ```
     pub fn i128(&mut self, n: i128) {
         if n < 0 {
             self.byte(b'-');
@@ -270,6 +344,10 @@ impl<const N: usize> Writer<N> {
             self.u128(n as u128);
         }
     }
+    /// Write `u128`
+    /// ```no_run
+    /// writer.u128(u128::MAX); // 340282366920938463463374607431768211455
+    /// ```
     pub fn u128(&mut self, mut n: u128) {
         let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
         let mut offset = buf.len() - 1;
@@ -290,10 +368,18 @@ impl<const N: usize> Writer<N> {
     pub fn usize(&mut self, n: usize) {
         self.u32(n as u32);
     }
+    /// Write `isize` (in BOJ, it's `i64`);
+    /// ```no_run
+    /// writer.isize(isize::MIN); // -9223372036854775808
+    /// ```
     #[cfg(target_pointer_width = "64")]
     pub fn isize(&mut self, n: isize) {
         self.i64(n as i64);
     }
+    /// Write `usize` (in BJO, it's `u64`);
+    /// ```no_run
+    /// writer.usize(usize::MAX); // 18446744073709551615
+    /// ```
     #[cfg(target_pointer_width = "64")]
     pub fn usize(&mut self, n: usize) {
         self.u64(n as u64);
@@ -306,11 +392,19 @@ impl<const N: usize> Writer<N> {
     pub fn usize(&mut self, mut n: usize) {
         self.u128(n as u128);
     }
+    /// Write `f64`
+    /// ```no_run
+    /// writer.f64(1.23); // 1.23
+    /// ```
     pub fn f64(&mut self, f: f64) {
         let mut buffer = ryu::Buffer::new();
         let printed = buffer.format(f);
         self.bytes(printed.as_bytes());
     }
+    /// Write `char`
+    /// ```no_run
+    /// writer.char('c'); // c
+    /// ```
     pub fn char(&mut self, c: char) {
         self.try_flush(6);
         let u = c as u32;
@@ -342,6 +436,7 @@ pub trait Print<T> {
     fn println(&mut self, x: T);
 }
 
+/// Write `&[u8]` using [`Writer::bytes()`]. `print()` doesn't add newline at the end of the output, while `println()` does.
 impl<const N: usize> Print<&[u8]> for Writer<N> {
     fn print(&mut self, x: &[u8]) {
         self.bytes(x);
@@ -352,6 +447,7 @@ impl<const N: usize> Print<&[u8]> for Writer<N> {
     }
 }
 
+/// Write `&[u8; M]` using [`Writer::bytes()`]. `print()` doesn't add newline at the end of the output, while `println()` does.
 impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
     fn print(&mut self, x: &[u8; M]) {
         self.bytes(x);
@@ -362,6 +458,7 @@ impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
     }
 }
 
+/// Write `&str` using [`Writer::bytes()`] and [`str::as_bytes()`]. `print()` doesn't add newline at the end of the output, while `println()` does.
 impl<const N: usize> Print<&str> for Writer<N> {
     fn print(&mut self, x: &str) {
         self.bytes(x.as_bytes());
@@ -372,6 +469,7 @@ impl<const N: usize> Print<&str> for Writer<N> {
     }
 }
 
+/// Write String using [`Writer::Print<&str>()`] and [`String::as_str()`]. `print()` doesn't add newline at the end of the output, while `println()` does.
 impl<const N: usize> Print<String> for Writer<N> {
     fn print(&mut self, x: String) {
         self.print(x.as_str());
@@ -381,6 +479,7 @@ impl<const N: usize> Print<String> for Writer<N> {
     }
 }
 
+/// Write String using `Writer::Print<&str>()` and [`String::as_str()`]. `print()` doesn't add newline at the end of the output, while `println()` does.
 impl<const N: usize> Print<&String> for Writer<N> {
     fn print(&mut self, x: &String) {
         self.print(x.as_str());
