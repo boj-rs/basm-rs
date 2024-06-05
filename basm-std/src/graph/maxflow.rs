@@ -1,7 +1,7 @@
 use alloc::collections::VecDeque;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::cmp::{min, max};
+use core::cmp::{max, min};
 
 #[derive(Clone)]
 struct Edge {
@@ -14,7 +14,7 @@ struct Edge {
 pub struct FlowGraph {
     adj: Vec<Vec<usize>>,
     e: Vec<Edge>,
-    edge_count: usize
+    edge_count: usize,
 }
 
 impl Default for FlowGraph {
@@ -25,21 +25,33 @@ impl Default for FlowGraph {
 
 impl FlowGraph {
     pub fn new() -> Self {
-        Self { adj: vec![], e: vec![], edge_count: 0 }
+        Self {
+            adj: vec![],
+            e: vec![],
+            edge_count: 0,
+        }
     }
     pub fn add_edge(&mut self, u: usize, v: usize, c: i64, bidirectional: bool) {
         assert!(c >= 0);
-        if self.adj.len() < u + 1 { self.adj.resize(u + 1, vec![]); }
-        if self.adj.len() < v + 1 { self.adj.resize(v + 1, vec![]); }
+        if self.adj.len() < u + 1 {
+            self.adj.resize(u + 1, vec![]);
+        }
+        if self.adj.len() < v + 1 {
+            self.adj.resize(v + 1, vec![]);
+        }
         self.adj[u].push(self.e.len());
         self.e.push(Edge { v, c, f: 0 });
         self.adj[v].push(self.e.len());
-        self.e.push(Edge { v: u, c: if bidirectional { c } else { 0 }, f: 0 });
+        self.e.push(Edge {
+            v: u,
+            c: if bidirectional { c } else { 0 },
+            f: 0,
+        });
         self.edge_count += 1;
     }
     /// Solves the maximum flow problem with source `s` and sink `t`.
     /// `s` and `t` must be distinct.
-    /// 
+    ///
     /// Return value: (maximum flow value, vertices in s-cut, vertices in t-cut)
     pub fn solve(&self, s: usize, t: usize) -> (i64, Vec<usize>, Vec<usize>) {
         assert!(s != t);
@@ -55,8 +67,8 @@ impl FlowGraph {
         h[s] = n;
         let mut p = vec![0; n];
 
-        let mut next = vec![usize::MAX; 2*n + 1];
-        let mut active = vec![vec![]; 2*n + 1];
+        let mut next = vec![usize::MAX; 2 * n + 1];
+        let mut active = vec![vec![]; 2 * n + 1];
         let mut head = usize::MAX;
 
         let push = |my_e: &mut [Edge], my_p: &mut [i64], u: usize, eid: usize, df: i64| -> bool {
@@ -84,7 +96,11 @@ impl FlowGraph {
                 debug_assert!(p[u] > 0);
                 'outer: loop {
                     for _ in 0..adj[u].len() {
-                        let eii = if e_last[u] + 1 == adj[u].len() { 0 } else { e_last[u] + 1 };
+                        let eii = if e_last[u] + 1 == adj[u].len() {
+                            0
+                        } else {
+                            e_last[u] + 1
+                        };
                         let eid = adj[u][eii];
                         let v = e[eid].v;
                         if h[u] == h[v] + 1 {
@@ -99,7 +115,9 @@ impl FlowGraph {
                                 if p[u] == 0 {
                                     if active[head].is_empty() {
                                         head = next[head];
-                                        debug_assert!(head == usize::MAX || !active[head].is_empty());
+                                        debug_assert!(
+                                            head == usize::MAX || !active[head].is_empty()
+                                        );
                                     }
                                     break 'outer;
                                 }
@@ -107,14 +125,21 @@ impl FlowGraph {
                         }
                         e_last[u] = eii;
                     }
-                    h[u] = 2*n; // just needs to be large enough
+                    h[u] = 2 * n; // just needs to be large enough
                     for &eid in &adj[u] {
                         let v = e[eid].v;
                         if e[eid].c - e[eid].f > 0 {
                             h[u] = min(h[u], h[v] + 1);
                         }
                     }
-                    (head, next[h[u]]) = (h[u], if active[head].is_empty() { next[head] } else { head });
+                    (head, next[h[u]]) = (
+                        h[u],
+                        if active[head].is_empty() {
+                            next[head]
+                        } else {
+                            head
+                        },
+                    );
                     relabel_count += 1;
                 }
             } else {
@@ -154,7 +179,7 @@ impl FlowGraph {
                 }
                 head = usize::MAX;
                 let mut lowest = usize::MAX;
-                for h in 0..=2*n {
+                for h in 0..=2 * n {
                     if !active[h].is_empty() {
                         next[h] = head;
                         head = h;
@@ -169,18 +194,30 @@ impl FlowGraph {
         }
 
         // Phase II: send excesses back to source via doing a DFS from the source
-        fn dfs_phase2(adj: &Vec<Vec<usize>>, e: &mut [Edge], p: &mut [i64], h: &[usize], visited: &mut [bool], stack: &mut Vec<usize>, u: usize) {
+        fn dfs_phase2(
+            adj: &Vec<Vec<usize>>,
+            e: &mut [Edge],
+            p: &mut [i64],
+            h: &[usize],
+            visited: &mut [bool],
+            stack: &mut Vec<usize>,
+            u: usize,
+        ) {
             if visited[u] {
                 // Back-edge; cancel the minimal flow along the cycle
                 let mut df = i64::MAX;
                 for &eid in stack.iter().rev() {
                     df = min(df, e[eid].f);
-                    if e[eid ^ 1].v == u { break; }
+                    if e[eid ^ 1].v == u {
+                        break;
+                    }
                 }
                 for &eid in stack.iter().rev() {
                     e[eid].f -= df;
                     e[eid ^ 1].f += df;
-                    if e[eid ^ 1].v == u { break; }
+                    if e[eid ^ 1].v == u {
+                        break;
+                    }
                 }
             } else {
                 // Continue on DFS

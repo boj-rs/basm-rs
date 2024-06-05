@@ -16,7 +16,12 @@ fn try_parse_ident(value: &syn::Type) -> Result<String, String> {
             return Err("PathSegment should not have any generic arguments".into());
         }
     }
-    Ok(x.path.segments.iter().map(|y| y.ident.to_string()).collect::<Vec<_>>().join("::"))
+    Ok(x.path
+        .segments
+        .iter()
+        .map(|y| y.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::"))
 }
 
 fn try_parse_generics(value: &syn::Type) -> Result<(Vec<String>, Vec<&syn::Type>), String> {
@@ -73,7 +78,7 @@ impl TryFrom<&syn::Type> for TInteger {
             "u64" => Ok(Self::U64),
             "usize" => Ok(Self::Usize),
             "bool" => Ok(Self::Bool),
-            _ => Err("Unsupported integer type ".to_owned() + &x.to_string())
+            _ => Err("Unsupported integer type ".to_owned() + &x.to_string()),
         }
     }
 }
@@ -87,20 +92,25 @@ impl TryFrom<&syn::Type> for TPrimitive {
             let sp = match (x.const_token.is_some(), x.mutability.is_some()) {
                 (true, false) => PtrSpecifier::PtrConst,
                 (false, true) => PtrSpecifier::PtrMut,
-                _ => { return Err("Invalid pointer specifier".into()); }
+                _ => {
+                    return Err("Invalid pointer specifier".into());
+                }
             };
             let y = TInteger::try_from(&*x.elem)?;
             Ok(TPrimitive::Integer(sp, y))
         } else if let Ok(x) = try_parse_ident(value) {
             match x.as_str() {
                 "alloc::string::String" | "string::String" | "String" => Ok(Self::String),
-                _ => Err("Unsupported primitive token ".to_owned() + &x)
+                _ => Err("Unsupported primitive token ".to_owned() + &x),
             }
         } else if let syn::Type::Tuple(x) = value {
             if x.elems.is_empty() {
                 Ok(Self::Unit)
             } else {
-                Err(format!("Failed to parse {}; note that tuples are not yet supported", quote!(#value)))
+                Err(format!(
+                    "Failed to parse {}; note that tuples are not yet supported",
+                    quote!(#value)
+                ))
             }
         } else {
             Err(format!("Failed to parse TPrimitive {}", quote!(#value)))
@@ -117,7 +127,7 @@ impl TryFrom<&syn::Type> for TPair {
             "basm_std::serialization::Pair",
             "basm::serialization::Pair",
             "serialization::Pair",
-            "Pair"
+            "Pair",
         ];
         if !types_allowed.contains(&type_str.as_str()) {
             return Err("The supplied type is not allowed for Pair".into());
@@ -127,7 +137,10 @@ impl TryFrom<&syn::Type> for TPair {
         }
         let ty1 = TBase::try_from(generic_args[0])?;
         let ty2 = TBase::try_from(generic_args[1])?;
-        Ok(Self { ty1: Box::new(ty1), ty2: Box::new(ty2) })
+        Ok(Self {
+            ty1: Box::new(ty1),
+            ty2: Box::new(ty2),
+        })
     }
 }
 
@@ -136,11 +149,7 @@ impl TryFrom<&syn::Type> for TVec {
     fn try_from(value: &syn::Type) -> Result<Self, Self::Error> {
         let (type_path, generic_args) = try_parse_generics(value)?;
         let type_str = type_path.join("::");
-        let types_allowed = [
-            "alloc::vec::Vec",
-            "vec::Vec",
-            "Vec"
-        ];
+        let types_allowed = ["alloc::vec::Vec", "vec::Vec", "Vec"];
         if !types_allowed.contains(&type_str.as_str()) {
             return Err("The supplied type is not allowed for Vec".into());
         }
@@ -162,7 +171,7 @@ impl TryFrom<&syn::Type> for TBase {
         } else {
             match TPrimitive::try_from(value) {
                 Ok(x) => Ok(Self::Prim(x)),
-                Err(x) => Err(x)
+                Err(x) => Err(x),
             }
         }
     }
@@ -184,13 +193,16 @@ impl TryFrom<&syn::Type> for TInput {
                         };
                         Ok(Self { borrow: sp, ty: y })
                     }
-                    Err(y) => Err(y)
+                    Err(y) => Err(y),
                 }
             }
         } else {
             match TBase::try_from(value) {
-                Ok(y) => Ok(Self { borrow: BorrowSpecifier::None, ty: y }),
-                Err(y) => Err(y)
+                Ok(y) => Ok(Self {
+                    borrow: BorrowSpecifier::None,
+                    ty: y,
+                }),
+                Err(y) => Err(y),
             }
         }
     }
@@ -200,13 +212,13 @@ impl TryFrom<&syn::ReturnType> for TOutput {
     type Error = String;
     fn try_from(value: &syn::ReturnType) -> Result<Self, Self::Error> {
         match value {
-            syn::ReturnType::Default => Ok(Self { ty: TBase::Prim(TPrimitive::Unit) }),
-            syn::ReturnType::Type(_, ty) => {
-                match TBase::try_from(&**ty) {
-                    Ok(x) => Ok(Self { ty: x } ),
-                    Err(x) => Err(x)
-                }
-            }
+            syn::ReturnType::Default => Ok(Self {
+                ty: TBase::Prim(TPrimitive::Unit),
+            }),
+            syn::ReturnType::Type(_, ty) => match TBase::try_from(&**ty) {
+                Ok(x) => Ok(Self { ty: x }),
+                Err(x) => Err(x),
+            },
         }
     }
 }
@@ -215,14 +227,12 @@ impl TryFrom<&syn::FnArg> for TArg {
     type Error = String;
     fn try_from(value: &syn::FnArg) -> Result<Self, Self::Error> {
         match value {
-            syn::FnArg::Receiver(_) => {
-                Err("FnArg: self, &self, &mut self are not allowed".into())
-            },
+            syn::FnArg::Receiver(_) => Err("FnArg: self, &self, &mut self are not allowed".into()),
             syn::FnArg::Typed(pattype) => {
                 let (pat, ty) = (&*pattype.pat, &*pattype.ty);
                 let ident = match pat {
-                    syn::Pat::Ident(x) => { x.ident.clone() }
-                    _ => { return Err("Pat must be a pure Ident".into()) }
+                    syn::Pat::Ident(x) => x.ident.clone(),
+                    _ => return Err("Pat must be a pure Ident".into()),
                 };
                 let ty = TInput::try_from(ty)?;
                 Ok(Self { ident, ty })
@@ -241,6 +251,10 @@ impl TryFrom<&syn::Signature> for TFunction {
             args.push(y);
         }
         let output = TOutput::try_from(&value.output)?;
-        Ok(Self { ident, args, output })
+        Ok(Self {
+            ident,
+            args,
+            output,
+        })
     }
 }

@@ -24,7 +24,7 @@ macro_rules! impl_mont {
                     n: a,
                     ni,
                     r2: r2 as $ty,
-                    r1: Self::redc_given(r2, n, ni)
+                    r1: Self::redc_given(r2, n, ni),
                 }
             }
 
@@ -50,13 +50,15 @@ macro_rules! impl_mont {
             }
 
             pub fn redc(&self, a: $ty_large) -> M<$ty> {
-                M { v: Self::redc_given(a, self.n, self.ni) }
+                M {
+                    v: Self::redc_given(a, self.n, self.ni),
+                }
             }
-        
+
             pub fn mul(&self, a: M<$ty>, b: M<$ty>) -> M<$ty> {
                 self.redc(a.v as $ty_large * b.v as $ty_large)
             }
-        
+
             pub fn to_mont(&self, a: $ty) -> M<$ty> {
                 self.redc(self.r2 as $ty_large * a as $ty_large)
             }
@@ -76,7 +78,7 @@ macro_rules! impl_mont {
                 ans.v
             }
         }
-    }
+    };
 }
 impl_mont!(u32, u64);
 impl_mont!(u64, u128);
@@ -105,9 +107,13 @@ mod details {
     }
 
     pub fn miller_rabin_base(k: &OddMont<u64>, s: i32, odd: u64, base: u64) -> bool {
-        let mut x = M { v: k.powmul(k.to_mont(base), odd, k.r1) };
+        let mut x = M {
+            v: k.powmul(k.to_mont(base), odd, k.r1),
+        };
         for _ in 0..s {
-            if x.v == k.r1 { break; }
+            if x.v == k.r1 {
+                break;
+            }
             let y = k.mul(x, x);
             if y.v == k.r1 && x.v != k.n - k.r1 {
                 return false;
@@ -116,7 +122,7 @@ mod details {
         }
         x.v == k.r1
     }
-    
+
     pub fn miller_rabin(k: u64) -> bool {
         if k % 2 == 0 {
             return k == 2;
@@ -146,11 +152,17 @@ pub fn is_prime_u32(x: u32) -> bool {
 
 pub fn is_prime_u64(x: u64) -> bool {
     if x < 1000 {
-        if x < 2 { return false; }
-        if x % 2 == 0 { return x == 2; }
+        if x < 2 {
+            return false;
+        }
+        if x % 2 == 0 {
+            return x == 2;
+        }
         let mut q = 3;
         while q * q <= x {
-            if x % q == 0 { return false; }
+            if x % q == 0 {
+                return false;
+            }
             q += 2;
         }
         true

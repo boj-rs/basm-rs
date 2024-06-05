@@ -1,9 +1,8 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use core::ptr;
-use core::arch::wasm32;
 use super::dlmalloc_interface::DlmallocAllocator;
-
+use core::arch::wasm32;
+use core::ptr;
 
 pub struct System {
     _priv: (),

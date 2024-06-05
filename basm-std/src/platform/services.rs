@@ -20,15 +20,14 @@ pub mod native_func {
     pub type F = unsafe extern "C" fn(usize, *const u8, usize) -> usize;
 }
 
-
 pub const ENV_ID_UNKNOWN: u64 = 0;
 pub const ENV_ID_WINDOWS: u64 = 1;
 pub const ENV_ID_LINUX: u64 = 2;
 pub const ENV_ID_WASM: u64 = 3;
 pub const ENV_ID_MACOS: u64 = 4;
-pub const ENV_FLAGS_LINUX_STYLE_CHKSTK: u64 = 0x0001;   // disables __chkstk in binaries compiled with Windows target
-pub const ENV_FLAGS_NATIVE: u64 = 0x0002;               // indicates the binary is running without the loader
-pub const ENV_FLAGS_NO_EXIT: u64 = 0x0004;              // do not call SYS_exitgroup on Linux (support fn-impl scenarios)
+pub const ENV_FLAGS_LINUX_STYLE_CHKSTK: u64 = 0x0001; // disables __chkstk in binaries compiled with Windows target
+pub const ENV_FLAGS_NATIVE: u64 = 0x0002; // indicates the binary is running without the loader
+pub const ENV_FLAGS_NO_EXIT: u64 = 0x0004; // do not call SYS_exitgroup on Linux (support fn-impl scenarios)
 
 #[repr(C, packed)]
 #[allow(non_snake_case)]
@@ -36,8 +35,8 @@ pub const ENV_FLAGS_NO_EXIT: u64 = 0x0004;              // do not call SYS_exitg
 pub struct PlatformData {
     pub env_id: u64,
     pub env_flags: u64,
-    pub win_kernel32: u64,              // handle of kernel32.dll
-    pub win_GetProcAddress: u64,        // pointer to kernel32::GetProcAddress
+    pub win_kernel32: u64,       // handle of kernel32.dll
+    pub win_GetProcAddress: u64, // pointer to kernel32::GetProcAddress
     pub fn_table: [usize; 7],
 }
 
@@ -50,7 +49,10 @@ unsafe fn addr(fn_id: usize) -> usize {
     core::ptr::read((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize)
 }
 pub unsafe fn install_single_service(fn_id: usize, fn_ptr: usize) {
-    core::ptr::write((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize, fn_ptr)
+    core::ptr::write(
+        (PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize,
+        fn_ptr,
+    )
 }
 pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {
     let fn_ptr: native_func::A = core::mem::transmute(addr(1));
@@ -100,5 +102,7 @@ pub fn get_exit_status() -> i32 {
     unsafe { EXIT_CODE }
 }
 pub fn set_exit_status(code: i32) {
-    unsafe { EXIT_CODE = code; }
+    unsafe {
+        EXIT_CODE = code;
+    }
 }

@@ -1,5 +1,5 @@
-use std::{io, process};
 use std::io::{Read, Write};
+use std::{io, process};
 
 #[inline(always)]
 pub fn exit(status: i32) -> ! {
@@ -15,8 +15,8 @@ pub fn read_stdio(fd: usize, buf: &mut [u8]) -> usize {
             } else {
                 0
             }
-        },
-        _ => 0
+        }
+        _ => 0,
     }
 }
 #[inline(always)]
@@ -29,7 +29,7 @@ pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
             } else {
                 0
             }
-        },
+        }
         2 => {
             let mut stderr = io::stderr();
             if let Ok(bytes_transferred) = stderr.write(buf) {
@@ -37,7 +37,7 @@ pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
             } else {
                 0
             }
-        },
-        _ => 0
+        }
+        _ => 0,
     }
 }

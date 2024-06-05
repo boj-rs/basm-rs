@@ -1,11 +1,14 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Signature, parse::{Parse, ParseStream}, Result, Token};
+use syn::{
+    parse::{Parse, ParseStream},
+    Result, Signature, Token,
+};
 
-use super::types::{TFunction, Mangle};
+use super::types::{Mangle, TFunction};
 
 struct VecSignature {
-    sigs: Vec<Signature>
+    sigs: Vec<Signature>,
 }
 
 impl Parse for VecSignature {
@@ -24,7 +27,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
     super::utils::verify_signature(sig);
     let tfn = match TFunction::try_from(sig) {
         Ok(x) => x,
-        Err(x) => panic!("{}", x)
+        Err(x) => panic!("{}", x),
     };
     let arg_names = tfn.arg_names();
     let mangled = tfn.mangle();
@@ -34,34 +37,36 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
     let internals: TokenStream = ("internals_".to_owned() + &mangled).parse().unwrap();
     let fn_name = &tfn.ident;
     let return_type: TokenStream = match &sig.output {
-        syn::ReturnType::Default => { "()".parse().unwrap() }
-        syn::ReturnType::Type(_x, y) => { quote!(#y) }
+        syn::ReturnType::Default => "()".parse().unwrap(),
+        syn::ReturnType::Type(_x, y) => {
+            quote!(#y)
+        }
     };
     let out = quote! {
         mod #basm_import_mod {
             mod #internals {
                 pub static mut SER_VEC: alloc::vec::Vec::<u8> = alloc::vec::Vec::<u8>::new();
                 pub static mut PTR_FN: usize = 0;
-            
+
                 #[cfg(target_arch = "x86_64")]
                 #[inline(never)]
                 pub unsafe extern "win64" fn free() { SER_VEC.clear() }
-            
+
                 #[cfg(not(target_arch = "x86_64"))]
                 #[inline(never)]
                 pub unsafe extern "C" fn free() { SER_VEC.clear() }
-            
+
                 #[cfg(target_arch = "x86_64")]
                 #[no_mangle]
                 #[inline(never)]
                 pub unsafe extern "win64" fn #basm_import(ptr_fn: usize) { PTR_FN = ptr_fn; }
-            
+
                 #[cfg(not(target_arch = "x86_64"))]
                 #[no_mangle]
                 #[inline(never)]
                 pub unsafe extern "C" fn #basm_import(ptr_fn: usize) { PTR_FN = ptr_fn; }
             }
-        
+
             use super::*;
             #[allow(clippy::ptr_arg)]
             pub #sig {
@@ -72,7 +77,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
                     #( #arg_names.ser_len(&mut #internals::SER_VEC, 0); )*
                     (#internals::free as usize).ser_len(&mut #internals::SER_VEC, 0);
                     let ptr_serialized = basm_std::serialization::call_import(#internals::PTR_FN, #internals::SER_VEC.as_ptr() as usize);
-            
+
                     let mut buf: &'static [u8] = basm_std::serialization::eat(ptr_serialized);
                     type return_type = #return_type;
                     let out = return_type::de(&mut buf);
@@ -91,9 +96,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
 
 pub fn import_impl(input: TokenStream) -> TokenStream {
     let vecsig: VecSignature = syn::parse2(input).unwrap();
-    let out = vecsig.sigs.iter().map(|sig| {
-        import_impl_single(sig)
-    });
+    let out = vecsig.sigs.iter().map(|sig| import_impl_single(sig));
     quote! {
         #(#out)*
     }

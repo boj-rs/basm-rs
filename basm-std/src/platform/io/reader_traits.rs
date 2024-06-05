@@ -1,5 +1,5 @@
+use super::{Readable, ReaderTrait};
 use alloc::string::String;
-use super::{ReaderTrait, Readable};
 
 macro_rules! impl_primitive {
     ($($ty:ident)*) => {
@@ -37,8 +37,7 @@ impl<T: Readable, const N: usize> Readable for [T; N] {
 }
 
 impl Readable for () {
-    fn read(_reader: &mut impl ReaderTrait) -> Self {
-    }
+    fn read(_reader: &mut impl ReaderTrait) -> Self {}
 }
 
 impl<T: Readable> Readable for (T,) {

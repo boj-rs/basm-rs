@@ -38,8 +38,12 @@ mod runtime {
     #[panic_handler]
     fn panic(_pi: &core::panic::PanicInfo) -> ! {
         #[cfg(not(feature = "submit"))]
-        unsafe { basm::platform::codegen::print_panicinfo_and_exit(_pi) }
+        unsafe {
+            basm::platform::codegen::print_panicinfo_and_exit(_pi)
+        }
         #[cfg(feature = "submit")]
-        unsafe { core::hint::unreachable_unchecked() }
+        unsafe {
+            core::hint::unreachable_unchecked()
+        }
     }
 }

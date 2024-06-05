@@ -1,6 +1,6 @@
+use crate::platform::services;
 use alloc::string::String;
 use core::mem::MaybeUninit;
-use crate::platform::services;
 
 pub struct Writer<const N: usize = { super::DEFAULT_BUF_SIZE }> {
     buf: [MaybeUninit<u8>; N],
@@ -26,10 +26,10 @@ struct B128([u8; 16]);
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use core::arch::x86_64::*;
     let x = _mm_cvtsi32_si128(n as i32);
     let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
     let mul_10000_merge = _mm_set1_epi32(55536);
@@ -95,13 +95,16 @@ unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
 
 impl<const N: usize> Writer<N> {
     const _DUMMY: usize = {
-        assert!(N >= super::MIN_BUF_SIZE, "Buffer size for Writer must be at least MIN_BUF_SIZE");
+        assert!(
+            N >= super::MIN_BUF_SIZE,
+            "Buffer size for Writer must be at least MIN_BUF_SIZE"
+        );
         0
     };
     pub fn new() -> Self {
         Self {
             buf: MaybeUninit::uninit_array(),
-            off: 0
+            off: 0,
         }
     }
     pub fn flush(&mut self) {
@@ -134,7 +137,10 @@ impl<const N: usize> Writer<N> {
     pub fn bytes(&mut self, mut s: &[u8]) {
         while !s.is_empty() {
             let rem = s.len().min(self.buf[self.off..].len());
-            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem]).copy_from_slice(&s[..rem]); }
+            unsafe {
+                MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem])
+                    .copy_from_slice(&s[..rem]);
+            }
             self.off += rem;
             s = &s[rem..];
             self.try_flush(1);
@@ -191,7 +197,10 @@ impl<const N: usize> Writer<N> {
             }
         }
         let len = 16 - off;
-        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&b128.0[off..]); }
+        unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+                .copy_from_slice(&b128.0[off..]);
+        }
         self.off += len;
     }
     #[cfg(feature = "short")]
@@ -238,10 +247,16 @@ impl<const N: usize> Writer<N> {
             }
         }
         let len = 16 - hioff;
-        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&hi128.0[hioff..]); }
+        unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+                .copy_from_slice(&hi128.0[hioff..]);
+        }
         self.off += len;
         let len = 16 - looff;
-        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len]).copy_from_slice(&lo128.0[looff..]); }
+        unsafe {
+            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+                .copy_from_slice(&lo128.0[looff..]);
+        }
         self.off += len;
     }
     #[cfg(feature = "short")]
@@ -252,13 +267,17 @@ impl<const N: usize> Writer<N> {
             self.buf[i].write(b'0' + (n % 10) as u8);
             n /= 10;
             i += 1;
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
         }
         let mut j = self.off;
         self.off = i;
         while j < i {
             i -= 1;
-            unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i); }
+            unsafe {
+                MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i);
+            }
             j += 1;
         }
     }
