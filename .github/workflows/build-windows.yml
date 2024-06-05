@@ -28,7 +28,7 @@ jobs:
           vsversion: 2022
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install nightly --target ${{ matrix.target }} --profile minimal --component clippy
+          rustup toolchain install nightly --target ${{ matrix.target }} --profile default --component clippy
       - name: Install node.js
         uses: actions/setup-node@v4
         with:
