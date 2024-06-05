@@ -1,7 +1,7 @@
+use crate::platform::services;
 use alloc::string::String;
 use core::mem::MaybeUninit;
 use core::str::FromStr;
-use crate::platform::services;
 
 pub trait Readable {
     fn read(reader: &mut impl ReaderTrait) -> Self;
@@ -34,12 +34,30 @@ pub trait ReaderTrait: Sized {
         Cn::from_iter((0..n).map(|_| T::read(self)))
     }
     /// Reads and collects an `n`-by-`m` matrix of type `T`.
-    fn collect_2d<Cnm: FromIterator<Cm>, Cm: FromIterator<T>, T: Readable>(&mut self, n: usize, m: usize) -> Cnm {
+    fn collect_2d<Cnm: FromIterator<Cm>, Cm: FromIterator<T>, T: Readable>(
+        &mut self,
+        n: usize,
+        m: usize,
+    ) -> Cnm {
         Cnm::from_iter((0..n).map(|_| Cm::from_iter((0..m).map(|_| T::read(self)))))
     }
     /// Reads and collects an `n`-by-`m`-by-`p` tensor of type `T`.
-    fn collect_3d<Cnmp: FromIterator<Cmp>, Cmp: FromIterator<Cp>, Cp: FromIterator<T>, T: Readable>(&mut self, n: usize, m: usize, p: usize) -> Cnmp {
-        Cnmp::from_iter((0..n).map(|_| Cmp::from_iter((0..m).map(|_| Cp::from_iter((0..p).map(|_| T::read(self)))))))
+    fn collect_3d<
+        Cnmp: FromIterator<Cmp>,
+        Cmp: FromIterator<Cp>,
+        Cp: FromIterator<T>,
+        T: Readable,
+    >(
+        &mut self,
+        n: usize,
+        m: usize,
+        p: usize,
+    ) -> Cnmp {
+        Cnmp::from_iter(
+            (0..n).map(|_| {
+                Cmp::from_iter((0..m).map(|_| Cp::from_iter((0..p).map(|_| T::read(self)))))
+            }),
+        )
     }
 }
 
@@ -56,31 +74,43 @@ impl<const N: usize> Default for Reader<N> {
 }
 
 mod position {
-    #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), target_feature(enable = "avx2"))]
+    #[cfg_attr(
+        any(target_arch = "x86_64", target_arch = "x86"),
+        target_feature(enable = "avx2")
+    )]
     pub unsafe fn white(s: &[u8]) -> Option<usize> {
         s.iter().position(|&c| c <= b' ')
     }
-    #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), target_feature(enable = "avx2"))]
+    #[cfg_attr(
+        any(target_arch = "x86_64", target_arch = "x86"),
+        target_feature(enable = "avx2")
+    )]
     pub unsafe fn newline(s: &[u8]) -> Option<usize> {
         s.iter().position(|&c| c == b'\n')
     }
-    #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), target_feature(enable = "avx2,sse4.2"))]
+    #[cfg_attr(
+        any(target_arch = "x86_64", target_arch = "x86"),
+        target_feature(enable = "avx2,sse4.2")
+    )]
     pub unsafe fn memchr(s: &[u8], delim: u8) -> Option<usize> {
         s.iter().position(|&b| b == delim)
     }
 }
 
 impl<const N: usize> Reader<N> {
-    const BUF_LEN: usize = N-8;
+    const BUF_LEN: usize = N - 8;
     const _DUMMY: usize = {
-        assert!(N >= super::MIN_BUF_SIZE, "Buffer size for Reader must be at least MIN_BUF_SIZE");
+        assert!(
+            N >= super::MIN_BUF_SIZE,
+            "Buffer size for Reader must be at least MIN_BUF_SIZE"
+        );
         0
     };
     pub fn new() -> Self {
         Self {
             buf: MaybeUninit::uninit_array(),
             len: 0,
-            off: 0
+            off: 0,
         }
     }
     pub fn try_refill(&mut self, readahead: usize) -> usize {
@@ -114,7 +144,10 @@ impl<const N: usize> Reader<N> {
                 if white_cnt == 0 {
                     /* No whitespace has been found. We have to read.
                      * We try to read as much as possible at once. */
-                    rem += services::read_stdio(0, MaybeUninit::slice_assume_init_mut(&mut self.buf[rem..Self::BUF_LEN]));
+                    rem += services::read_stdio(
+                        0,
+                        MaybeUninit::slice_assume_init_mut(&mut self.buf[rem..Self::BUF_LEN]),
+                    );
                 }
                 /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
                  * This is safe since we spare 8 bytes at the end of the buffer. */
@@ -132,7 +165,9 @@ impl<const N: usize> Reader<N> {
     pub fn try_consume(&mut self, bytes: usize) -> usize {
         let mut consumed = 0;
         while consumed < bytes {
-            if self.off == self.len && self.try_refill(1) == 0 { break; }
+            if self.off == self.len && self.try_refill(1) == 0 {
+                break;
+            }
             let delta = core::cmp::min(self.len - self.off, bytes - consumed);
             self.off += delta;
             consumed += delta;
@@ -151,7 +186,9 @@ impl<const N: usize> Reader<N> {
                 self.off += 1;
                 len += 1;
             }
-            if self.try_refill(1) == 0 { break len; }
+            if self.try_refill(1) == 0 {
+                break len;
+            }
         }
     }
     pub fn skip_until_whitespace(&mut self) -> usize {
@@ -164,14 +201,17 @@ impl<const N: usize> Reader<N> {
                 self.off += 1;
                 len += 1;
             }
-            if self.try_refill(1) == 0 { break len; }
+            if self.try_refill(1) == 0 {
+                break len;
+            }
         }
     }
     pub fn until(&mut self, delim: u8, buf: &mut String) -> usize {
         let mut total = 0;
         loop {
             let len = self.len - self.off;
-            let range = unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.off + len]) };
+            let range =
+                unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.off + len]) };
             if let Some(i) = unsafe { position::memchr(range, delim) } {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(&range[..i]);
                 self.off += i + 1;
@@ -180,7 +220,9 @@ impl<const N: usize> Reader<N> {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(range);
                 self.off = self.len;
                 total += len;
-                if self.try_refill(1) == 0 { break total; }
+                if self.try_refill(1) == 0 {
+                    break total;
+                }
             }
         }
     }
@@ -198,7 +240,9 @@ impl<const N: usize> Reader<N> {
             }
             len += self.len - self.off;
             self.off = self.len;
-            if self.try_refill(1) == 0 { break len; }
+            if self.try_refill(1) == 0 {
+                break len;
+            }
         }
     }
 
@@ -253,7 +297,11 @@ impl<const N: usize> Reader<N> {
             let rem = self.len - self.off;
             let data = &self.remain()[..rem];
             if let Some(pos) = unsafe { position::newline(data) } {
-                let pos_out = if pos > 0 && data[pos - 1] == b'\r' { pos - 1 } else { pos };
+                let pos_out = if pos > 0 && data[pos - 1] == b'\r' {
+                    pos - 1
+                } else {
+                    pos
+                };
                 unsafe { buf.as_mut_vec() }.extend_from_slice(&data[..pos_out]);
                 self.off += pos + 1;
                 break;
@@ -267,13 +315,25 @@ impl<const N: usize> Reader<N> {
 
     #[cfg(not(feature = "short"))]
     fn noskip_u64(&mut self) -> u64 {
-        const POW10: [u32; 9] = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000];
+        const POW10: [u32; 9] = [
+            1,
+            10,
+            100,
+            1_000,
+            10_000,
+            100_000,
+            1_000_000,
+            10_000_000,
+            100_000_000,
+        ];
         let mut out = 0;
         loop {
             let mut c = unsafe { self.buf[self.off..].as_ptr().cast::<u64>().read_unaligned() };
             let m = !c & 0x1010101010101010;
             let len = m.trailing_zeros() >> 3;
-            if len == 0 { break out; }
+            if len == 0 {
+                break out;
+            }
             self.off += len as usize;
             out *= POW10[len as usize] as u64;
             c <<= (8 - len) << 3;
@@ -296,7 +356,7 @@ impl<const N: usize> Reader<N> {
                 break n;
             }
         }
-    }    
+    }
     fn noskip_u128(&mut self) -> u128 {
         let mut n = 0;
         while self.off < self.len {
@@ -313,7 +373,9 @@ impl<const N: usize> Reader<N> {
     }
 
     pub fn is_eof(&mut self) -> bool {
-        if self.off == self.len { self.try_refill(1); }
+        if self.off == self.len {
+            self.try_refill(1);
+        }
         self.off == self.len
     }
     pub fn is_eof_skip_whitespace(&mut self) -> bool {
@@ -426,7 +488,9 @@ impl<const N: usize> ReaderTrait for Reader<N> {
         self.skip_whitespace();
         self.try_refill(64);
         let mut end = self.off;
-        while end < self.len && unsafe { self.buf[end].assume_init() } > b' ' { end += 1; }
+        while end < self.len && unsafe { self.buf[end].assume_init() } > b' ' {
+            end += 1;
+        }
         if end == self.off {
             f64::NAN
         } else {

@@ -19,16 +19,18 @@ fn main() {
             link_args_basm.push("/EMITPOGOPHASEINFO");
             link_args_basm_submit.push("/ALIGN:128");
             link_args_basm_submit.push("/OPT:REF,ICF");
-        },
+        }
         "x86_64-pc-windows-gnu" => {
             if env::consts::OS == "windows" {
-                panic!("Please use the x86_64-pc-windows-msvc target (not -gnu) on Windows.\n{0}",
-                    "(The x86_64-pc-windows-gnu target is for cross-compilation only.)");
+                panic!(
+                    "Please use the x86_64-pc-windows-msvc target (not -gnu) on Windows.\n{0}",
+                    "(The x86_64-pc-windows-gnu target is for cross-compilation only.)"
+                );
             }
             let output = Command::new("which")
-                     .arg("x86_64-w64-mingw32-gcc")
-                     .output()
-                     .expect("Failed to check whether MinGW64 is installed.");
+                .arg("x86_64-w64-mingw32-gcc")
+                .output()
+                .expect("Failed to check whether MinGW64 is installed.");
             let stdout = String::from_utf8_lossy(&output.stdout);
             let stdout = stdout.trim();
             if !stdout.contains("x86_64-w64-mingw32-gcc") {
@@ -46,8 +48,10 @@ fn main() {
             link_args_basm.push("-mconsole");
             link_args_basm.push("-nodefaultlibs");
             link_args_basm.push("-Wl,--entry=_basm_start,--dynamicbase,--high-entropy-va,--disable-nxcompat,--stack,268435456,--build-id=none,--gc-sections,--export-dynamic");
-        },
-        "x86_64-unknown-linux-gnu" | "x86_64-unknown-linux-gnu-short" | "i686-unknown-linux-gnu" => {
+        }
+        "x86_64-unknown-linux-gnu"
+        | "x86_64-unknown-linux-gnu-short"
+        | "i686-unknown-linux-gnu" => {
             link_args_basm.push("-nostartfiles");
             link_args_basm.push("-nostdlib");
             link_args_basm.push("-static-pie");
@@ -64,7 +68,7 @@ fn main() {
                 link_args_basm.push("-Wl,--entry=_basm_start,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro");
             }
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
-        },
+        }
         "aarch64-apple-darwin" => {
             link_args_basm.push("-nostartfiles");
             link_args_basm.push("-nostdlib");
@@ -74,9 +78,8 @@ fn main() {
             link_args_basm.push("-fno-stack-protector");
             link_args_basm.push("-fno-plt");
             link_args_basm.push("-e__basm_start");
-        },
-        "wasm32-unknown-unknown" => {
-        },
+        }
+        "wasm32-unknown-unknown" => {}
         _ => {
             panic!("Unsupported target {target}");
         }

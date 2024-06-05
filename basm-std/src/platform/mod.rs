@@ -1,16 +1,16 @@
+#[cfg(not(test))]
+pub mod allocator;
 #[cfg(all(not(test), feature = "codegen"))]
 pub mod codegen;
+pub mod io;
 #[cfg(not(test))]
 pub mod loader;
 #[cfg(not(test))]
 pub mod malloc;
 #[cfg(not(test))]
 pub mod os;
-#[cfg(not(test))]
-pub mod allocator;
 #[cfg_attr(test, path = "services_std.rs")]
 pub mod services;
-pub mod io;
 
 #[cfg(not(test))]
 pub fn init(platform_data_by_loader: usize) {
@@ -24,21 +24,21 @@ pub fn init(platform_data_by_loader: usize) {
             services::ENV_ID_WINDOWS => {
                 /* use OS APIs directly */
                 os::windows::init();
-            },
+            }
             #[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
             services::ENV_ID_LINUX => {
                 /* use syscalls directly */
                 os::linux::init();
-            },
+            }
             #[cfg(target_arch = "aarch64")]
             services::ENV_ID_MACOS => {
                 os::macos::init();
-            },
+            }
             #[cfg(target_arch = "wasm32")]
             services::ENV_ID_WASM => {
                 /* wasm32-specific */
                 os::wasm32::init();
-            },
+            }
             _ => {
                 /* use loader services for allocation */
                 #[cfg(not(feature = "short"))]
@@ -52,12 +52,17 @@ pub fn init(platform_data_by_loader: usize) {
 #[cfg(not(test))]
 pub fn try_exit() {
     let pd = services::platform_data();
-    if (pd.env_id == services::ENV_ID_LINUX || pd.env_id == services::ENV_ID_MACOS) &&
-       (pd.env_flags & services::ENV_FLAGS_NO_EXIT) == 0 {
+    if (pd.env_id == services::ENV_ID_LINUX || pd.env_id == services::ENV_ID_MACOS)
+        && (pd.env_flags & services::ENV_FLAGS_NO_EXIT) == 0
+    {
         #[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
-        unsafe { os::linux::syscall::exit_group(services::get_exit_status() as usize); }
+        unsafe {
+            os::linux::syscall::exit_group(services::get_exit_status() as usize);
+        }
         #[cfg(target_arch = "aarch64")]
-        unsafe { os::macos::syscall::exit_group(services::get_exit_status() as usize); }
+        unsafe {
+            os::macos::syscall::exit_group(services::get_exit_status() as usize);
+        }
     }
 }
 #[cfg(not(test))]
@@ -67,11 +72,9 @@ pub fn is_local_env() -> bool {
 }
 
 #[cfg(test)]
-pub fn init(_platform_data_by_loader: usize) {
-}
+pub fn init(_platform_data_by_loader: usize) {}
 #[cfg(test)]
-pub fn try_exit() {
-}
+pub fn try_exit() {}
 #[cfg(test)]
 pub fn is_local_env() -> bool {
     true

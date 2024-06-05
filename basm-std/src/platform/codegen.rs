@@ -41,7 +41,12 @@ use crate::platform::loader;
  *     have done a good job of marking sections needing relocations as writable.
  */
 
-#[cfg(not(any(target_arch = "x86_64", target_arch = "x86", target_arch = "aarch64", target_arch = "wasm32")))]
+#[cfg(not(any(
+    target_arch = "x86_64",
+    target_arch = "x86",
+    target_arch = "aarch64",
+    target_arch = "wasm32"
+)))]
 compile_error!("The target architecture is not supported.");
 
 #[cfg(all(target_arch = "aarch64", feature = "submit"))]
@@ -174,11 +179,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 #[naked]
 #[link_section = ".data"]
 unsafe extern "cdecl" fn _get_start_offset() -> ! {
-    asm!(
-        "lea    eax, [_basm_start]",
-        "ret",
-        options(noreturn)
-    );
+    asm!("lea    eax, [_basm_start]", "ret", options(noreturn));
 }
 
 #[cfg(target_arch = "x86")]
@@ -186,11 +187,7 @@ unsafe extern "cdecl" fn _get_start_offset() -> ! {
 #[naked]
 #[link_section = ".data"]
 unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
-    asm!(
-        "lea    eax, [_DYNAMIC]",
-        "ret",
-        options(noreturn)
-    );
+    asm!("lea    eax, [_DYNAMIC]", "ret", options(noreturn));
 }
 
 #[cfg(target_arch = "x86")]
@@ -247,7 +244,7 @@ pub unsafe extern "cdecl" fn _basm_start() -> ! {
 pub extern "C" fn _basm_start() {
     let mut pd = platform::services::PlatformData {
         env_id: platform::services::ENV_ID_WASM,
-        .. Default::default()
+        ..Default::default()
     };
     _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
@@ -317,8 +314,8 @@ pub unsafe extern "win64" fn __chkstk() -> ! {
 }
 
 pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
-    use alloc::string::ToString;
     use crate::platform::services::write_stdio;
+    use alloc::string::ToString;
     write_stdio(2, _pi.to_string().as_bytes());
     write_stdio(2, b"\n");
 
@@ -340,6 +337,10 @@ pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
     {
         crate::platform::os::macos::syscall::exit_group(101)
     }
-    #[cfg(not(any(all(windows, target_arch = "x86_64"), target_os = "linux", target_os = "macos")))]
+    #[cfg(not(any(
+        all(windows, target_arch = "x86_64"),
+        target_os = "linux",
+        target_os = "macos"
+    )))]
     core::hint::unreachable_unchecked()
 }

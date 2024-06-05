@@ -1,6 +1,5 @@
-use super::super::{allocator, services};
 use super::super::malloc::{dlmalloc, dlmalloc_macos};
-
+use super::super::{allocator, services};
 
 pub mod syscall {
     pub const PROT_READ: i32 = 0x01;
@@ -28,36 +27,18 @@ pub mod syscall {
             fd: i32,
             offset: isize,
         ) -> *mut u8;
-        pub fn munmap(
-            addr: *const u8,
-            len: usize,
-        ) -> *mut u8;
-        pub fn read(
-            fd: usize,
-            buf: *mut u8,
-            count: usize
-        ) -> usize;
-        pub fn write(
-            fd: usize,
-            buf: *const u8,
-            count: usize
-        ) -> usize;
+        pub fn munmap(addr: *const u8, len: usize) -> *mut u8;
+        pub fn read(fd: usize, buf: *mut u8, count: usize) -> usize;
+        pub fn write(fd: usize, buf: *const u8, count: usize) -> usize;
         #[link_name = "exit"]
-        pub fn exit_group(
-            status: usize
-        ) -> !;
-        pub fn getrlimit(
-            resource: usize,
-            rlim: *mut RLimit
-        ) -> usize;
-        pub fn setrlimit(
-            resource: usize,
-            rlim: *const RLimit
-        ) -> usize;
+        pub fn exit_group(status: usize) -> !;
+        pub fn getrlimit(resource: usize, rlim: *mut RLimit) -> usize;
+        pub fn setrlimit(resource: usize, rlim: *const RLimit) -> usize;
     }
 }
 
-static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_macos::System> = dlmalloc::Dlmalloc::new(dlmalloc_macos::System::new());
+static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_macos::System> =
+    dlmalloc::Dlmalloc::new(dlmalloc_macos::System::new());
 unsafe fn dlmalloc_alloc(size: usize, align: usize) -> *mut u8 {
     DLMALLOC.memalign(align, size)
 }
@@ -71,7 +52,12 @@ unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
 unsafe fn dlmalloc_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
     DLMALLOC.free(ptr);
 }
-unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
+unsafe fn dlmalloc_realloc(
+    ptr: *mut u8,
+    old_size: usize,
+    old_align: usize,
+    new_size: usize,
+) -> *mut u8 {
     if old_align <= DLMALLOC.malloc_alignment() {
         DLMALLOC.realloc(ptr, new_size)
     } else {

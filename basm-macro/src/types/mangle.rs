@@ -13,24 +13,28 @@ impl Mangle for TInteger {
             Self::U32 => "u32",
             Self::U64 => "u64",
             Self::Usize => "usize",
-            Self::Bool => "bool"
-        }.into()
+            Self::Bool => "bool",
+        }
+        .into()
     }
 }
 
 impl Mangle for TPrimitive {
     fn mangle(&self) -> String {
-        "prim_".to_owned() + &match self {
-            Self::Integer(sp, ty) => {
-                match sp {
-                    PtrSpecifier::None => "",
-                    PtrSpecifier::PtrConst => "ptr_",
-                    PtrSpecifier::PtrMut => "ptrmut_"
-                }.to_owned() + &ty.mangle()
-            },
-            Self::String => "string".into(),
-            Self::Unit => "unit".into()
-        }
+        "prim_".to_owned()
+            + &match self {
+                Self::Integer(sp, ty) => {
+                    match sp {
+                        PtrSpecifier::None => "",
+                        PtrSpecifier::PtrConst => "ptr_",
+                        PtrSpecifier::PtrMut => "ptrmut_",
+                    }
+                    .to_owned()
+                        + &ty.mangle()
+                }
+                Self::String => "string".into(),
+                Self::Unit => "unit".into(),
+            }
     }
 }
 
@@ -51,7 +55,7 @@ impl Mangle for TBase {
         match self {
             Self::Prim(x) => x.mangle(),
             Self::Pair(x) => x.mangle(),
-            Self::Vec(x) => x.mangle()
+            Self::Vec(x) => x.mangle(),
         }
     }
 }
@@ -61,8 +65,10 @@ impl Mangle for TInput {
         match self.borrow {
             BorrowSpecifier::None => "",
             BorrowSpecifier::BorrowConst => "bor_",
-            BorrowSpecifier::BorrowMut => "bormut_"
-        }.to_owned() + &self.ty.mangle()        
+            BorrowSpecifier::BorrowMut => "bormut_",
+        }
+        .to_owned()
+            + &self.ty.mangle()
     }
 }
 
@@ -93,6 +99,12 @@ impl Mangle for TFunction {
             args_mangled.push(x.mangle());
         }
         let args_mangled_all = args_mangled.join("");
-        format!("{0}_{1}{2}_{3}", self.ident.mangle(), self.args.len(), args_mangled_all, self.output.mangle())
+        format!(
+            "{0}_{1}{2}_{3}",
+            self.ident.mangle(),
+            self.args.len(),
+            args_mangled_all,
+            self.output.mangle()
+        )
     }
 }

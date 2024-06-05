@@ -1,8 +1,7 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use super::dlmalloc_interface::DlmallocAllocator;
 use super::super::os::linux::syscall;
-
+use super::dlmalloc_interface::DlmallocAllocator;
 
 pub struct System {
     _priv: (),

@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 /// and by using a linear sieve algorithm.
 /// The growth strategy is to increase the upper bound by 50% each time.
 pub struct LinearSieve {
-    upto: usize,  // == smallest_prime_factor.len() - 1
+    upto: usize, // == smallest_prime_factor.len() - 1
     smallest_prime_factor: Vec<usize>,
     primes: Vec<usize>,
     mu: Vec<i8>,

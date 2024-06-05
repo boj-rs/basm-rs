@@ -1,8 +1,7 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use core::ptr;
 use super::dlmalloc_interface::DlmallocAllocator;
-
+use core::ptr;
 
 pub struct System {
     _priv: (),
@@ -27,7 +26,7 @@ unsafe impl DlmallocAllocator for System {
                 ptr::null_mut(),
                 size,
                 0x00003000, /* MEM_COMMIT | MEM_RESERVE */
-                0x04 /* PAGE_READWRITE */
+                0x04,       /* PAGE_READWRITE */
             )
         };
         if addr.is_null() {
@@ -50,11 +49,7 @@ unsafe impl DlmallocAllocator for System {
     #[allow(unused)]
     fn free(&self, ptr: *mut u8, size: usize) -> bool {
         unsafe {
-            super::super::os::windows::WINAPI.VirtualFree(
-                ptr,
-                0,
-                0x00008000 /* MEM_RELEASE */
-            ) != 0
+            super::super::os::windows::WINAPI.VirtualFree(ptr, 0, 0x00008000 /* MEM_RELEASE */) != 0
         }
     }
 

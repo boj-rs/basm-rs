@@ -1,6 +1,6 @@
+use super::Pair;
 use alloc::string::String;
 use alloc::vec::Vec;
-use super::Pair;
 
 pub trait De {
     fn de(buf: &mut &[u8]) -> Self;
@@ -104,7 +104,7 @@ mod test {
         *buf_vec.last_mut().unwrap() = 3;
         buf_vec.extend_from_slice(&[0, 0, 1, 0, 0, 0, 0, 1, 255, 255, 255, 253]);
         let mut buf = &buf_vec[..];
-        let x = <Vec::<i32>>::de(&mut buf);
+        let x = <Vec<i32>>::de(&mut buf);
         assert!(buf.is_empty());
         assert_eq!(vec![256, 1, -3], x);
 
