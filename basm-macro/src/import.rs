@@ -96,7 +96,7 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
 
 pub fn import_impl(input: TokenStream) -> TokenStream {
     let vecsig: VecSignature = syn::parse2(input).unwrap();
-    let out = vecsig.sigs.iter().map(|sig| import_impl_single(sig));
+    let out = vecsig.sigs.iter().map(import_impl_single);
     quote! {
         #(#out)*
     }
