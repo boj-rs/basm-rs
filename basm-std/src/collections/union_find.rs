@@ -6,6 +6,9 @@ pub struct RemUnionFind {
 }
 
 impl RemUnionFind {
+    /// Creates a new instance of `RemUnionFind` with length `n`.
+    /// 
+    /// Pass `n = 0` if an empty instance is desired.
     pub fn new(n: usize) -> Self {
         Self {
             up: (0..n as u32).collect(),
@@ -20,7 +23,11 @@ impl RemUnionFind {
         self.up.is_empty()
     }
 
+    /// Resizes to increase (or keep) the number of elements.
+    /// 
+    /// A runtime error will occur if `n` is smaller than `self.len()`.
     pub fn resize(&mut self, n: usize) {
+        assert!(n >= self.len());
         let mut i = self.up.len();
         self.up.resize_with(n, || {
             let v = i;
@@ -59,10 +66,14 @@ pub struct UnionFind {
 }
 
 impl UnionFind {
+    /// Creates a new instance of `UnionFind` with length `n`.
+    /// 
+    /// Pass `n = 0` if an empty instance is desired.
     pub fn new(n: usize) -> Self {
         Self {
             up: (0..n as u32).collect(),
             rank: vec![1; n],
+            connected_component_count: n
         }
     }
 
@@ -74,7 +85,12 @@ impl UnionFind {
         self.up.is_empty()
     }
 
+    /// Resizes to increase (or keep) the number of elements.
+    /// 
+    /// A runtime error will occur if `n` is smaller than `self.len()`.
     pub fn resize(&mut self, n: usize) {
+        assert!(n >= self.len());
+        self.connected_component_count += n - self.len();
         let mut i = self.up.len();
         self.up.resize_with(n, || {
             let v = i;
@@ -98,6 +114,7 @@ impl UnionFind {
     }
 
     pub fn union(&mut self, mut pu: usize, mut pv: usize) -> usize {
+        assert!(self.up[pu] as usize == pu && self.up[pv] as usize == pv);
         if self.rank[pu] < self.rank[pv] {
             core::mem::swap(&mut pu, &mut pv);
         }
