@@ -6,11 +6,7 @@ pub struct RemUnionFind {
 }
 
 impl RemUnionFind {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_len(n: usize) -> Self {
+    pub fn new(n: usize) -> Self {
         Self {
             up: (0..n as u32).collect(),
         }
@@ -63,11 +59,7 @@ pub struct UnionFind {
 }
 
 impl UnionFind {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_len(n: usize) -> Self {
+    pub fn new(n: usize) -> Self {
         Self {
             up: (0..n as u32).collect(),
             rank: vec![1; n],
