@@ -8,7 +8,7 @@ pub struct RemUnionFind {
 
 impl RemUnionFind {
     /// Creates a new instance of `RemUnionFind` with length `n`.
-    /// 
+    ///
     /// Pass `n = 0` if an empty instance is desired.
     pub fn new(n: usize) -> Self {
         Self {
@@ -38,7 +38,7 @@ impl RemUnionFind {
     }
 
     /// Resizes to increase (or keep) the number of elements.
-    /// 
+    ///
     /// A runtime error will occur if `n` is smaller than `self.len()`.
     pub fn resize(&mut self, n: usize) {
         assert!(n >= self.len());
@@ -57,9 +57,9 @@ impl RemUnionFind {
     }
 
     /// Tries to unite `u` and `v`.
-    /// 
+    ///
     /// Returns `true` if a new union is created, `false` otherwise.
-    /// 
+    ///
     /// Both `u` and `v` should be strictly less than `self.len()`.
     /// A runtime error will occur otherwise.
     pub fn try_union(&mut self, u: usize, v: usize) -> bool {
@@ -91,13 +91,13 @@ pub struct UnionFind {
 
 impl UnionFind {
     /// Creates a new instance of `UnionFind` with length `n`.
-    /// 
+    ///
     /// Pass `n = 0` if an empty instance is desired.
     pub fn new(n: usize) -> Self {
         Self {
             up: (0..n as u32).collect(),
             rank: vec![1; n],
-            connected_component_count: n
+            connected_component_count: n,
         }
     }
 
@@ -122,7 +122,7 @@ impl UnionFind {
     }
 
     /// Resizes to increase (or keep) the number of elements.
-    /// 
+    ///
     /// A runtime error will occur if `n` is smaller than `self.len()`.
     pub fn resize(&mut self, n: usize) {
         assert!(n >= self.len());
@@ -153,9 +153,9 @@ impl UnionFind {
     }
 
     /// Unites `pu` and `pv`.
-    /// 
+    ///
     /// Returns the new parent of the united tree.
-    /// 
+    ///
     /// Both `pu` and `pv` should be strictly less than `self.len()` and be roots.
     /// A runtime error will occur otherwise.
     pub fn union(&mut self, mut pu: usize, mut pv: usize) -> usize {
@@ -175,9 +175,9 @@ impl UnionFind {
     }
 
     /// Tries to unite `u` and `v`.
-    /// 
+    ///
     /// Returns `true` if a new union is created, `false` otherwise.
-    /// 
+    ///
     /// Both `u` and `v` should be strictly less than `self.len()`.
     /// A runtime error will occur otherwise.
     pub fn try_union(&mut self, u: usize, v: usize) -> bool {
