@@ -54,6 +54,7 @@ impl RemUnionFind {
     /// Increases the number of elements by exactly one.
     pub fn push(&mut self) {
         self.up.push(self.up.len() as u32);
+        self.connected_component_count += 1;
     }
 
     /// Tries to unite `u` and `v`.
