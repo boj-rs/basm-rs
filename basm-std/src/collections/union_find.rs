@@ -168,4 +168,16 @@ impl UnionFind {
         }
         pu
     }
+
+    /// Tries to unite `u` and `v`.
+    /// 
+    /// Returns `true` if a new union is created, `false` otherwise.
+    /// 
+    /// Both `u` and `v` should be strictly less than `self.len()`.
+    /// A runtime error will occur otherwise.
+    pub fn try_union(&mut self, u: usize, v: usize) -> bool {
+        let (pu, pv) = (self.find(u), self.find(v));
+        self.union(pu, pv);
+        pu != pv
+    }
 }
