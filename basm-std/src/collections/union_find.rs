@@ -29,7 +29,7 @@ impl RemUnionFind {
 
     /// Alias for `connected_component_count`.
     pub fn cc_count(&self) -> usize {
-        Self::connected_component_count(&self)
+        self.connected_component_count()
     }
 
     /// Returns the number of connected components.
@@ -113,7 +113,7 @@ impl UnionFind {
 
     /// Alias for `connected_component_count`.
     pub fn cc_count(&self) -> usize {
-        Self::connected_component_count(&self)
+        self.connected_component_count()
     }
 
     /// Returns the number of connected components.
