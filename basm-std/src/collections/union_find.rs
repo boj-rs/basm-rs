@@ -37,7 +37,7 @@ impl RemUnionFind {
         self.up.push(self.up.len() as u32);
     }
 
-    pub fn try_join(&mut self, u: usize, v: usize) -> bool {
+    pub fn try_union(&mut self, u: usize, v: usize) -> bool {
         let mut u = u;
         let mut v = v;
         while self.up[u] != self.up[v] {
@@ -97,7 +97,7 @@ impl UnionFind {
         self.rank.push(1);
     }
 
-    pub fn root(&mut self, mut u: usize) -> usize {
+    pub fn find(&mut self, mut u: usize) -> usize {
         while u != self.up[u] as usize {
             self.up[u] = self.up[self.up[u] as usize];
             u = self.up[u] as usize;
@@ -105,7 +105,7 @@ impl UnionFind {
         u
     }
 
-    pub fn join(&mut self, mut pu: usize, mut pv: usize) -> usize {
+    pub fn union(&mut self, mut pu: usize, mut pv: usize) -> usize {
         if self.rank[pu] < self.rank[pv] {
             core::mem::swap(&mut pu, &mut pv);
         }
