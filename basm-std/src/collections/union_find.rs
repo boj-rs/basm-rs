@@ -17,10 +17,12 @@ impl RemUnionFind {
         }
     }
 
+    /// Returns the number of elements in the current instance.
     pub fn len(&self) -> usize {
         self.up.len()
     }
 
+    /// Returns `true` if the current instance contains no elements.
     pub fn is_empty(&self) -> bool {
         self.up.is_empty()
     }
@@ -99,10 +101,12 @@ impl UnionFind {
         }
     }
 
+    /// Returns the number of elements in the current instance.
     pub fn len(&self) -> usize {
         self.up.len()
     }
 
+    /// Returns `true` if the current instance contains no elements.
     pub fn is_empty(&self) -> bool {
         self.up.is_empty()
     }
@@ -139,6 +143,7 @@ impl UnionFind {
         self.connected_component_count += 1;
     }
 
+    /// Finds the representative of `u`.
     pub fn find(&mut self, mut u: usize) -> usize {
         while u != self.up[u] as usize {
             self.up[u] = self.up[self.up[u] as usize];
