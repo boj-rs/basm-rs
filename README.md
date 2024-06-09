@@ -1,4 +1,10 @@
+<div align="center" style="margin-bottom: 1em;">
+
 # basm.rs
+
+<img src="./docs/assets/logo.png" alt="basm.rs Logo" width=300></img>
+
+</div>
 
 basm.rs는 Rust 코드를 [백준 온라인 저지](https://www.acmicpc.net/)를 비롯한 온라인 저지에 제출 가능한 프로그램으로 성능 저하 없이 변환해 주는 프로젝트입니다.
 
