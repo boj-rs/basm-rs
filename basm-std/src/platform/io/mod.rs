@@ -1,7 +1,7 @@
 mod reader;
-pub use reader::{Reader, ReaderTrait, Readable};
+pub use reader::{Readable, Reader, ReaderTrait};
 mod writer;
-pub use writer::{Writer, Print};
+pub use writer::{Print, Writer};
 mod reader_traits;
 pub use reader_traits::*;
 const DEFAULT_BUF_SIZE: usize = 1 << 16;

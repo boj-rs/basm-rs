@@ -1,7 +1,6 @@
 use super::super::allocator;
 use super::super::malloc::{dlmalloc, dlmalloc_linux};
 
-
 pub mod syscall {
     use core::arch::asm;
     pub const PROT_READ: i32 = 0x01;
@@ -55,10 +54,7 @@ pub mod syscall {
 
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
-    pub unsafe fn syscall1(
-        call_id: usize,
-        arg0: usize,
-    ) -> usize {
+    pub unsafe fn syscall1(call_id: usize, arg0: usize) -> usize {
         let out;
         asm!(
             "syscall",
@@ -71,20 +67,12 @@ pub mod syscall {
         out
     }
     #[cfg(not(target_arch = "x86_64"))]
-    pub unsafe fn syscall1(
-        call_id: usize,
-        arg0: usize,
-    ) -> usize {
+    pub unsafe fn syscall1(call_id: usize, arg0: usize) -> usize {
         syscall(call_id, arg0, 0, 0, 0, 0, 0)
     }
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
-    pub unsafe fn syscall3(
-        call_id: usize,
-        arg0: usize,
-        arg1: usize,
-        arg2: usize,
-    ) -> usize {
+    pub unsafe fn syscall3(call_id: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
         let out;
         asm!(
             "syscall",
@@ -116,7 +104,7 @@ pub mod syscall {
         arg2: usize,
         arg3: usize,
         arg4: usize,
-        arg5: usize
+        arg5: usize,
     ) -> usize {
         let out;
         asm!(
@@ -143,7 +131,7 @@ pub mod syscall {
         arg2: usize,
         arg3: usize,
         arg4: usize,
-        arg5: usize
+        arg5: usize,
     ) -> usize {
         asm!(
             "push ebp",
@@ -174,7 +162,7 @@ pub mod syscall {
         arg2: usize,
         arg3: usize,
         arg4: usize,
-        arg5: usize
+        arg5: usize,
     ) -> usize {
         let out;
         asm!(
@@ -201,7 +189,15 @@ pub mod syscall {
         fd: i32,
         offset: isize,
     ) -> *mut u8 {
-        syscall(id_list::MMAP, addr as usize, len, protect as usize, flags as usize, fd as usize, offset as usize) as *mut u8
+        syscall(
+            id_list::MMAP,
+            addr as usize,
+            len,
+            protect as usize,
+            flags as usize,
+            fd as usize,
+            offset as usize,
+        ) as *mut u8
     }
     #[cfg(target_arch = "x86")]
     #[inline(always)]
@@ -213,8 +209,23 @@ pub mod syscall {
         fd: i32,
         offset: isize,
     ) -> *mut u8 {
-        let mmap_arg_struct = [addr as usize, len, protect as usize, flags as usize, fd as usize, offset as usize];
-        syscall(id_list::MMAP, mmap_arg_struct.as_ptr() as usize, 0, 0, 0, 0, 0) as *mut u8
+        let mmap_arg_struct = [
+            addr as usize,
+            len,
+            protect as usize,
+            flags as usize,
+            fd as usize,
+            offset as usize,
+        ];
+        syscall(
+            id_list::MMAP,
+            mmap_arg_struct.as_ptr() as usize,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ) as *mut u8
     }
     #[cfg(target_arch = "aarch64")]
     #[inline(always)]
@@ -226,7 +237,15 @@ pub mod syscall {
         fd: i32,
         offset: isize,
     ) -> *mut u8 {
-        syscall(id_list::MMAP, addr as usize, len, protect as usize, flags as usize, fd as usize, offset as usize) as *mut u8
+        syscall(
+            id_list::MMAP,
+            addr as usize,
+            len,
+            protect as usize,
+            flags as usize,
+            fd as usize,
+            offset as usize,
+        ) as *mut u8
     }
     #[inline(always)]
     pub unsafe fn mremap(
@@ -235,55 +254,61 @@ pub mod syscall {
         new_size: usize,
         flags: i32,
     ) -> *mut u8 {
-        syscall(id_list::MREMAP, old_address as usize, old_size, new_size, flags as usize, 0, 0) as *mut u8
+        syscall(
+            id_list::MREMAP,
+            old_address as usize,
+            old_size,
+            new_size,
+            flags as usize,
+            0,
+            0,
+        ) as *mut u8
     }
     #[inline(always)]
-    pub unsafe fn munmap(
-        addr: *const u8,
-        len: usize,
-    ) -> *mut u8 {
+    pub unsafe fn munmap(addr: *const u8, len: usize) -> *mut u8 {
         syscall(id_list::MUNMAP, addr as usize, len, 0, 0, 0, 0) as *mut u8
     }
     #[inline(always)]
-    pub unsafe fn read(
-        fd: usize,
-        buf: *mut u8,
-        count: usize
-    ) -> usize {
+    pub unsafe fn read(fd: usize, buf: *mut u8, count: usize) -> usize {
         syscall3(id_list::READ, fd, buf as usize, count)
     }
     #[inline(always)]
-    pub unsafe fn write(
-        fd: usize,
-        buf: *const u8,
-        count: usize
-    ) -> usize {
+    pub unsafe fn write(fd: usize, buf: *const u8, count: usize) -> usize {
         syscall3(id_list::WRITE, fd, buf as usize, count)
     }
     #[inline(always)]
-    pub unsafe fn exit_group(
-        status: usize
-    ) -> ! {
+    pub unsafe fn exit_group(status: usize) -> ! {
         syscall1(id_list::EXIT_GROUP, status);
         unreachable!()
     }
     #[inline(always)]
-    pub unsafe fn getrlimit(
-        resource: usize,
-        rlim: &mut RLimit
-    ) -> usize {
-        syscall(id_list::GETRLIMIT, resource, rlim as *mut RLimit as usize, 0, 0, 0, 0)
+    pub unsafe fn getrlimit(resource: usize, rlim: &mut RLimit) -> usize {
+        syscall(
+            id_list::GETRLIMIT,
+            resource,
+            rlim as *mut RLimit as usize,
+            0,
+            0,
+            0,
+            0,
+        )
     }
     #[inline(always)]
-    pub unsafe fn setrlimit(
-        resource: usize,
-        rlim: &RLimit
-    ) -> usize {
-        syscall(id_list::SETRLIMIT, resource, rlim as *const RLimit as usize, 0, 0, 0, 0)
+    pub unsafe fn setrlimit(resource: usize, rlim: &RLimit) -> usize {
+        syscall(
+            id_list::SETRLIMIT,
+            resource,
+            rlim as *const RLimit as usize,
+            0,
+            0,
+            0,
+            0,
+        )
     }
 }
 
-static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_linux::System> = dlmalloc::Dlmalloc::new(dlmalloc_linux::System::new());
+static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_linux::System> =
+    dlmalloc::Dlmalloc::new(dlmalloc_linux::System::new());
 unsafe fn dlmalloc_alloc(size: usize, align: usize) -> *mut u8 {
     DLMALLOC.memalign(align, size)
 }
@@ -297,7 +322,12 @@ unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
 unsafe fn dlmalloc_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
     DLMALLOC.free(ptr);
 }
-unsafe fn dlmalloc_realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
+unsafe fn dlmalloc_realloc(
+    ptr: *mut u8,
+    old_size: usize,
+    old_align: usize,
+    new_size: usize,
+) -> *mut u8 {
     if old_align <= DLMALLOC.malloc_alignment() {
         DLMALLOC.realloc(ptr, new_size)
     } else {
@@ -344,7 +374,8 @@ pub unsafe fn init() {
      * by the runtime startup code (e.g., glibc).
      * Thus, instead of parsing the ELF section, we just invoke
      * the kernel APIs directly. */
-    #[cfg(not(feature = "short"))] {
+    #[cfg(not(feature = "short"))]
+    {
         use super::super::services;
         let pd = services::platform_data();
         if pd.env_flags & services::ENV_FLAGS_NATIVE != 0 {
@@ -365,7 +396,8 @@ pub unsafe fn init() {
     );
 
     /* "short" on "Linux" will use syscalls directly to reduce code size */
-    #[cfg(not(all(feature = "short", target_os = "linux")))] {
+    #[cfg(not(all(feature = "short", target_os = "linux")))]
+    {
         use super::super::services;
         services::install_single_service(5, services_override::svc_read_stdio as usize);
         services::install_single_service(6, services_override::svc_write_stdio as usize);

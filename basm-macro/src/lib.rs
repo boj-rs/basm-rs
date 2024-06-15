@@ -3,10 +3,10 @@ extern crate proc_macro2;
 extern crate quote;
 extern crate syn;
 
-mod utils;
-mod types;
 mod export;
 mod import;
+mod types;
+mod utils;
 
 use proc_macro::TokenStream;
 use syn::parse_macro_input;

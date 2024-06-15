@@ -1,5 +1,6 @@
 use crate::platform::services;
-use alloc::string::String;
+use alloc::string::{String, ToString};
+use core::fmt::Arguments;
 use core::mem::MaybeUninit;
 
 pub struct Writer<const N: usize = { super::DEFAULT_BUF_SIZE }> {
@@ -507,6 +508,40 @@ macro_rules! impl_print{
 }
 
 impl_print!(i8 u8 i16 u16 i32 u32 i64 u64 f64 i128 u128 isize usize char);
+
+impl<'a, const N: usize> Print<Arguments<'a>> for Writer<N> {
+    fn print(&mut self, x: Arguments<'a>) {
+        if let Some(s) = x.as_str() {
+            self.print(s);
+        } else {
+            self.print(x.to_string());
+        }
+    }
+
+    fn println(&mut self, x: Arguments<'a>) {
+        if let Some(s) = x.as_str() {
+            self.println(s);
+        } else {
+            self.println(x.to_string());
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! bprint {
+    ($writer:tt, $($arg:tt)*) => {{
+        use $crate::platform::io::Print;
+        $writer.print(core::format_args!($($arg)*));
+    }};
+}
+
+#[macro_export]
+macro_rules! bprintln {
+    ($writer:tt, $($arg:tt)*) => {{
+        use $crate::platform::io::Print;
+        $writer.println(core::format_args!($($arg)*));
+    }};
+}
 
 /*
 #[cfg(test)]

@@ -1,7 +1,15 @@
 use super::nttcore::*;
 use alloc::{vec, vec::Vec};
 
-fn mul_two_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: usize, r: usize, modulo: u64) {
+fn mul_two_primes(
+    out: &mut [u64],
+    b: &[u64],
+    c: &[u64],
+    min_len: usize,
+    l: usize,
+    r: usize,
+    modulo: u64,
+) {
     let plan_x = NttPlan::build::<P2>(min_len);
     let plan_y = NttPlan::build::<P3>(min_len);
     let mut x = vec![0u64; plan_x.g + plan_x.n];
@@ -9,36 +17,70 @@ fn mul_two_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: usiz
     let mut s = vec![0u64; max(x.len(), y.len())];
 
     /* convolution with modulo P2 */
-    for i in 0..b.len() { x[plan_x.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] }; }
-    for i in 0..c.len() { s[plan_x.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] }; }
-    conv::<P2>(&plan_x, &mut x, b.len(), &mut s[..plan_x.g+plan_x.n], c.len(), arith::invmod(P3, P2));
+    for i in 0..b.len() {
+        x[plan_x.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        s[plan_x.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] };
+    }
+    conv::<P2>(
+        &plan_x,
+        &mut x,
+        b.len(),
+        &mut s[..plan_x.g + plan_x.n],
+        c.len(),
+        arith::invmod(P3, P2),
+    );
 
     /* convolution with modulo P3 */
-    for i in 0..b.len() { y[plan_y.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] }; }
-    for i in 0..c.len() { s[plan_y.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] }; }
+    for i in 0..b.len() {
+        y[plan_y.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        s[plan_y.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] };
+    }
     (&mut s[plan_y.g..])[c.len()..plan_y.n].fill(0u64);
-    conv::<P3>(&plan_y, &mut y, b.len(), &mut s[..plan_y.g+plan_y.n], c.len(), Arith::<P3>::submod(0, arith::invmod(P2, P3)));
+    conv::<P3>(
+        &plan_y,
+        &mut y,
+        b.len(),
+        &mut s[..plan_y.g + plan_y.n],
+        c.len(),
+        Arith::<P3>::submod(0, arith::invmod(P2, P3)),
+    );
 
     /* merge the results in {x, y} into acc */
     if modulo == 0 {
         let p2p3 = (P2 as u128 * P3 as u128) as u64;
         for i in l..r {
             /* extract the convolution result */
-            let (v, overflow) = (x[i] as u128 * P3 as u128).overflowing_sub(y[i] as u128 * P2 as u128);
+            let (v, overflow) =
+                (x[i] as u128 * P3 as u128).overflowing_sub(y[i] as u128 * P2 as u128);
             let v = v as u64;
             out[i - l] = if overflow { v.wrapping_add(p2p3) } else { v };
         }
     } else {
         for i in l..r {
             /* extract the convolution result */
-            let (mut v, overflow) = (x[i] as u128 * P3 as u128).overflowing_sub(y[i] as u128 * P2 as u128);
-            if overflow { v = v.wrapping_add(P2 as u128 * P3 as u128); }
+            let (mut v, overflow) =
+                (x[i] as u128 * P3 as u128).overflowing_sub(y[i] as u128 * P2 as u128);
+            if overflow {
+                v = v.wrapping_add(P2 as u128 * P3 as u128);
+            }
             out[i - l] = (v % modulo as u128) as u64;
         }
     }
 }
 
-fn mul_three_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: usize, r: usize, modulo: u64) {
+fn mul_three_primes(
+    out: &mut [u64],
+    b: &[u64],
+    c: &[u64],
+    min_len: usize,
+    l: usize,
+    r: usize,
+    modulo: u64,
+) {
     let plan_x = NttPlan::build::<P1>(min_len);
     let plan_y = NttPlan::build::<P2>(min_len);
     let plan_z = NttPlan::build::<P3>(min_len);
@@ -48,25 +90,66 @@ fn mul_three_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: us
     let mut s = vec![0u64; max(x.len(), max(y.len(), z.len()))];
 
     /* convolution with modulo P1 */
-    for i in 0..b.len() { x[plan_x.g + i] = if b[i] >= P1 { b[i] - P1 } else { b[i] }; }
-    for i in 0..c.len() { s[plan_x.g + i] = if c[i] >= P1 { c[i] - P1 } else { c[i] }; }
-    conv::<P1>(&plan_x, &mut x, b.len(), &mut s[..plan_x.g+plan_x.n], c.len(), 1);
+    for i in 0..b.len() {
+        x[plan_x.g + i] = if b[i] >= P1 { b[i] - P1 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        s[plan_x.g + i] = if c[i] >= P1 { c[i] - P1 } else { c[i] };
+    }
+    conv::<P1>(
+        &plan_x,
+        &mut x,
+        b.len(),
+        &mut s[..plan_x.g + plan_x.n],
+        c.len(),
+        1,
+    );
 
     /* convolution with modulo P2 */
-    for i in 0..b.len() { y[plan_y.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] }; }
-    for i in 0..c.len() { s[plan_y.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] }; }
+    for i in 0..b.len() {
+        y[plan_y.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        s[plan_y.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] };
+    }
     (&mut s[plan_y.g..])[c.len()..plan_y.n].fill(0u64);
-    conv::<P2>(&plan_y, &mut y, b.len(), &mut s[..plan_y.g+plan_y.n], c.len(), 1);
+    conv::<P2>(
+        &plan_y,
+        &mut y,
+        b.len(),
+        &mut s[..plan_y.g + plan_y.n],
+        c.len(),
+        1,
+    );
 
     /* convolution with modulo P3 */
-    for i in 0..b.len() { z[plan_z.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] }; }
-    for i in 0..c.len() { s[plan_z.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] }; }
+    for i in 0..b.len() {
+        z[plan_z.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        s[plan_z.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] };
+    }
     (&mut s[plan_z.g..])[c.len()..plan_z.n].fill(0u64);
-    conv::<P3>(&plan_z, &mut z, b.len(), &mut s[..plan_z.g+plan_z.n], c.len(), 1);
+    conv::<P3>(
+        &plan_z,
+        &mut z,
+        b.len(),
+        &mut s[..plan_z.g + plan_z.n],
+        c.len(),
+        1,
+    );
 
     /* merge the results in {x, y, z} into acc */
-    let modulo_p64 = if modulo == 0 { 0 } else { (1u128 << 64) % modulo as u128 };
-    let modulo_p128 = if modulo == 0 { 0 } else { (modulo_p64 * modulo_p64) % modulo as u128 };
+    let modulo_p64 = if modulo == 0 {
+        0
+    } else {
+        (1u128 << 64) % modulo as u128
+    };
+    let modulo_p128 = if modulo == 0 {
+        0
+    } else {
+        (modulo_p64 * modulo_p64) % modulo as u128
+    };
     for i in l..r {
         let (a, b, c) = (x[i], y[i], z[i]);
         // We need to solve the following system of linear congruences:
@@ -93,9 +176,11 @@ fn mul_three_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: us
         let ans_01 = v + P1P2_LO as u128 * vcmv as u128;
         let ans_0 = ans_01 as u64;
 
-        if modulo == 0 { /* modulo == 2^64 */
+        if modulo == 0 {
+            /* modulo == 2^64 */
             out[i - l] = ans_0;
-        } else { /* nonzero modulo */
+        } else {
+            /* nonzero modulo */
             let ans_12 = P1P2_HI as u128 * vcmv as u128 + (ans_01 >> 64);
             let ans_1 = ans_12 as u64;
             let ans_2 = (ans_12 >> 64) as u64;
@@ -110,19 +195,21 @@ fn mul_three_primes(out: &mut [u64], b: &[u64], c: &[u64], min_len: usize, l: us
 /// Multiplies two polynomials given by coefficients `x` and `y`, modulo `modulo`.
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// Note that `modulo` does not need to be a prime.
-/// 
+///
 /// This function accepts a range `[l, r)` for which the product is computed and
 /// written in `out[..r - l]`. This way we reduce dynamic allocations.
-/// 
+///
 /// Optimizations are applied if the range `[l, r)` is narrow enough,
 /// so it can be faster than `polymul_u64` in some cases.
-/// 
+///
 /// Inputs are assumed to satisfy the following conditions. Input validation is performed in dev builds only using `debug_assert!`.
 ///   - `0 <= l <= r <= x.len() + y.len() - 1`.
 ///   - `x.len() > 0` and `y.len() > 0`.
 pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize, modulo: u64) {
     debug_assert!(l <= r);
-    if x.is_empty() || y.is_empty() { return; }
+    if x.is_empty() || y.is_empty() {
+        return;
+    }
 
     // Output range is "l..r".
     let all_len = x.len() + y.len() - 1; // Output length without truncation
@@ -186,7 +273,10 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
     // savings in running time.
     let strategy = {
         let minlen = min(x.len(), y.len()) as u128;
-        if modulo > 0 && modulo < 1u64 << 32 && (minlen * (modulo.wrapping_mul(modulo)) as u128) < P3 as u128 {
+        if modulo > 0
+            && modulo < 1u64 << 32
+            && (minlen * (modulo.wrapping_mul(modulo)) as u128) < P3 as u128
+        {
             1
         } else {
             let maxx = *x.iter().max().unwrap();
@@ -206,7 +296,8 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
         mul_three_primes(out, x, y, min_len, l, r, modulo);
     } else if strategy == 2 {
         mul_two_primes(out, x, y, min_len, l, r, modulo);
-    } else { /* strategy == 1 */
+    } else {
+        /* strategy == 1 */
         let plan = NttPlan::build::<P3>(min_len);
         let mut t = vec![0u64; plan.g + plan.n];
         let mut s = vec![0u64; plan.g + plan.n];
@@ -214,9 +305,20 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
         /* Convolution with modulo P3. We don't compare with and subtract P3,
          * since we have already ensured the maximum value is less than P3.
          */
-        for i in 0..x.len() { t[plan.g + i] = x[i]; }
-        for i in 0..y.len() { s[plan.g + i] = y[i]; }
-        conv::<P3>(&plan, &mut t[..plan.g+plan.n], x.len(), &mut s[..plan.g+plan.n], y.len(), 1);
+        for i in 0..x.len() {
+            t[plan.g + i] = x[i];
+        }
+        for i in 0..y.len() {
+            s[plan.g + i] = y[i];
+        }
+        conv::<P3>(
+            &plan,
+            &mut t[..plan.g + plan.n],
+            x.len(),
+            &mut s[..plan.g + plan.n],
+            y.len(),
+            1,
+        );
 
         /* copy the result along with modular reduction */
         if modulo == 0 {
@@ -233,7 +335,7 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// If either of the inputs is empty, the result will be an empty Vec.
 /// Otherwise the output will have length equal to `x.len() + y.len() - 1`.
-/// 
+///
 /// Note that `modulo` does not need to be a prime.
 ///
 /// Example:

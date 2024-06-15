@@ -22,7 +22,7 @@ The ELF parsing and relocation routines in basm-rs were adapted
 from the following implementation of MINT64OS, licensed under GPLv2+:
     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
 
-The original license statement:    
+The original license statement:
     /**
      *  file    ApplicationLoader.c
      *  date    2009/12/26
@@ -50,26 +50,25 @@ There are currently three files licensed under GPLv2+:
 #![allow(clippy::cmp_null)]
 
 // Dynamic section entry types
-const DT_REL:       u32 = 17;
-const DT_RELSZ:     u32 = 18;
-const DT_RELENT:    u32 = 19;
+const DT_REL: u32 = 17;
+const DT_RELSZ: u32 = 18;
+const DT_RELENT: u32 = 19;
 
 // Relocation types
-const R_386_NONE:           u8 = 0;    // none
-const R_386_RELATIVE:       u8 = 8;    // word64   B + A
+const R_386_NONE: u8 = 0; // none
+const R_386_RELATIVE: u8 = 8; // word64   B + A
 
 // ELF structs
 #[repr(packed)]
 struct Elf32Dyn {
-    d_tag:          u32,
-    d_val_or_ptr:   u32,
+    d_tag: u32,
+    d_val_or_ptr: u32,
 }
 #[repr(packed)]
 struct Elf32Rel {
-    r_offset:       u32,
-    r_info:         u32,
+    r_offset: u32,
+    r_info: u32,
 }
-
 
 unsafe fn find_tag(mut ptr: *const Elf32Dyn, tag: u32) -> *const Elf32Dyn {
     while (*ptr).d_tag != 0 {
@@ -81,19 +80,17 @@ unsafe fn find_tag(mut ptr: *const Elf32Dyn, tag: u32) -> *const Elf32Dyn {
     core::ptr::null()
 }
 
-pub unsafe extern "C" fn relocate(
-    addr_image_base: u32,
-    addr_dynamic_section: u32
-    ) {
+pub unsafe extern "C" fn relocate(addr_image_base: u32, addr_dynamic_section: u32) {
     let ptr_dyn = addr_dynamic_section as *const Elf32Dyn;
     let ptr_rel = find_tag(ptr_dyn, DT_REL);
     let ptr_relsz = find_tag(ptr_dyn, DT_RELSZ);
     let ptr_relent = find_tag(ptr_dyn, DT_RELENT);
 
     /* do not use .is_null() since the method itself requires relocations, at least in debug mode */
-    if ptr_rel == core::ptr::null() ||
-        ptr_relsz == core::ptr::null() ||
-        ptr_relent == core::ptr::null() {
+    if ptr_rel == core::ptr::null()
+        || ptr_relsz == core::ptr::null()
+        || ptr_relent == core::ptr::null()
+    {
         return;
     }
 

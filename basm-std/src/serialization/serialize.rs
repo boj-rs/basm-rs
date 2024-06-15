@@ -1,6 +1,6 @@
+use super::Pair;
 use alloc::string::String;
 use alloc::vec::Vec;
-use super::Pair;
 
 pub trait Ser {
     /// Serializes the current object and appends it to the end of `buf`.
@@ -24,8 +24,7 @@ pub trait Ser {
 }
 
 impl Ser for () {
-    fn ser(&self, _buf: &mut Vec<u8>) {
-    }
+    fn ser(&self, _buf: &mut Vec<u8>) {}
 }
 
 macro_rules! impl_int {

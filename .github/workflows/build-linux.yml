@@ -41,6 +41,8 @@ jobs:
         run: cargo clippy --all-targets
         env:
           RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+      - name: Rustfmt
+        run: cargo fmt --check --all
       - name: Test
         if: ${{ matrix.target != 'wasm32-unknown-unknown' && matrix.target != 'x86_64-pc-windows-gnu' }}
         run: cargo test --lib -- --test-threads 1

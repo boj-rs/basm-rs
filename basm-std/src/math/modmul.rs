@@ -21,7 +21,11 @@ fn divmod128(hi: u128, lo: u128, modulo: u128) -> (u128, u128) {
 
     let yn1 = y >> 64;
     let yn0 = y & MASK64;
-    let un32 = if s == 0 { hi } else { (hi << s) | (lo >> (128 - s)) };
+    let un32 = if s == 0 {
+        hi
+    } else {
+        (hi << s) | (lo >> (128 - s))
+    };
     let un10 = lo << s;
     let un1 = un10 >> 64;
     let un0 = un10 & MASK64;
@@ -36,7 +40,10 @@ fn divmod128(hi: u128, lo: u128, modulo: u128) -> (u128, u128) {
         }
     }
 
-    let un21 = un32.wrapping_mul(TWO64).wrapping_add(un1).wrapping_sub(q1.wrapping_mul(y));
+    let un21 = un32
+        .wrapping_mul(TWO64)
+        .wrapping_add(un1)
+        .wrapping_sub(q1.wrapping_mul(y));
     let mut q0 = un21 / yn1;
     let mut rhat = un21 - q0 * yn1;
 
@@ -48,7 +55,14 @@ fn divmod128(hi: u128, lo: u128, modulo: u128) -> (u128, u128) {
         }
     }
 
-    (q1 * TWO64 + q0, (un21.wrapping_mul(TWO64).wrapping_add(un0).wrapping_sub(q0.wrapping_mul(y))) >> s)
+    (
+        q1 * TWO64 + q0,
+        (un21
+            .wrapping_mul(TWO64)
+            .wrapping_add(un0)
+            .wrapping_sub(q0.wrapping_mul(y)))
+            >> s,
+    )
 }
 
 /// Computes the modular multiplication of `x` and `y` mod `modulo`.

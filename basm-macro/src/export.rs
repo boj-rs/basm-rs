@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::ItemFn;
 
-use super::types::{TFunction, Mangle};
+use super::types::{Mangle, TFunction};
 
 pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let itemfn: &ItemFn = &syn::parse2(item).unwrap();
@@ -10,19 +10,25 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     super::utils::verify_signature(sig);
     let tfn = match TFunction::try_from(sig) {
         Ok(x) => x,
-        Err(x) => panic!("{}", x)
+        Err(x) => panic!("{}", x),
     };
     let arg_names_anonymous = tfn.arg_names_anonymous();
     let arg_borrows = tfn.arg_borrows();
     let arg_muts = tfn.arg_muts();
-    let arg_pure_types: Vec<_> = sig.inputs.iter().map(|x| {
-        let syn::FnArg::Typed(pattype) = x else { panic!() };
-        let ty = &*pattype.ty;
-        match ty {
-            syn::Type::Reference(x) => &*x.elem,
-            _ => ty,
-        }
-    }).collect();
+    let arg_pure_types: Vec<_> = sig
+        .inputs
+        .iter()
+        .map(|x| {
+            let syn::FnArg::Typed(pattype) = x else {
+                panic!()
+            };
+            let ty = &*pattype.ty;
+            match ty {
+                syn::Type::Reference(x) => &*x.elem,
+                _ => ty,
+            }
+        })
+        .collect();
     let mangled = tfn.mangle();
 
     let basm_export_mod: TokenStream = ("basm_export_mod_".to_owned() + &mangled).parse().unwrap();
@@ -39,7 +45,7 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 #[cfg(target_arch = "x86_64")]
                 #[inline(never)]
                 pub unsafe extern "win64" fn free() { SER_VEC.clear() }
-            
+
                 #[cfg(not(target_arch = "x86_64"))]
                 #[inline(never)]
                 pub unsafe extern "C" fn free() { SER_VEC.clear() }

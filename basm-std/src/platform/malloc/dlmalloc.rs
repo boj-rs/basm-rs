@@ -1258,13 +1258,16 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 let sp = self.segment_holding(self.top as *mut u8);
                 debug_assert!(!sp.is_null());
 
-                if !Segment::is_extern(sp) &&
-                    Segment::can_release_part(&self.system_allocator, sp) &&
-                    (*sp).size >= extra && !self.has_segment_link(sp) {
+                if !Segment::is_extern(sp)
+                    && Segment::can_release_part(&self.system_allocator, sp)
+                    && (*sp).size >= extra
+                    && !self.has_segment_link(sp)
+                {
                     let newsize = (*sp).size - extra;
                     if self
                         .system_allocator
-                        .free_part((*sp).base, (*sp).size, newsize) {
+                        .free_part((*sp).base, (*sp).size, newsize)
+                    {
                         released = extra;
                     }
                 }
@@ -1767,7 +1770,10 @@ impl Segment {
         (*seg).flags & EXTERN != 0
     }
 
-    unsafe fn can_release_part<A: DlmallocAllocator>(system_allocator: &A, seg: *mut Segment) -> bool {
+    unsafe fn can_release_part<A: DlmallocAllocator>(
+        system_allocator: &A,
+        seg: *mut Segment,
+    ) -> bool {
         system_allocator.can_release_part((*seg).flags >> 1)
     }
 

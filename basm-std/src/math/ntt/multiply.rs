@@ -16,8 +16,22 @@ fn mac3_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], bits: u64) {
     let mut s = vec![0u64; plan_y.g + plan_y.n];
     pack_into(b, &mut x[plan_x.g..], &mut y[plan_y.g..], bits);
     pack_into(c, &mut r[plan_x.g..], &mut s[plan_y.g..], bits);
-    conv::<P2>(&plan_x, &mut x, b_len, &mut r[..plan_x.g+plan_x.n], c_len, arith::invmod(P3, P2));
-    conv::<P3>(&plan_y, &mut y, b_len, &mut s[..plan_y.g+plan_y.n], c_len, Arith::<P3>::submod(0, arith::invmod(P2, P3)));
+    conv::<P2>(
+        &plan_x,
+        &mut x,
+        b_len,
+        &mut r[..plan_x.g + plan_x.n],
+        c_len,
+        arith::invmod(P3, P2),
+    );
+    conv::<P3>(
+        &plan_y,
+        &mut y,
+        b_len,
+        &mut s[..plan_y.g + plan_y.n],
+        c_len,
+        Arith::<P3>::submod(0, arith::invmod(P2, P3)),
+    );
 
     /* merge the results in {x, y} into r (process carry along the way) */
     let mask = (1u64 << bits) - 1;
@@ -28,8 +42,11 @@ fn mac3_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], bits: u64) {
     for i in 0..min_len {
         /* extract the convolution result */
         let (a, b) = (x[i], y[i]);
-        let (mut v, overflow) = (a as u128 * P3 as u128 + carry).overflowing_sub(b as u128 * P2 as u128);
-        if overflow { v = v.wrapping_add(P2 as u128 * P3 as u128); }
+        let (mut v, overflow) =
+            (a as u128 * P3 as u128 + carry).overflowing_sub(b as u128 * P2 as u128);
+        if overflow {
+            v = v.wrapping_add(P2 as u128 * P3 as u128);
+        }
         carry = v >> bits;
 
         /* write to s */
@@ -64,21 +81,54 @@ fn mac3_three_primes(acc: &mut [u64], b: &[u64], c: &[u64]) {
     let mut r = vec![0u64; max(x.len(), max(y.len(), z.len()))];
 
     /* convolution with modulo P1 */
-    for i in 0..b.len() { x[plan_x.g + i] = if b[i] >= P1 { b[i] - P1 } else { b[i] }; }
-    for i in 0..c.len() { r[plan_x.g + i] = if c[i] >= P1 { c[i] - P1 } else { c[i] }; }
-    conv::<P1>(&plan_x, &mut x, b.len(), &mut r[..plan_x.g+plan_x.n], c.len(), 1);
+    for i in 0..b.len() {
+        x[plan_x.g + i] = if b[i] >= P1 { b[i] - P1 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        r[plan_x.g + i] = if c[i] >= P1 { c[i] - P1 } else { c[i] };
+    }
+    conv::<P1>(
+        &plan_x,
+        &mut x,
+        b.len(),
+        &mut r[..plan_x.g + plan_x.n],
+        c.len(),
+        1,
+    );
 
     /* convolution with modulo P2 */
-    for i in 0..b.len() { y[plan_y.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] }; }
-    for i in 0..c.len() { r[plan_y.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] }; }
+    for i in 0..b.len() {
+        y[plan_y.g + i] = if b[i] >= P2 { b[i] - P2 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        r[plan_y.g + i] = if c[i] >= P2 { c[i] - P2 } else { c[i] };
+    }
     (&mut r[plan_y.g..])[c.len()..plan_y.n].fill(0u64);
-    conv::<P2>(&plan_y, &mut y, b.len(), &mut r[..plan_y.g+plan_y.n], c.len(), 1);
+    conv::<P2>(
+        &plan_y,
+        &mut y,
+        b.len(),
+        &mut r[..plan_y.g + plan_y.n],
+        c.len(),
+        1,
+    );
 
     /* convolution with modulo P3 */
-    for i in 0..b.len() { z[plan_z.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] }; }
-    for i in 0..c.len() { r[plan_z.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] }; }
+    for i in 0..b.len() {
+        z[plan_z.g + i] = if b[i] >= P3 { b[i] - P3 } else { b[i] };
+    }
+    for i in 0..c.len() {
+        r[plan_z.g + i] = if c[i] >= P3 { c[i] - P3 } else { c[i] };
+    }
     (&mut r[plan_z.g..])[c.len()..plan_z.n].fill(0u64);
-    conv::<P3>(&plan_z, &mut z, b.len(), &mut r[..plan_z.g+plan_z.n], c.len(), 1);
+    conv::<P3>(
+        &plan_z,
+        &mut z,
+        b.len(),
+        &mut r[..plan_z.g + plan_z.n],
+        c.len(),
+        1,
+    );
 
     /* merge the results in {x, y, z} into acc (process carry along the way) */
     let mut carry: u128 = 0;
@@ -107,8 +157,9 @@ fn mac3_three_primes(acc: &mut [u64], b: &[u64], c: &[u64]) {
         let vcmv = Arith::<P3>::mmulmod(cmv, P1P2INV_R_MOD_P3);
         let (out_01, overflow) = carry.overflowing_add(v + P1P2_LO as u128 * vcmv as u128);
         let out_0 = out_01 as u64;
-        let out_12 = P1P2_HI as u128 * vcmv as u128 + (out_01 >> 64) +
-            if overflow { 1u128 << 64 } else { 0 };
+        let out_12 = P1P2_HI as u128 * vcmv as u128
+            + (out_01 >> 64)
+            + if overflow { 1u128 << 64 } else { 0 };
 
         let (v, overflow) = acc[i].overflowing_add(out_0);
         acc[i] = v;
@@ -120,11 +171,15 @@ fn mac3_three_primes(acc: &mut [u64], b: &[u64], c: &[u64]) {
 fn mac3_u64(acc: &mut [u64], b: &[u64], c: &[u64]) {
     let (b, c) = if b.len() < c.len() { (b, c) } else { (c, b) };
     let naive_cost = NttPlan::build::<P1>(b.len() + c.len()).cost;
-    let split_cost = NttPlan::build::<P1>(b.len() + b.len()).cost * (c.len() / b.len()) +
-        if c.len() % b.len() > 0 { NttPlan::build::<P1>(b.len() + (c.len() % b.len())).cost } else { 0 };
+    let split_cost = NttPlan::build::<P1>(b.len() + b.len()).cost * (c.len() / b.len())
+        + if c.len() % b.len() > 0 {
+            NttPlan::build::<P1>(b.len() + (c.len() % b.len())).cost
+        } else {
+            0
+        };
     if b.len() >= 128 && split_cost < naive_cost {
         /* special handling for unbalanced multiplication:
-           we reduce it to about `c.len()/b.len()` balanced multiplications */
+        we reduce it to about `c.len()/b.len()` balanced multiplications */
         let mut i = 0usize;
         let mut carry = 0u64;
         while i < c.len() {
@@ -161,7 +216,7 @@ fn mac3_u64(acc: &mut [u64], b: &[u64], c: &[u64]) {
         mac3_two_primes(acc, b, c, bits);
     } else {
         /* can pack at most 21 effective bits per u64, which is worse than
-           64/3 = 21.3333.. effective bits per u64 achieved with three primes */
+        64/3 = 21.3333.. effective bits per u64 achieved with three primes */
         mac3_three_primes(acc, b, c);
     }
 }

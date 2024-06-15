@@ -28,7 +28,7 @@ jobs:
           vsversion: 2022
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install nightly --target ${{ matrix.target }} --profile minimal --component clippy
+          rustup toolchain install nightly --target ${{ matrix.target }} --profile default --component clippy
       - name: Install node.js
         uses: actions/setup-node@v4
         with:
@@ -40,6 +40,8 @@ jobs:
         run: cargo clippy --all-targets
         env:
           RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+      - name: Rustfmt
+        run: cargo fmt --check --all
       - name: Test
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: cargo test --lib -- --test-threads 1

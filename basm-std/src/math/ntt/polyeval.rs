@@ -1,6 +1,6 @@
+use super::{polymul_ex_u64, polyops::polyneginv_u64};
 use alloc::{vec, vec::Vec};
 use core::cmp::min;
-use super::{polymul_ex_u64, polyops::polyneginv_u64};
 
 /// Computes the degree sum of the heap-style binary tree of `n` elements.
 fn deg_sum(n: usize) -> usize {
@@ -21,10 +21,10 @@ fn deg_sum(n: usize) -> usize {
 
 /// Performs multipoint evaluation of the input polynomial `poly`
 /// at points specified by `query_points`. `poly[i]` should be the coefficient of `x**i`.
-/// 
+///
 /// The time complexity is `O((n + q) lg^2 (n + q))`,
 /// where `n` is degree of the input polynomial and `q` is the number of query points.
-/// 
+///
 /// The result is computed in modulo `modulo`.
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// Note that `modulo` does not need to be a prime.
@@ -36,9 +36,9 @@ pub fn polyeval_u64(poly: &[u64], query_points: &[u64], modulo: u64) -> Vec<u64>
         return vec![0; n];
     }
 
-    let tree1_len = deg_sum(n) + 2*n - 1;
+    let tree1_len = deg_sum(n) + 2 * n - 1;
     let mut tree1 = vec![modulo.wrapping_sub(1); tree1_len];
-    let mut tree1_pos = vec![0; 2*n];
+    let mut tree1_pos = vec![0; 2 * n];
     let mut pos = 0;
     for i in (0..n).rev() {
         tree1_pos[n + i] = pos;
@@ -52,7 +52,14 @@ pub fn polyeval_u64(poly: &[u64], query_points: &[u64], modulo: u64) -> Vec<u64>
             let (ls, le) = (tree1_pos[i << 1], tree1_pos[(i << 1) - 1]);
             let (rs, re) = (tree1_pos[(i << 1) | 1], tree1_pos[i << 1]);
             let l = (le - ls) + (re - rs) - 1;
-            polymul_ex_u64(&mut tree1[pos..], &tree1_ref[ls..le], &tree1_ref[rs..re], 0, l, modulo);
+            polymul_ex_u64(
+                &mut tree1[pos..],
+                &tree1_ref[ls..le],
+                &tree1_ref[rs..re],
+                0,
+                l,
+                modulo,
+            );
             pos += l;
         }
     }
@@ -66,7 +73,7 @@ pub fn polyeval_u64(poly: &[u64], query_points: &[u64], modulo: u64) -> Vec<u64>
     let (mut tree2_0, mut tree2_1) = (vec![0; n], vec![0; n]);
     polymul_ex_u64(&mut tree2_0, poly, &inv, d, d + min(d + 1, n), modulo);
 
-    let (mut begin, mut end) = (2, min(4, 2*n));
+    let (mut begin, mut end) = (2, min(4, 2 * n));
     loop {
         let mut pos0 = 0;
         let mut pos1 = 0;
@@ -74,17 +81,24 @@ pub fn polyeval_u64(poly: &[u64], query_points: &[u64], modulo: u64) -> Vec<u64>
             let pq_deg = tree1_pos[(i >> 1) - 1] - tree1_pos[i >> 1] - 1;
             let q = &tree1[tree1_pos[i ^ 1]..tree1_pos[(i ^ 1) - 1]];
             let q_deg = q.len() - 1;
-            polymul_ex_u64(&mut tree2_1[pos1..], &tree2_0[pos0..], q, q_deg, pq_deg, modulo);
+            polymul_ex_u64(
+                &mut tree2_1[pos1..],
+                &tree2_0[pos0..],
+                q,
+                q_deg,
+                pq_deg,
+                modulo,
+            );
             if i & 1 != 0 {
                 pos0 += pq_deg;
             }
             pos1 += pq_deg - q_deg;
         }
-        if end >= 2*n {
+        if end >= 2 * n {
             break;
         }
         begin *= 2;
-        end = min(2*begin, 2*n);
+        end = min(2 * begin, 2 * n);
         (tree2_0, tree2_1) = (tree2_1, tree2_0);
     }
 

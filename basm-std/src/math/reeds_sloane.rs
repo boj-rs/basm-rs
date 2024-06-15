@@ -1,6 +1,6 @@
+use crate::math::{factorize, modadd, modinv, modmul, modsub};
 use alloc::{vec, vec::Vec};
 use core::cmp::max;
-use crate::math::{factorize, modadd, modinv, modmul, modsub};
 
 fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     let n = first_terms.len();
@@ -11,7 +11,10 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     let ppow: Vec<u64> = (0..=e).map(|x| p.wrapping_pow(x as u32)).collect();
 
     let p_e = ppow[e];
-    let s: Vec<u64> = first_terms.iter().map(|&x| if p_e > 0 { x % p_e } else { x }).collect();
+    let s: Vec<u64> = first_terms
+        .iter()
+        .map(|&x| if p_e > 0 { x % p_e } else { x })
+        .collect();
 
     // Utility functions (core logic)
     fn l(a: &[u64], b: &[u64]) -> usize {
@@ -53,7 +56,11 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
         b.push(vec![]);
         a_new.push(vec![p_eta]);
         let p_eta_s0 = modmul(p_eta, s[0], p_e);
-        b_new.push(if p_eta_s0 == 0 { vec![] } else { vec![p_eta_s0] } );
+        b_new.push(if p_eta_s0 == 0 {
+            vec![]
+        } else {
+            vec![p_eta_s0]
+        });
         let c = modmul(s[0], p_eta, p_e);
         (theta[eta], u[eta]) = factor_by_p(c);
     }
@@ -140,14 +147,18 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
     // Extract output
     let mut out = vec![];
     for i in 1..=l(&a_new[0], &b_new[0]) {
-        out.push(if i < a_new[0].len() { modsub(0, a_new[0][i], p_e) } else { 0 });
+        out.push(if i < a_new[0].len() {
+            modsub(0, a_new[0][i], p_e)
+        } else {
+            0
+        });
     }
     out
 }
 
 /// Finds a minimal length linear recurrence for `first_terms`
 /// under modulo `modulo`, via the Reeds-Sloane algorithm.
-/// 
+///
 /// Note that `modulo` of `0` is interpreted as `2**64`.
 pub fn reeds_sloane(first_terms: &[u64], modulo: u64) -> Vec<u64> {
     if first_terms.len() <= 1 {
@@ -204,7 +215,7 @@ pub fn reeds_sloane(first_terms: &[u64], modulo: u64) -> Vec<u64> {
                 let mp = modmul(out[i], qinv, p);
                 let mq = modmul(v[i], pinv, q);
                 out[i] = modadd(q * mp, p * mq, p * q);
-            }   
+            }
         }
         cumul_mod *= cur_mod;
     }
@@ -215,7 +226,7 @@ pub fn reeds_sloane(first_terms: &[u64], modulo: u64) -> Vec<u64> {
 ///
 /// Finds a minimal length linear recurrence for `first_terms`
 /// under modulo `modulo`, via the Reeds-Sloane algorithm.
-/// 
+///
 /// Note that `modulo` of `0` is interpreted as `2**64`.
 pub fn linear_fit(first_terms: &[u64], modulo: u64) -> Vec<u64> {
     reeds_sloane(first_terms, modulo)
@@ -227,7 +238,26 @@ mod test {
 
     #[test]
     fn check_reeds_sloane_fibosqsum() {
-        let mut first_terms = [0, 1, 1, 2*2, 3*3, 5*5, 8*8, 13*13, 21*21, 34*34, 55*55, 89*89, 144*144, 233*233, 377*377, 610*610, 987*987, 1597*1597];
+        let mut first_terms = [
+            0,
+            1,
+            1,
+            2 * 2,
+            3 * 3,
+            5 * 5,
+            8 * 8,
+            13 * 13,
+            21 * 21,
+            34 * 34,
+            55 * 55,
+            89 * 89,
+            144 * 144,
+            233 * 233,
+            377 * 377,
+            610 * 610,
+            987 * 987,
+            1597 * 1597,
+        ];
         for i in 1..first_terms.len() {
             first_terms[i] += first_terms[i - 1];
         }

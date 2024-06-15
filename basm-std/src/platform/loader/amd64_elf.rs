@@ -22,7 +22,7 @@ The ELF parsing and relocation routines in basm-rs were adapted
 from the following implementation of MINT64OS, licensed under GPLv2+:
     https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c
 
-The original license statement:    
+The original license statement:
     /**
      *  file    ApplicationLoader.c
      *  date    2009/12/26
@@ -52,43 +52,47 @@ There are currently three files licensed under GPLv2+:
 use core::mem::MaybeUninit;
 
 // Dynamic section entry types
-const DT_RELA:      u64 = 7;
-const DT_RELASZ:    u64 = 8;
-const DT_RELAENT:   u64 = 9;
+const DT_RELA: u64 = 7;
+const DT_RELASZ: u64 = 8;
+const DT_RELAENT: u64 = 9;
 
 // Relocation types
-const R_X86_64_NONE:        u32 = 0;    // none
-const R_X86_64_RELATIVE:    u32 = 8;    // word64   B + A
+const R_X86_64_NONE: u32 = 0; // none
+const R_X86_64_RELATIVE: u32 = 8; // word64   B + A
 
 // ELF structs
 #[repr(packed)]
 struct Elf64Dyn {
-    d_tag:          u64,
-    d_val_or_ptr:   u64,
+    d_tag: u64,
+    d_val_or_ptr: u64,
 }
 #[repr(packed)]
 struct Elf64Rela {
-    r_offset:       u64,
-    r_info:         u64,
-    r_addend:       u64,
+    r_offset: u64,
+    r_info: u64,
+    r_addend: u64,
 }
 
-
-pub unsafe extern "sysv64" fn relocate(
-    addr_image_base: u64,
-    addr_dynamic_section: u64
-    ) {
+pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_section: u64) {
     let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
     let mut ptr_rela = 0;
     let mut relasz = MaybeUninit::<u64>::uninit();
     let mut relaent = MaybeUninit::<u64>::uninit();
     loop {
         match (*ptr_dyn).d_tag {
-            0 => { break; }
-            DT_RELA => { ptr_rela = addr_image_base + (*ptr_dyn).d_val_or_ptr; },
-            DT_RELASZ => { relasz.write((*ptr_dyn).d_val_or_ptr); },
-            DT_RELAENT => { relaent.write((*ptr_dyn).d_val_or_ptr); },
-            _ => ()
+            0 => {
+                break;
+            }
+            DT_RELA => {
+                ptr_rela = addr_image_base + (*ptr_dyn).d_val_or_ptr;
+            }
+            DT_RELASZ => {
+                relasz.write((*ptr_dyn).d_val_or_ptr);
+            }
+            DT_RELAENT => {
+                relaent.write((*ptr_dyn).d_val_or_ptr);
+            }
+            _ => (),
         }
         ptr_dyn = ptr_dyn.add(1);
     }

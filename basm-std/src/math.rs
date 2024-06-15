@@ -122,7 +122,8 @@ pub trait ModOps<T>:
     + Mul<Output = Self>
     + Div<Output = Self>
     + Rem<Output = Self>
-    where T: PartialEq
+where
+    T: PartialEq,
 {
     fn zero() -> T;
     fn one() -> T;
@@ -287,21 +288,21 @@ macro_rules! impl_mod_ops_unsigned {
 impl_mod_ops_unsigned!(u8, u16, u32, u64, u128, usize);
 
 /// Computes the modular addition `x + y`.
-/// 
+///
 /// This function will panic if `modulo` is negative.
 pub fn modadd<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     T::modadd(x, y, modulo)
 }
 
 /// Computes the modular subtraction `x - y`.
-/// 
+///
 /// This function will panic if `modulo` is negative.
 pub fn modsub<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     T::modsub(x, y, modulo)
 }
 
 /// Computes the modular multiplication `x * y`.
-/// 
+///
 /// This function will panic if `modulo` is negative.
 pub fn modmul<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     T::modmul(x, y, modulo)
@@ -332,9 +333,15 @@ pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T
         exponent = T::zero()
             .my_wrapping_sub(exponent)
             .my_wrapping_sub(T::one());
-        if modulo != T::zero() { out = base % modulo; }
+        if modulo != T::zero() {
+            out = base % modulo;
+        }
     }
-    let mut base_pow = if modulo != T::zero() { base % modulo } else { base };
+    let mut base_pow = if modulo != T::zero() {
+        base % modulo
+    } else {
+        base
+    };
     while exponent > T::zero() {
         if (exponent % T::two()) != T::zero() {
             out = T::modmul(out, base_pow, modulo);
@@ -348,14 +355,14 @@ pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T
 /// Computes `x * y^-1 mod modulo`.
 /// If `y^{-1} mod modulo` does not exist, the result is `None`.
 /// If it exists, the result is returned.
-/// 
+///
 /// This function will panic if `modulo` is negative.
 pub fn moddiv<T: ModOps<T>>(x: T, y: T, modulo: T) -> Option<T> {
     modinv(y, modulo).map(|yinv| modmul(x, yinv, modulo))
 }
 
 /// Computes the modular addition `x + y`.
-/// 
+///
 /// This function will panic if `modulo` is zero or negative.
 pub fn checked_modadd<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     assert!(modulo != T::zero());
@@ -363,7 +370,7 @@ pub fn checked_modadd<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
 }
 
 /// Computes the modular subtraction `x - y`.
-/// 
+///
 /// This function will panic if `modulo` is zero or negative.
 pub fn checked_modsub<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     assert!(modulo != T::zero());
@@ -371,7 +378,7 @@ pub fn checked_modsub<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
 }
 
 /// Computes the modular multiplication `x * y`.
-/// 
+///
 /// This function will panic if `modulo` is zero or negative.
 pub fn checked_modmul<T: ModOps<T>>(x: T, y: T, modulo: T) -> T {
     assert!(modulo != T::zero());
@@ -399,7 +406,7 @@ pub fn checked_modpow<T: ModOps<T>>(base: T, exponent: T, modulo: T) -> Option<T
 /// Computes `x * y^-1 mod modulo`.
 /// If `y^{-1} mod modulo` does not exist, the result is `None`.
 /// If it exists, the result is returned.
-/// 
+///
 /// This function will panic if `modulo` is zero or negative.
 pub fn checked_moddiv<T: ModOps<T>>(x: T, y: T, modulo: T) -> Option<T> {
     assert!(modulo != T::zero());
@@ -444,12 +451,24 @@ mod test {
     fn modadd_returns_modadd() {
         assert_eq!(6i64, modadd(-3, -5, 7));
         assert_eq!(6u64, modadd(3, 10, 7));
-        assert_eq!(2_147_483_643i32, modadd(-1_073_741_824, -1_073_741_827, 2_147_483_647));
-        assert_eq!(2_147_483_643i64, modadd(-1_073_741_824, -1_073_741_827, 2_147_483_647));
+        assert_eq!(
+            2_147_483_643i32,
+            modadd(-1_073_741_824, -1_073_741_827, 2_147_483_647)
+        );
+        assert_eq!(
+            2_147_483_643i64,
+            modadd(-1_073_741_824, -1_073_741_827, 2_147_483_647)
+        );
         assert_eq!(4i32, modadd(1_073_741_824, 1_073_741_827, 2_147_483_647));
         assert_eq!(4i64, modadd(1_073_741_824, 1_073_741_827, 2_147_483_647));
-        assert_eq!(2_147_483_645i32, modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647));
-        assert_eq!(2_147_483_645i64, modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647));
+        assert_eq!(
+            2_147_483_645i32,
+            modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647)
+        );
+        assert_eq!(
+            2_147_483_645i64,
+            modadd(-2_147_483_648, -2_147_483_648, 2_147_483_647)
+        );
         assert_eq!(8, modadd(5, 3, 0i64));
         assert_eq!(8, modadd(5, 3, 0u64));
     }
@@ -458,8 +477,14 @@ mod test {
     fn modsub_returns_modsub() {
         assert_eq!(6i64, modsub(-3, 5, 7));
         assert_eq!(6u64, modsub(3, 4, 7));
-        assert_eq!(2_147_483_643i32, modsub(-1_073_741_824, 1_073_741_827, 2_147_483_647));
-        assert_eq!(2_147_483_643i64, modsub(-1_073_741_824, 1_073_741_827, 2_147_483_647));
+        assert_eq!(
+            2_147_483_643i32,
+            modsub(-1_073_741_824, 1_073_741_827, 2_147_483_647)
+        );
+        assert_eq!(
+            2_147_483_643i64,
+            modsub(-1_073_741_824, 1_073_741_827, 2_147_483_647)
+        );
         assert_eq!(4i32, modsub(1_073_741_824, -1_073_741_827, 2_147_483_647));
         assert_eq!(4i64, modsub(1_073_741_824, -1_073_741_827, 2_147_483_647));
         assert_eq!(4i32, modsub(-2_147_483_648, -5, 2_147_483_647));
@@ -478,8 +503,14 @@ mod test {
         assert_eq!(Some((p + 1) / 2), modinv(2u64, p));
         assert_eq!(Some(9999999966u64), modinv(9999999966u64, 9999999967u64));
         assert_eq!(Some(12297829382473034411u64), modinv(3, 0u64));
-        assert_eq!(Some(102271515336455672821735593367980000139i128), modinv(19491, 0i128));
-        assert_eq!(Some(19491i128), modinv(102271515336455672821735593367980000139i128, 0i128));
+        assert_eq!(
+            Some(102271515336455672821735593367980000139i128),
+            modinv(19491, 0i128)
+        );
+        assert_eq!(
+            Some(19491i128),
+            modinv(102271515336455672821735593367980000139i128, 0i128)
+        );
     }
 
     #[test]
