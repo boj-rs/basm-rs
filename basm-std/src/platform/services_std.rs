@@ -10,11 +10,7 @@ pub fn read_stdio(fd: usize, buf: &mut [u8]) -> usize {
     match fd {
         0 => {
             let mut stdin = io::stdin();
-            if let Ok(bytes_transferred) = stdin.read(buf) {
-                bytes_transferred
-            } else {
-                0
-            }
+            stdin.read(buf).unwrap_or_default()
         }
         _ => 0,
     }
@@ -24,19 +20,11 @@ pub fn write_stdio(fd: usize, buf: &[u8]) -> usize {
     match fd {
         1 => {
             let mut stdout = io::stdout();
-            if let Ok(bytes_transferred) = stdout.write(buf) {
-                bytes_transferred
-            } else {
-                0
-            }
+            stdout.write(buf).unwrap_or_default()
         }
         2 => {
             let mut stderr = io::stderr();
-            if let Ok(bytes_transferred) = stderr.write(buf) {
-                bytes_transferred
-            } else {
-                0
-            }
+            stderr.write(buf).unwrap_or_default()
         }
         _ => 0,
     }

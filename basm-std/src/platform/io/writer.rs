@@ -102,18 +102,28 @@ impl<const N: usize> Writer<N> {
         );
         0
     };
+    /// Constructs a new `Writer` with buffer size `N`, specified as a const generic parameter.
+    /// Note: For convenience, use `Default::default()`.
+    /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer = Writer::<128>::new();
+    /// let mut writer: Writer = Default::default();
+    /// ```
     pub fn new() -> Self {
         Self {
             buf: MaybeUninit::uninit_array(),
             off: 0,
         }
     }
+    /// Flushes the buffer of the current `Writer`.
     pub fn flush(&mut self) {
         services::write_stdio(1, unsafe {
             MaybeUninit::slice_assume_init_ref(&self.buf[..self.off])
         });
         self.off = 0;
     }
+    /// Flushes the buffer of the current `Writer` if readahead plus the current offset exceeds the buffer length,
+    /// thereby ensuring that at least `readahead` bytes are available in the buffer.
     pub fn try_flush(&mut self, readahead: usize) {
         if self.off + readahead > self.buf.len() {
             self.flush();
@@ -128,12 +138,22 @@ impl<const N: usize> Writer<N> {
         self.buf[self.off].write(b);
         self.off += 1;
     }
+    /// Writes a single byte to standard output.
+    /// ```no_run
+    /// let mut writer: Writer = Default::default();
+    /// writer.byte(b'c'); // c
+    /// ```
     pub fn byte(&mut self, b: u8) {
         self.try_flush(2);
         self.byte_unchecked(b);
     }
-    // This function ensures an extra byte in the buffer to make sure that
-    // println() can safely use `byte_unchecked`.
+    /// Writes multiple bytes to standard output.
+    ///
+    /// This method ensures an extra byte in the buffer to make sure that `println()` can safely use the private method `byte_unchecked`. It is achieved by `self.try_flush(1)`.
+    /// ```no_run
+    /// let mut writer: Writer = Default::default();
+    /// writer.bytes("Hello World".as_bytes()); // Hello World
+    /// ```
     #[cfg(not(feature = "short"))]
     pub fn bytes(&mut self, mut s: &[u8]) {
         while !s.is_empty() {
@@ -147,30 +167,56 @@ impl<const N: usize> Writer<N> {
             self.try_flush(1);
         }
     }
-    // This function ensures an extra byte in the buffer to make sure that
-    // println() can safely use `byte_unchecked`. This is achieved by
-    // calling `self.try_flush(2)` (instead of `self.try_flush(1)`) in byte().
+    /// Writes multiple bytes to standard output.
+    ///
+    /// This function ensures an extra byte in the buffer to make sure that
+    /// println() can safely use `byte_unchecked`. This is achieved by
+    /// calling `self.try_flush(2)` (instead of `self.try_flush(1)`) in byte().
     #[cfg(feature = "short")]
     pub fn bytes(&mut self, s: &[u8]) {
         for x in s {
             self.byte(*x);
         }
     }
+    /// Writes a single `&str` to standard output.
+    /// ```no_run
+    /// writer.str("Hello, World"); // Hello, World
+    /// ```
     pub fn str(&mut self, s: &str) {
         self.bytes(s.as_bytes());
     }
+    /// Writes a single `i8` to standard output.
+    /// ```no run
+    /// writer.i8(i8::MIN); // -128
+    /// ```
     pub fn i8(&mut self, n: i8) {
         self.i32(n as i32);
     }
+    /// Writes a single `u8` to standard output.
+    /// ```no run
+    /// writer.u8(u8::MAX); // 255
+    /// ```
     pub fn u8(&mut self, n: u8) {
         self.u32(n as u32);
     }
+    /// Writes a single `i16` to standard output.
+    /// ```no run
+    /// writer.i16(i16::MIN); // -32768
+    /// ```
     pub fn i16(&mut self, n: i16) {
         self.i32(n as i32);
     }
+    /// Writes a single `u16` to standard output.
+    /// ```no run
+    /// writer.u16(u16::MAX); // 65535
+    /// ```
     pub fn u16(&mut self, n: u16) {
         self.u32(n as u32);
     }
+    /// Writes a single `i32` to standard output.
+    /// ```no run
+    /// writer.i32(i32::MIN); // -2147483648
+    /// ```
     pub fn i32(&mut self, n: i32) {
         if n < 0 {
             self.byte(b'-');
@@ -179,6 +225,10 @@ impl<const N: usize> Writer<N> {
             self.u32(n as u32);
         }
     }
+    /// Writes a single `u32` to standard output.
+    /// ```no_run
+    /// writer.u32(u32::MAX); // 4294967295
+    /// ```
     #[cfg(not(feature = "short"))]
     pub fn u32(&mut self, n: u32) {
         self.try_flush(11);
@@ -208,6 +258,10 @@ impl<const N: usize> Writer<N> {
     pub fn u32(&mut self, n: u32) {
         self.u64(n as u64)
     }
+    /// Writes a single `i64` to standard output.
+    /// ```no_run
+    /// writer.i64(i64::MIN); // -9223372036854775808
+    /// ```
     pub fn i64(&mut self, n: i64) {
         if n < 0 {
             self.byte(b'-');
@@ -216,6 +270,10 @@ impl<const N: usize> Writer<N> {
             self.u64(n as u64);
         }
     }
+    /// Writes a single `u64` to standard output.
+    /// ```no_run
+    /// writer.u64(u64::MAX); // 18446744073709551615
+    /// ```
     #[cfg(not(feature = "short"))]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21);
@@ -282,6 +340,10 @@ impl<const N: usize> Writer<N> {
             j += 1;
         }
     }
+    /// Writes a single `i128` to standard output.
+    /// ```no_run
+    /// writer.i128(i128::MIN); // -170141183460469231731687303715884105728
+    /// ```
     pub fn i128(&mut self, n: i128) {
         if n < 0 {
             self.byte(b'-');
@@ -290,6 +352,10 @@ impl<const N: usize> Writer<N> {
             self.u128(n as u128);
         }
     }
+    /// Writes a single `u128` to standard output.
+    /// ```no_run
+    /// writer.u128(u128::MAX); // 340282366920938463463374607431768211455
+    /// ```
     pub fn u128(&mut self, mut n: u128) {
         let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
         let mut offset = buf.len() - 1;
@@ -310,10 +376,18 @@ impl<const N: usize> Writer<N> {
     pub fn usize(&mut self, n: usize) {
         self.u32(n as u32);
     }
+    /// Writes a single `isize` to standard output. Note that the in-memory size of `isize` depends on the target platform.
+    /// ```no_run
+    /// writer.isize(isize::MIN); // -9223372036854775808 (On 64-bit targets)
+    /// ```
     #[cfg(target_pointer_width = "64")]
     pub fn isize(&mut self, n: isize) {
         self.i64(n as i64);
     }
+    /// Writes a single `usize` to standard output. Note that the in-memory size of `isize` depends on the target platform.
+    /// ```no_run
+    /// writer.usize(usize::MAX); // 18446744073709551615 (On 64-bit targets)
+    /// ```
     #[cfg(target_pointer_width = "64")]
     pub fn usize(&mut self, n: usize) {
         self.u64(n as u64);
@@ -326,11 +400,19 @@ impl<const N: usize> Writer<N> {
     pub fn usize(&mut self, mut n: usize) {
         self.u128(n as u128);
     }
+    /// Writes a single `f64` to standard output.
+    /// ```no_run
+    /// writer.f64(1.23); // 1.23
+    /// ```
     pub fn f64(&mut self, f: f64) {
         let mut buffer = ryu::Buffer::new();
         let printed = buffer.format(f);
         self.bytes(printed.as_bytes());
     }
+    /// Writes a single `char` to standard output, encoded as UTF-8.
+    /// ```no_run
+    /// writer.char('c'); // c
+    /// ```
     pub fn char(&mut self, c: char) {
         self.try_flush(6);
         let u = c as u32;
@@ -362,6 +444,7 @@ pub trait Print<T> {
     fn println(&mut self, x: T);
 }
 
+/// Writes a single `&[u8]` using [`Writer::bytes()`] to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
 impl<const N: usize> Print<&[u8]> for Writer<N> {
     fn print(&mut self, x: &[u8]) {
         self.bytes(x);
@@ -372,6 +455,7 @@ impl<const N: usize> Print<&[u8]> for Writer<N> {
     }
 }
 
+/// Writes a single `&[u8; M]` using [`Writer::bytes()`] to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
 impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
     fn print(&mut self, x: &[u8; M]) {
         self.bytes(x);
@@ -382,6 +466,7 @@ impl<const N: usize, const M: usize> Print<&[u8; M]> for Writer<N> {
     }
 }
 
+/// Writes a single `&str` using [`Writer::bytes()`] and [`str::as_bytes()`] to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
 impl<const N: usize> Print<&str> for Writer<N> {
     fn print(&mut self, x: &str) {
         self.bytes(x.as_bytes());
@@ -392,6 +477,7 @@ impl<const N: usize> Print<&str> for Writer<N> {
     }
 }
 
+/// Write a single `String`` using [`Writer::Print<&str>()`] and [`String::as_str()`] to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
 impl<const N: usize> Print<String> for Writer<N> {
     fn print(&mut self, x: String) {
         self.print(x.as_str());
@@ -401,6 +487,7 @@ impl<const N: usize> Print<String> for Writer<N> {
     }
 }
 
+/// Writes a single `&String` using `Writer::Print<&str>()` and [`String::as_str()`] to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
 impl<const N: usize> Print<&String> for Writer<N> {
     fn print(&mut self, x: &String) {
         self.print(x.as_str());

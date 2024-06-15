@@ -72,6 +72,13 @@ fn pollard_rho(r: u64) -> u64 {
     }
 }
 
+/// Returns a `Vec<u64>` containing the result of prime factorization in ascending order.
+///
+/// ```
+/// use basm_std::math::factorize;
+/// assert_eq!(vec![2, 2, 2, 3], factorize(24));
+/// assert_eq!(vec![2, 2, 5, 17], factorize(340));
+/// ```
 pub fn factorize(mut n: u64) -> Vec<u64> {
     let mut v = Vec::new();
     for p in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37] {
