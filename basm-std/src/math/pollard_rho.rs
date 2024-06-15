@@ -72,7 +72,7 @@ fn pollard_rho(r: u64) -> u64 {
     }
 }
 
-/// Returns the `Vec<u64>` contains the result of prime factorization in ascending order.
+/// Returns a `Vec<u64>` containing the result of prime factorization in ascending order.
 ///
 /// ```
 /// use basm_std::math::factorize;
