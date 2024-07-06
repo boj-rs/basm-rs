@@ -18,12 +18,6 @@ mod runtime {
         unsafe { core::hint::unreachable_unchecked() }
     }
 
-    // Temporary fix for Windows build failure.
-    // This should be removed later.
-    #[no_mangle]
-    #[cfg(target_os = "windows")]
-    extern "win64" fn __unordtf2() {}
-
     #[no_mangle]
     #[allow(non_snake_case)]
     fn _Unwind_Resume() {

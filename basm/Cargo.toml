@@ -30,15 +30,15 @@ basm-macro = { path = "../basm-macro" }
 basm-std = { path = "../basm-std", features = ["codegen"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
-compiler_builtins = { version = "0.1.111", features = ["mem"] }
+compiler_builtins = { version = "0.1.113", features = ["mem"] }
 [target.x86_64-pc-windows-gnu.dependencies]
-compiler_builtins = { version = "0.1.111", features = ["mem"] }
+compiler_builtins = { version = "0.1.113", features = ["mem"] }
 [target.x86_64-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.111", features = ["mem"] }
+compiler_builtins = { version = "0.1.113", features = ["mem"] }
 [target.i686-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.111", features = ["mem"] }
+compiler_builtins = { version = "0.1.113", features = ["mem"] }
 [target.wasm32-unknown-unknown.dependencies]
-compiler_builtins = { version = "0.1.111", features = ["mem"] }
+compiler_builtins = { version = "0.1.113", features = ["mem"] }
 
 [features]
 short = ["basm-std/short"]
