@@ -38,9 +38,7 @@ jobs:
           rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
           python -m pip install pefile
       - name: Clippy
-        run: cargo clippy --all-targets
-        env:
-          RUSTFLAGS: "-D warnings -A clippy::missing_safety_doc"
+        run: cargo clippy --all-targets -- -D warnings -A clippy::missing_safety_doc
       - name: Rustfmt
         run: cargo fmt --check --all
       - name: Test
