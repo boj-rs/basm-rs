@@ -63,16 +63,16 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
     asm!(
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
         "mov    rbx, rcx",                  // Save PLATFORM_DATA table
-        "jnc    1f",
+        "jnc    2f",
         "test   rbx, rbx",
-        "jz     1f",
-        "jmp    2f",
-        "1:",
+        "jz     2f",
+        "jmp    3f",
+        "2:",
         "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
-        "2:",
+        "3:",
         "push   rcx",                       // short form of "sub rsp, 8"
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
@@ -127,7 +127,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
         "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
         "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
-        "jc     1f",
+        "jc     2f",
         "call   {3}",
         "lea    rdi, [rip+{4}]",
         "push   rdi",                       // GetProcAddress
@@ -136,16 +136,16 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
         "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
         "sub    rsp, 32",
-        "jmp    2f",
-        "1:",
+        "jmp    3f",
+        "2:",
         "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
         "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
         "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
         "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
         "call   {0}",
-        "2:",
+        "3:",
         "bt     QWORD PTR [rbx + 8], 0",
-        "jnc    3f",
+        "jnc    4f",
         // BEGIN Linux patch
         // Linux ABI requires us to actually move the stack pointer
         //   `before' accessing the yet-to-be-committed stack pages.
@@ -158,7 +158,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         "mov    BYTE PTR [rip + {5}], 0xc3",
         "mov    BYTE PTR [rip + {6}], 0xc3",
         // END Linux patch
-        "3:",
+        "4:",
         "mov    rcx, rbx",
         "call   {1}",
         "leave",
@@ -198,23 +198,23 @@ pub unsafe extern "cdecl" fn _basm_start() -> ! {
     //   on the 16-byte boundary BEFORE `call` instruction
     asm!(
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-        "jc     1f",
+        "jc     2f",
         "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
         "push   0",                         // zero upper dword
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   0",                         // zero upper dword
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "mov    edx, esp",                  // edx = PLATFORM_DATA table
-        "jmp    2f",
-        "1:",
+        "jmp    3f",
+        "2:",
         "mov    edx, DWORD PTR [esp + 4]",  // edx = PLATFORM_DATA table
         "push   ebp",
         "mov    ebp, esp",
         "and    esp, 0xFFFFFFF0",
         "sub    esp, 12",
-        "2:",
-        "call   3f",
         "3:",
+        "call   4f",
+        "4:",
         "pop    ecx",                       // ecx = _basm_start + 36 (obtained by counting the opcode size in bytes)
         "push   edx",                       // [esp + 0] = PLATFORM_DATA table
         "call   {2}",                       // eax = offset of _basm_start from the image base
@@ -296,14 +296,14 @@ pub unsafe extern "win64" fn __chkstk() -> ! {
         "push   rax",
         "cmp    rax, 4096",
         "lea    rcx, QWORD PTR [rsp + 24]",
-        "jb     1f",
-        "2:",
+        "jb     2f",
+        "3:",
         "sub    rcx, 4096",
         "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
         "sub    rax, 4096",
         "cmp    rax, 4096",
-        "ja     2b",
-        "1:",
+        "ja     3b",
+        "2:",
         "sub    rcx, rax",
         "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
         "pop    rax",
