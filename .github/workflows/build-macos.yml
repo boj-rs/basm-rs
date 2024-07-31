@@ -36,6 +36,7 @@ jobs:
       - name: Install System packages
         run: |
           brew update
+          brew upgrade
           brew install gcc
           rustup component add rust-src --toolchain nightly-aarch64-apple-darwin
       - name: Clippy
