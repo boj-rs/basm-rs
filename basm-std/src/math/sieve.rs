@@ -2,6 +2,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 /// A dynamically growing linear sieve.
+///
 /// We ensure amortized O(1) runtime by growing in a similar way as `Vec<T>`
 /// and by using a linear sieve algorithm.
 /// The growth strategy is to increase the upper bound by 50% each time.

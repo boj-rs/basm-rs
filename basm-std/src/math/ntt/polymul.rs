@@ -332,6 +332,7 @@ pub fn polymul_ex_u64(out: &mut [u64], x: &[u64], y: &[u64], l: usize, r: usize,
 }
 
 /// Multiplies two polynomials given by coefficients `x` and `y`, modulo `modulo`.
+///
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// If either of the inputs is empty, the result will be an empty Vec.
 /// Otherwise the output will have length equal to `x.len() + y.len() - 1`.

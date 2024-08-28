@@ -222,7 +222,8 @@ fn mac3_u64(acc: &mut [u64], b: &[u64], c: &[u64]) {
 }
 
 /// Multiplies two integers `x` and `y`.
-/// Least significant digits come first.
+///
+/// In the input arrays `x` and `y`, least significant digits should come first.
 /// If either of the inputs is empty, the result will be an empty Vec.
 /// Otherwise the output will have length equal to `x.len() + y.len()`.
 ///

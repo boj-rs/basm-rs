@@ -2,6 +2,8 @@ use super::{polymod_u64, polymul_u64};
 use crate::math::{modadd, modmul, modsub};
 use alloc::vec;
 
+/// Logarithmic time linear recurrence solver.
+///
 /// Computes the `n`-th term `a[n]` of a linear recurrence specified by `first_terms` and `coeff`.
 /// The recurrence is `a[k] = coeff[0] * a[k-1] + coeff[1] * a[k-2] + ... + coeff[m-1] * a[k-m-1]`
 /// where `m` is the length of the `coeff` slice. Also, `a[i] = first_terms[i]` for `0 <= i < m`.
