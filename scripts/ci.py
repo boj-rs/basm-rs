@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 if __name__ == "__main__":
-    with open("tests/ci.json", "r") as f:
+    with open(sys.argv[5], "r") as f:
         ci_jobs = json.load(f)
 
     try:

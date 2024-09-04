@@ -49,7 +49,7 @@ jobs:
       - name: Check cargo build
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: |
-          python3 ./scripts/ci.py ${{ runner.temp }} _ CargoDev 0 ./tests/ci.json
+          python3 ./scripts/ci.py ${{ runner.temp }} _ CargoDev 0 ./tests/ci-dev.json
       - name: Check cargo build --release
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: |
