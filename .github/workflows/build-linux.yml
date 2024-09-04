@@ -47,7 +47,7 @@ jobs:
       - name: Check cargo build
         if: ${{ matrix.target != 'wasm32-unknown-unknown' && matrix.target != 'x86_64-pc-windows-gnu' }}
         run: |
-          python ./scripts/ci.py ${{ runner.temp }} _ CargoDev 0 ./tests/ci.json
+          python ./scripts/ci.py ${{ runner.temp }} _ CargoDev 0 ./tests/ci-dev.json
       - name: Check cargo build --release
         if: ${{ matrix.target != 'wasm32-unknown-unknown' && matrix.target != 'x86_64-pc-windows-gnu' }}
         run: |
