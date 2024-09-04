@@ -252,7 +252,7 @@ pub extern "C" fn _basm_start() {
 #[cfg(target_arch = "aarch64")]
 #[no_mangle]
 #[naked]
-//#[repr(align(8))]
+#[repr(align(8))]
 pub unsafe extern "C" fn _basm_start() -> ! {
     asm!(
         "sub    sp, sp, #96",
@@ -288,7 +288,7 @@ fn _start_rust(platform_data: usize) -> i32 {
 
 #[no_mangle]
 #[naked]
-//#[repr(align(4))]
+#[repr(align(4))]
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 pub unsafe extern "win64" fn __chkstk() -> ! {
     asm!(
