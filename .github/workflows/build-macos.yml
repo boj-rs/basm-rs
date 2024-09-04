@@ -46,10 +46,14 @@ jobs:
       - name: Test
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: cargo test --lib -- --test-threads 1
+      - name: Check cargo build
+        if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
+        run: |
+          python3 ./scripts/ci.py ${{ runner.temp }} _ CargoDev 0 ./tests/ci.json
       - name: Check cargo build --release
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: |
-          python3 ./scripts/ci.py ${{ runner.temp }} _ Cargo 0 ./tests/ci.json
+          python3 ./scripts/ci.py ${{ runner.temp }} _ CargoRelease 0 ./tests/ci.json
       - name: Check wasm32
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         run: |
