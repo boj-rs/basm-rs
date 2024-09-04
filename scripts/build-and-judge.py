@@ -36,9 +36,12 @@ if __name__ == '__main__':
     sol_path = sys.argv[5]
     indata_path = sys.argv[6]
     outdata_path = sys.argv[7]
-    src_ext = {"Cargo": "cargo", "C": "c", "Rust": "rs", "JavaScript": "js"}[language]
-    if language == "Cargo":
-        build_cmd = ["cargo build --release --message-format=json"]
+    src_ext = {"CargoDev": "cargo", "CargoRelease": "cargo", "C": "c", "Rust": "rs", "JavaScript": "js"}[language]
+    if language in ["CargoDev", "CargoRelease"]:
+        if language == "CargoRelease":
+            build_cmd = ["cargo build --release --message-format=json"]
+        else:
+            build_cmd = ["cargo build --message-format=json"]
         if platform.system() == "Windows":
             build_cmd = build_cmd[0].split()
 
@@ -75,7 +78,7 @@ if __name__ == '__main__':
         p = subprocess.run(build_cmd, shell=True, capture_output=True, text=True, encoding="utf8")
         if p.returncode != 0:
             raise Exception("Build failed. The stdout:\n{0}\n\nThe stderr:\n{1}".format(p.stdout, p.stderr))
-        if language == "Cargo":
+        if language in ["CargoDev", "CargoRelease"]:
             print(p.stderr)
             cargo_stdout = [json.loads(x) for x in p.stdout.split('\n') if len(x.strip()) > 0]
             basm_executable_path = None
@@ -110,7 +113,7 @@ if __name__ == '__main__':
             os.system("rustc -C opt-level=3 -o {1} {0}".format(src_path, bin_path))
     elif language == "JavaScript":
         run_cmd = ["node", src_path]
-    else: # language == "Cargo"
+    else: # language in ["CargoDev", "CargoRelease"]
         if platform.system() != "Windows":
             os.system("chmod +x {0}".format(basm_executable_path))
         run_cmd = [basm_executable_path]
