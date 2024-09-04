@@ -25,12 +25,12 @@ pub fn init(platform_data_by_loader: usize) {
                 /* use OS APIs directly */
                 os::windows::init();
             }
-            #[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
+            #[cfg(not(any(target_arch = "wasm32")))]
             services::ENV_ID_LINUX => {
                 /* use syscalls directly */
                 os::linux::init();
             }
-            #[cfg(target_arch = "aarch64")]
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             services::ENV_ID_MACOS => {
                 os::macos::init();
             }
@@ -51,17 +51,22 @@ pub fn init(platform_data_by_loader: usize) {
 }
 #[cfg(not(test))]
 pub fn try_exit() {
-    let pd = services::platform_data();
-    if (pd.env_id == services::ENV_ID_LINUX || pd.env_id == services::ENV_ID_MACOS)
-        && (pd.env_flags & services::ENV_FLAGS_NO_EXIT) == 0
+    #[cfg(not(target_arch = "wasm32"))]
     {
-        #[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
-        unsafe {
-            os::linux::syscall::exit_group(services::get_exit_status() as usize);
+        let pd = services::platform_data();
+        if (pd.env_flags & services::ENV_FLAGS_NO_EXIT) != 0 {
+            return;
+        }
+        if pd.env_id == services::ENV_ID_LINUX {
+            unsafe {
+                os::linux::syscall::exit_group(services::get_exit_status() as usize);
+            }
         }
         #[cfg(target_arch = "aarch64")]
-        unsafe {
-            os::macos::syscall::exit_group(services::get_exit_status() as usize);
+        if pd.env_id == services::ENV_ID_MACOS {
+            unsafe {
+                os::macos::syscall::exit_group(services::get_exit_status() as usize);
+            }
         }
     }
 }
