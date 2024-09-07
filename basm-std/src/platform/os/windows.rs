@@ -169,17 +169,23 @@ pub static mut WINAPI: WinApi = WinApi {
 static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_windows::System> =
     dlmalloc::Dlmalloc::new(dlmalloc_windows::System::new());
 unsafe fn dlmalloc_alloc(size: usize, align: usize) -> *mut u8 {
-    DLMALLOC.memalign(align, size)
+    unsafe {
+        DLMALLOC.memalign(align, size)
+    }
 }
 unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
-    let ptr = DLMALLOC.memalign(align, size);
-    if !ptr.is_null() && DLMALLOC.calloc_must_clear(ptr) {
-        core::ptr::write_bytes(ptr, 0, size);
+    unsafe {
+        let ptr = DLMALLOC.memalign(align, size);
+        if !ptr.is_null() && DLMALLOC.calloc_must_clear(ptr) {
+            core::ptr::write_bytes(ptr, 0, size);
+        }
+        ptr
     }
-    ptr
 }
 unsafe fn dlmalloc_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
-    DLMALLOC.free(ptr);
+    unsafe {
+        DLMALLOC.free(ptr);
+    }
 }
 unsafe fn dlmalloc_realloc(
     ptr: *mut u8,
@@ -187,115 +193,123 @@ unsafe fn dlmalloc_realloc(
     old_align: usize,
     new_size: usize,
 ) -> *mut u8 {
-    if old_align <= DLMALLOC.malloc_alignment() {
-        DLMALLOC.realloc(ptr, new_size)
-    } else {
-        let ptr_new = DLMALLOC.memalign(old_align, new_size);
-        if !ptr_new.is_null() {
-            core::ptr::copy_nonoverlapping(ptr, ptr_new, core::cmp::min(old_size, new_size));
-            DLMALLOC.free(ptr);
+    unsafe {
+        if old_align <= DLMALLOC.malloc_alignment() {
+            DLMALLOC.realloc(ptr, new_size)
+        } else {
+            let ptr_new = DLMALLOC.memalign(old_align, new_size);
+            if !ptr_new.is_null() {
+                core::ptr::copy_nonoverlapping(ptr, ptr_new, core::cmp::min(old_size, new_size));
+                DLMALLOC.free(ptr);
+            }
+            ptr_new
         }
-        ptr_new
     }
 }
 
 mod services_override {
     use super::*;
     basm_abi! {pub unsafe fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
-        debug_assert!(fd == 0);
-        let handle = WINAPI.GetStdHandle(WinApi::STD_INPUT_HANDLE);
-        let mut bytes_read: u32 = 0;
-        let mut ov: Overlapped = Default::default();
-        ov.set_off(WINAPI.io_off[fd]);
-        let mut ret = WINAPI.ReadFile(handle, buf, count as u32,
-            &mut bytes_read as *mut u32, &mut ov as *mut Overlapped);
-        if ret == 0 {
-            let err = WINAPI.GetLastError();
-            if err == WinApi::ERROR_IO_PENDING {
-                ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
-                    &mut bytes_read as *mut u32, 1);
+        unsafe {
+            debug_assert!(fd == 0);
+            let handle = WINAPI.GetStdHandle(WinApi::STD_INPUT_HANDLE);
+            let mut bytes_read: u32 = 0;
+            let mut ov: Overlapped = Default::default();
+            ov.set_off(WINAPI.io_off[fd]);
+            let mut ret = WINAPI.ReadFile(handle, buf, count as u32,
+                &mut bytes_read as *mut u32, &mut ov as *mut Overlapped);
+            if ret == 0 {
+                let err = WINAPI.GetLastError();
+                if err == WinApi::ERROR_IO_PENDING {
+                    ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
+                        &mut bytes_read as *mut u32, 1);
+                }
+                if ret != 0 { return 0; }
             }
-            if ret != 0 { return 0; }
+            WINAPI.io_off[fd] += bytes_read as u64;
+            bytes_read as usize
         }
-        WINAPI.io_off[fd] += bytes_read as u64;
-        bytes_read as usize
     }}
     basm_abi! {pub unsafe fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
-        debug_assert!(fd == 1 || fd == 2);
-        let handle = match fd {
-            1 => { WINAPI.GetStdHandle(WinApi::STD_OUTPUT_HANDLE) },
-            2 => { WINAPI.GetStdHandle(WinApi::STD_ERROR_HANDLE) },
-            _ => { unreachable!(); }
-        };
-        let mut bytes_written: u32 = 0;
-        let mut ov: Overlapped = Default::default();
-        ov.set_off(WINAPI.io_off[fd]);
-        let mut ret = WINAPI.WriteFile(handle, buf, count as u32,
-            &mut bytes_written as *mut u32, &mut ov as *mut Overlapped);
-        if ret == 0 {
-            let err = WINAPI.GetLastError();
-            if err == WinApi::ERROR_IO_PENDING {
-                ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
-                    &mut bytes_written as *mut u32, 1);
+            unsafe {
+            debug_assert!(fd == 1 || fd == 2);
+            let handle = match fd {
+                1 => { WINAPI.GetStdHandle(WinApi::STD_OUTPUT_HANDLE) },
+                2 => { WINAPI.GetStdHandle(WinApi::STD_ERROR_HANDLE) },
+                _ => { unreachable!(); }
+            };
+            let mut bytes_written: u32 = 0;
+            let mut ov: Overlapped = Default::default();
+            ov.set_off(WINAPI.io_off[fd]);
+            let mut ret = WINAPI.WriteFile(handle, buf, count as u32,
+                &mut bytes_written as *mut u32, &mut ov as *mut Overlapped);
+            if ret == 0 {
+                let err = WINAPI.GetLastError();
+                if err == WinApi::ERROR_IO_PENDING {
+                    ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
+                        &mut bytes_written as *mut u32, 1);
+                }
+                if ret != 0 { return 0; }
             }
-            if ret != 0 { return 0; }
+            WINAPI.io_off[fd] += bytes_written as u64;
+            bytes_written as usize
         }
-        WINAPI.io_off[fd] += bytes_written as u64;
-        bytes_written as usize
     }}
 }
 
 pub unsafe fn init() {
-    let pd = services::platform_data();
-    let kernel32 = pd.win_kernel32 as usize;
-    let GetProcAddress: ms_abi! {fn(usize, *const u8) -> usize} =
-        core::mem::transmute(pd.win_GetProcAddress as usize);
-    WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"VirtualAlloc\0".as_ptr(),
-    )));
-    WINAPI.ptr_VirtualFree = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"VirtualFree\0".as_ptr(),
-    )));
-    WINAPI.ptr_GetStdHandle = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"GetStdHandle\0".as_ptr(),
-    )));
-    WINAPI.ptr_ReadFile = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"ReadFile\0".as_ptr(),
-    )));
-    WINAPI.ptr_WriteFile = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"WriteFile\0".as_ptr(),
-    )));
-    WINAPI.ptr_GetOverlappedResult = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"GetOverlappedResult\0".as_ptr(),
-    )));
-    WINAPI.ptr_GetLastError = Some(core::mem::transmute(GetProcAddress(
-        kernel32,
-        b"GetLastError\0".as_ptr(),
-    )));
+    unsafe {
+        let pd = services::platform_data();
+        let kernel32 = pd.win_kernel32 as usize;
+        let GetProcAddress: ms_abi! {fn(usize, *const u8) -> usize} =
+            core::mem::transmute(pd.win_GetProcAddress as usize);
+        WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"VirtualAlloc\0".as_ptr(),
+        )));
+        WINAPI.ptr_VirtualFree = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"VirtualFree\0".as_ptr(),
+        )));
+        WINAPI.ptr_GetStdHandle = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"GetStdHandle\0".as_ptr(),
+        )));
+        WINAPI.ptr_ReadFile = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"ReadFile\0".as_ptr(),
+        )));
+        WINAPI.ptr_WriteFile = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"WriteFile\0".as_ptr(),
+        )));
+        WINAPI.ptr_GetOverlappedResult = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"GetOverlappedResult\0".as_ptr(),
+        )));
+        WINAPI.ptr_GetLastError = Some(core::mem::transmute(GetProcAddress(
+            kernel32,
+            b"GetLastError\0".as_ptr(),
+        )));
 
-    // On Windows, set console codepage to UTF-8,
-    // since the default encoding is (historically) MBCS
-    // which depends on the host platform's language and
-    // other factors.
-    let SetConsoleCP: ms_abi! {fn(u32) -> i32} =
-        core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleCP\0".as_ptr()));
-    SetConsoleCP(WinApi::CP_UTF8); // for stdin
-    let SetConsoleOutputCP: ms_abi! {fn(u32) -> i32} =
-        core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleOutputCP\0".as_ptr()));
-    SetConsoleOutputCP(WinApi::CP_UTF8); // for stdout
+        // On Windows, set console codepage to UTF-8,
+        // since the default encoding is (historically) MBCS
+        // which depends on the host platform's language and
+        // other factors.
+        let SetConsoleCP: ms_abi! {fn(u32) -> i32} =
+            core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleCP\0".as_ptr()));
+        SetConsoleCP(WinApi::CP_UTF8); // for stdin
+        let SetConsoleOutputCP: ms_abi! {fn(u32) -> i32} =
+            core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleOutputCP\0".as_ptr()));
+        SetConsoleOutputCP(WinApi::CP_UTF8); // for stdout
 
-    allocator::install_malloc_impl(
-        dlmalloc_alloc,
-        dlmalloc_alloc_zeroed,
-        dlmalloc_dealloc,
-        dlmalloc_realloc,
-    );
-    services::install_single_service(5, services_override::svc_read_stdio as usize);
-    services::install_single_service(6, services_override::svc_write_stdio as usize);
+        allocator::install_malloc_impl(
+            dlmalloc_alloc,
+            dlmalloc_alloc_zeroed,
+            dlmalloc_dealloc,
+            dlmalloc_realloc,
+        );
+        services::install_single_service(5, services_override::svc_read_stdio as usize);
+        services::install_single_service(6, services_override::svc_write_stdio as usize);
+    }
 }

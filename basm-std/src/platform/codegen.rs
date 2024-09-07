@@ -91,7 +91,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 #[cfg(target_os = "windows")]
 #[allow(non_snake_case)]
 #[link(name = "kernel32")]
-extern "win64" {
+unsafe extern "win64" {
     fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
     fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
 }
@@ -115,7 +115,7 @@ mod chkstk_gnu {
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
 pub unsafe extern "win64" fn _basm_start() -> ! {
     // Microsoft x64 ABI requires RSP to be aligned
@@ -274,7 +274,7 @@ pub unsafe extern "C" fn _basm_start() -> ! {
  */
 #[cfg_attr(not(feature = "short"), inline(never))]
 fn _call_main() {
-    extern "C" {
+    unsafe extern "C" {
         fn _basm_main();
     }
     unsafe { _basm_main() }
@@ -286,7 +286,7 @@ fn _start_rust(platform_data: usize) -> i32 {
     platform::services::get_exit_status()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
 #[repr(align(4))]
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
@@ -324,7 +324,7 @@ pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
     // Reference: https://rust-cli.github.io/book/in-depth/exit-code.html
     #[cfg(all(windows, target_arch = "x86_64"))]
     {
-        extern "win64" {
+        unsafe extern "win64" {
             fn ExitProcess(uExitCode: u32) -> !;
         }
         ExitProcess(101)
