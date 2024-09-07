@@ -74,54 +74,56 @@ struct Elf64Rela {
 }
 
 pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_section: u64) {
-    let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
-    let mut ptr_rela = 0;
-    let mut relasz = MaybeUninit::<u64>::uninit();
-    let mut relaent = MaybeUninit::<u64>::uninit();
-    loop {
-        match (*ptr_dyn).d_tag {
-            0 => {
-                break;
+    unsafe {
+        let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
+        let mut ptr_rela = 0;
+        let mut relasz = MaybeUninit::<u64>::uninit();
+        let mut relaent = MaybeUninit::<u64>::uninit();
+        loop {
+            match (*ptr_dyn).d_tag {
+                0 => {
+                    break;
+                }
+                DT_RELA => {
+                    ptr_rela = addr_image_base + (*ptr_dyn).d_val_or_ptr;
+                }
+                DT_RELASZ => {
+                    relasz.write((*ptr_dyn).d_val_or_ptr);
+                }
+                DT_RELAENT => {
+                    relaent.write((*ptr_dyn).d_val_or_ptr);
+                }
+                _ => (),
             }
-            DT_RELA => {
-                ptr_rela = addr_image_base + (*ptr_dyn).d_val_or_ptr;
-            }
-            DT_RELASZ => {
-                relasz.write((*ptr_dyn).d_val_or_ptr);
-            }
-            DT_RELAENT => {
-                relaent.write((*ptr_dyn).d_val_or_ptr);
-            }
-            _ => (),
+            ptr_dyn = ptr_dyn.add(1);
         }
-        ptr_dyn = ptr_dyn.add(1);
-    }
 
-    /* 1) Do not use .is_null() since the method itself requires relocations, at least in debug mode.
-     * 2) When DT_RELA is present, the other entries DT_RELASZ and DT_RELAENT must exist.
-     *    Source: https://docs.oracle.com/cd/E19683-01/817-3677/chapter6-42444/index.html
-     *    ("This element requires the DT_RELASZ and DT_RELAENT elements also be present.")
-     */
-    if ptr_rela == 0 {
-        return;
-    }
-    relasz.write(relasz.assume_init() + ptr_rela);
-
-    while ptr_rela < relasz.assume_init() {
-        let pst_rela = ptr_rela as *mut Elf64Rela;
-        let ul_offset = (*pst_rela).r_offset;
-        let ul_info = (*pst_rela).r_info;
-        let l_addend = (*pst_rela).r_addend;
-        if ul_info as u32 == R_X86_64_RELATIVE {
-            let l_result: u64 = addr_image_base + l_addend;
-            let ptr_target = (addr_image_base + ul_offset) as *mut u64;
-            *ptr_target = l_result;
-        } else if ul_info as u32 == R_X86_64_NONE {
-            /* do nothing */
-        } else {
-            /* not implemented */
-            panic!();
+        /* 1) Do not use .is_null() since the method itself requires relocations, at least in debug mode.
+         * 2) When DT_RELA is present, the other entries DT_RELASZ and DT_RELAENT must exist.
+         *    Source: https://docs.oracle.com/cd/E19683-01/817-3677/chapter6-42444/index.html
+         *    ("This element requires the DT_RELASZ and DT_RELAENT elements also be present.")
+         */
+        if ptr_rela == 0 {
+            return;
         }
-        ptr_rela += relaent.assume_init();
+        relasz.write(relasz.assume_init() + ptr_rela);
+
+        while ptr_rela < relasz.assume_init() {
+            let pst_rela = ptr_rela as *mut Elf64Rela;
+            let ul_offset = (*pst_rela).r_offset;
+            let ul_info = (*pst_rela).r_info;
+            let l_addend = (*pst_rela).r_addend;
+            if ul_info as u32 == R_X86_64_RELATIVE {
+                let l_result: u64 = addr_image_base + l_addend;
+                let ptr_target = (addr_image_base + ul_offset) as *mut u64;
+                *ptr_target = l_result;
+            } else if ul_info as u32 == R_X86_64_NONE {
+                /* do nothing */
+            } else {
+                /* not implemented */
+                panic!();
+            }
+            ptr_rela += relaent.assume_init();
+        }
     }
 }

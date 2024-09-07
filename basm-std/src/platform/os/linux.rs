@@ -70,7 +70,7 @@ pub mod syscall {
     }
     #[cfg(not(target_arch = "x86_64"))]
     pub unsafe fn syscall1(call_id: usize, arg0: usize) -> usize {
-        syscall(call_id, arg0, 0, 0, 0, 0, 0)
+        unsafe { syscall(call_id, arg0, 0, 0, 0, 0, 0) }
     }
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
@@ -97,7 +97,7 @@ pub mod syscall {
         arg1: usize,
         arg2: usize,
     ) -> usize {
-        syscall(call_id, arg0, arg1, arg2, 0, 0, 0)
+        unsafe { syscall(call_id, arg0, arg1, arg2, 0, 0, 0) }
     }
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
@@ -139,26 +139,28 @@ pub mod syscall {
         arg4: usize,
         arg5: usize,
     ) -> usize {
-        asm!(
-            "push ebp",
-            "push ebx",
-            "push esi",
-            "push edi",
-            "mov eax, DWORD PTR [esp + 20]",
-            "mov ebx, DWORD PTR [esp + 24]",
-            "mov ecx, DWORD PTR [esp + 28]",
-            "mov edx, DWORD PTR [esp + 32]",
-            "mov esi, DWORD PTR [esp + 36]",
-            "mov edi, DWORD PTR [esp + 40]",
-            "mov ebp, DWORD PTR [esp + 44]",
-            "int 0x80",
-            "pop edi",
-            "pop esi",
-            "pop ebx",
-            "pop ebp",
-            "ret",
-            options(noreturn)
-        );
+        unsafe {
+            asm!(
+                "push ebp",
+                "push ebx",
+                "push esi",
+                "push edi",
+                "mov eax, DWORD PTR [esp + 20]",
+                "mov ebx, DWORD PTR [esp + 24]",
+                "mov ecx, DWORD PTR [esp + 28]",
+                "mov edx, DWORD PTR [esp + 32]",
+                "mov esi, DWORD PTR [esp + 36]",
+                "mov edi, DWORD PTR [esp + 40]",
+                "mov ebp, DWORD PTR [esp + 44]",
+                "int 0x80",
+                "pop edi",
+                "pop esi",
+                "pop ebx",
+                "pop ebp",
+                "ret",
+                options(noreturn)
+            );
+        }
     }
     #[cfg(target_arch = "aarch64")]
     pub unsafe fn syscall(
@@ -170,19 +172,21 @@ pub mod syscall {
         arg4: usize,
         arg5: usize,
     ) -> usize {
-        let out;
-        asm!(
-            "svc #0",
-            in("x8") call_id,
-            in("x0") arg0,
-            in("x1") arg1,
-            in("x2") arg2,
-            in("x3") arg3,
-            in("x4") arg4,
-            in("x5") arg5,
-            lateout("x0") out
-        );
-        out
+        unsafe {
+            let out;
+            asm!(
+                "svc #0",
+                in("x8") call_id,
+                in("x0") arg0,
+                in("x1") arg1,
+                in("x2") arg2,
+                in("x3") arg3,
+                in("x4") arg4,
+                in("x5") arg5,
+                lateout("x0") out
+            );
+            out
+        }
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -217,23 +221,25 @@ pub mod syscall {
         fd: i32,
         offset: isize,
     ) -> *mut u8 {
-        let mmap_arg_struct = [
-            addr as usize,
-            len,
-            protect as usize,
-            flags as usize,
-            fd as usize,
-            offset as usize,
-        ];
-        syscall(
-            id_list::MMAP,
-            mmap_arg_struct.as_ptr() as usize,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ) as *mut u8
+        unsafe {
+            let mmap_arg_struct = [
+                addr as usize,
+                len,
+                protect as usize,
+                flags as usize,
+                fd as usize,
+                offset as usize,
+            ];
+            syscall(
+                id_list::MMAP,
+                mmap_arg_struct.as_ptr() as usize,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ) as *mut u8
+        }
     }
     #[cfg(target_arch = "aarch64")]
     #[inline(always)]
@@ -245,15 +251,17 @@ pub mod syscall {
         fd: i32,
         offset: isize,
     ) -> *mut u8 {
-        syscall(
-            id_list::MMAP,
-            addr as usize,
-            len,
-            protect as usize,
-            flags as usize,
-            fd as usize,
-            offset as usize,
-        ) as *mut u8
+        unsafe {
+            syscall(
+                id_list::MMAP,
+                addr as usize,
+                len,
+                protect as usize,
+                flags as usize,
+                fd as usize,
+                offset as usize,
+            ) as *mut u8
+        }
     }
     #[inline(always)]
     pub unsafe fn mremap(
@@ -379,11 +387,11 @@ mod services_override {
 mod services_override {
     #[inline(always)]
     pub unsafe extern "C" fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
-        super::syscall::read(fd, buf, count)
+        unsafe { super::syscall::read(fd, buf, count) }
     }
     #[inline(always)]
     pub unsafe extern "C" fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
-        super::syscall::write(fd, buf, count)
+        unsafe { super::syscall::write(fd, buf, count) }
     }
 }
 

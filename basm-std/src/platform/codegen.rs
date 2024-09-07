@@ -53,39 +53,41 @@ compile_error!("The target architecture is not supported.");
 compile_error!("AArch64 (aarch64-apple-darwin) is only supported for local execution, not submission; use x86-64 to submit.");
 
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
 pub unsafe extern "win64" fn _basm_start() -> ! {
-    // AMD64 System V ABI requires RSP to be aligned
-    //   on the 16-byte boundary BEFORE `call` instruction.
-    // However, when called as the entrypoint by the Linux OS,
-    //   RSP will be 16-byte aligned AFTER `call` instruction.
-    asm!(
-        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-        "mov    rbx, rcx",                  // Save PLATFORM_DATA table
-        "jnc    2f",
-        "test   rbx, rbx",
-        "jz     2f",
-        "jmp    3f",
-        "2:",
-        "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
-        "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
-        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
-        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
-        "3:",
-        "push   rcx",                       // short form of "sub rsp, 8"
-        "lea    rdi, [rip + __ehdr_start]",
-        "lea    rsi, [rip + _DYNAMIC]",
-        "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
-        "call   {0}",
-        "mov    rdi, rbx",
-        "call   {1}",
-        "pop    rcx",                       // short form of "add rsp, 8"
-        "ret",
-        sym loader::amd64_elf::relocate,
-        sym _start_rust,
-        options(noreturn)
-    );
+    unsafe {
+        // AMD64 System V ABI requires RSP to be aligned
+        //   on the 16-byte boundary BEFORE `call` instruction.
+        // However, when called as the entrypoint by the Linux OS,
+        //   RSP will be 16-byte aligned AFTER `call` instruction.
+        asm!(
+            "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+            "mov    rbx, rcx",                  // Save PLATFORM_DATA table
+            "jnc    2f",
+            "test   rbx, rbx",
+            "jz     2f",
+            "jmp    3f",
+            "2:",
+            "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
+            "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+            "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+            "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
+            "3:",
+            "push   rcx",                       // short form of "sub rsp, 8"
+            "lea    rdi, [rip + __ehdr_start]",
+            "lea    rsi, [rip + _DYNAMIC]",
+            "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
+            "call   {0}",
+            "mov    rdi, rbx",
+            "call   {1}",
+            "pop    rcx",                       // short form of "add rsp, 8"
+            "ret",
+            sym loader::amd64_elf::relocate,
+            sym _start_rust,
+            options(noreturn)
+        );
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -103,7 +105,7 @@ unsafe extern "sysv64" fn get_kernel32() -> usize {
 
 #[cfg(all(target_os = "windows", target_env = "gnu"))]
 mod chkstk_gnu {
-    extern "C" {
+    unsafe extern "C" {
         pub fn ___chkstk_ms();
         pub fn ___chkstk();
     }
@@ -177,72 +179,78 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 }
 
 #[cfg(target_arch = "x86")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
-#[link_section = ".data"]
+#[unsafe(link_section = ".data")]
 unsafe extern "cdecl" fn _get_start_offset() -> ! {
-    asm!("lea    eax, [_basm_start]", "ret", options(noreturn));
+    unsafe {
+        asm!("lea    eax, [_basm_start]", "ret", options(noreturn));
+    }
 }
 
 #[cfg(target_arch = "x86")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
-#[link_section = ".data"]
+#[unsafe(link_section = ".data")]
 unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
-    asm!("lea    eax, [_DYNAMIC]", "ret", options(noreturn));
+    unsafe {
+        asm!("lea    eax, [_DYNAMIC]", "ret", options(noreturn));
+    }
 }
 
 #[cfg(target_arch = "x86")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
 pub unsafe extern "cdecl" fn _basm_start() -> ! {
-    // i386 System V ABI requires ESP to be aligned
-    //   on the 16-byte boundary BEFORE `call` instruction
-    asm!(
-        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-        "jc     2f",
-        "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
-        "push   0",                         // zero upper dword
-        "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
-        "push   0",                         // zero upper dword
-        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
-        "mov    edx, esp",                  // edx = PLATFORM_DATA table
-        "jmp    3f",
-        "2:",
-        "mov    edx, DWORD PTR [esp + 4]",  // edx = PLATFORM_DATA table
-        "push   ebp",
-        "mov    ebp, esp",
-        "and    esp, 0xFFFFFFF0",
-        "sub    esp, 12",
-        "3:",
-        "call   4f",
-        "4:",
-        "pop    ecx",                       // ecx = _basm_start + 36 (obtained by counting the opcode size in bytes)
-        "push   edx",                       // [esp + 0] = PLATFORM_DATA table
-        "call   {2}",                       // eax = offset of _basm_start from the image base
-        "sub    ecx, eax",
-        "sub    ecx, 36",                   // ecx = the in-memory image base (i.e., __ehdr_start)
-        "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
-        "add    eax, ecx",                  // eax = _DYNAMIC table
-        "sub    esp, 8",                    // For stack alignment
-        "push   eax",
-        "push   ecx",
-        "call   {0}",
-        "add    esp, 16",
-        "call   {1}",
-        "mov    esp, ebp",
-        "pop    ebp",
-        "ret",
-        sym loader::i686_elf::relocate,
-        sym _start_rust,
-        sym _get_start_offset,
-        sym _get_dynamic_section_offset,
-        options(noreturn)
-    );
+    unsafe {
+        // i386 System V ABI requires ESP to be aligned
+        //   on the 16-byte boundary BEFORE `call` instruction
+        asm!(
+            "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+            "jc     2f",
+            "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
+            "push   0",                         // zero upper dword
+            "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+            "push   0",                         // zero upper dword
+            "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+            "mov    edx, esp",                  // edx = PLATFORM_DATA table
+            "jmp    3f",
+            "2:",
+            "mov    edx, DWORD PTR [esp + 4]",  // edx = PLATFORM_DATA table
+            "push   ebp",
+            "mov    ebp, esp",
+            "and    esp, 0xFFFFFFF0",
+            "sub    esp, 12",
+            "3:",
+            "call   4f",
+            "4:",
+            "pop    ecx",                       // ecx = _basm_start + 36 (obtained by counting the opcode size in bytes)
+            "push   edx",                       // [esp + 0] = PLATFORM_DATA table
+            "call   {2}",                       // eax = offset of _basm_start from the image base
+            "sub    ecx, eax",
+            "sub    ecx, 36",                   // ecx = the in-memory image base (i.e., __ehdr_start)
+            "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
+            "add    eax, ecx",                  // eax = _DYNAMIC table
+            "sub    esp, 8",                    // For stack alignment
+            "push   eax",
+            "push   ecx",
+            "call   {0}",
+            "add    esp, 16",
+            "call   {1}",
+            "mov    esp, ebp",
+            "pop    ebp",
+            "ret",
+            sym loader::i686_elf::relocate,
+            sym _start_rust,
+            sym _get_start_offset,
+            sym _get_dynamic_section_offset,
+            options(noreturn)
+        );
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _basm_start() {
     let mut pd = platform::services::PlatformData {
         env_id: platform::services::ENV_ID_WASM,
@@ -252,21 +260,23 @@ pub extern "C" fn _basm_start() {
 }
 
 #[cfg(target_arch = "aarch64")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
 #[repr(align(8))]
 pub unsafe extern "C" fn _basm_start() -> ! {
-    asm!(
-        "sub    sp, sp, #96",
-        "mov    x0, #4",    // 4 = ENV_ID_MACOS
-        "str    x0, [sp, #(8 * 0)]",
-        "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
-        "str    x0, [sp, #(8 * 1)]",
-        "mov    x0, sp",
-        "bl     {0}",
-        sym _start_rust,
-        options(noreturn)
-    )
+    unsafe {
+        asm!(
+            "sub    sp, sp, #96",
+            "mov    x0, #4",    // 4 = ENV_ID_MACOS
+            "str    x0, [sp, #(8 * 0)]",
+            "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
+            "str    x0, [sp, #(8 * 1)]",
+            "mov    x0, sp",
+            "bl     {0}",
+            sym _start_rust,
+            options(noreturn)
+        )
+    }
 }
 
 /* We prevent inlining solution::main, since if the user allocates
