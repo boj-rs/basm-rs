@@ -62,7 +62,7 @@ pub fn try_exit() {
                 os::linux::syscall::exit_group(services::get_exit_status() as usize);
             }
         }
-        #[cfg(target_arch = "aarch64")]
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         if pd.env_id == services::ENV_ID_MACOS {
             unsafe {
                 os::macos::syscall::exit_group(services::get_exit_status() as usize);

@@ -249,7 +249,7 @@ pub extern "C" fn _basm_start() {
     _start_rust(&mut pd as *mut platform::services::PlatformData as usize);
 }
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[no_mangle]
 #[naked]
 #[repr(align(8))]
@@ -257,6 +257,24 @@ pub unsafe extern "C" fn _basm_start() -> ! {
     asm!(
         "sub    sp, sp, #96",
         "mov    x0, #4",    // 4 = ENV_ID_MACOS
+        "str    x0, [sp, #(8 * 0)]",
+        "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
+        "str    x0, [sp, #(8 * 1)]",
+        "mov    x0, sp",
+        "bl     {0}",
+        sym _start_rust,
+        options(noreturn)
+    )
+}
+
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+#[no_mangle]
+#[naked]
+//#[repr(align(8))]
+pub unsafe extern "C" fn _basm_start() -> ! {
+    asm!(
+        "sub    sp, sp, #96",
+        "mov    x0, #2",    // 2 = ENV_ID_LINUX
         "str    x0, [sp, #(8 * 0)]",
         "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
         "str    x0, [sp, #(8 * 1)]",
