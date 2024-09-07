@@ -12,10 +12,12 @@ pub unsafe fn install_malloc_impl(
     ptr_dealloc: unsafe fn(*mut u8, usize, usize),
     ptr_realloc: unsafe fn(*mut u8, usize, usize, usize) -> *mut u8,
 ) {
-    PTR_ALLOC = ptr_alloc;
-    PTR_ALLOC_ZEROED = ptr_alloc_zeroed;
-    PTR_DEALLOC = ptr_dealloc;
-    PTR_REALLOC = ptr_realloc;
+    unsafe {
+        PTR_ALLOC = ptr_alloc;
+        PTR_ALLOC_ZEROED = ptr_alloc_zeroed;
+        PTR_DEALLOC = ptr_dealloc;
+        PTR_REALLOC = ptr_realloc;
+    }
 }
 
 pub struct Allocator;
@@ -23,15 +25,15 @@ pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {
     #[inline(always)]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        PTR_ALLOC(layout.size(), layout.align())
+        unsafe { PTR_ALLOC(layout.size(), layout.align()) }
     }
     #[inline(always)]
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
-        PTR_ALLOC_ZEROED(layout.size(), layout.align())
+        unsafe { PTR_ALLOC_ZEROED(layout.size(), layout.align()) }
     }
     #[inline(always)]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        PTR_DEALLOC(ptr, layout.size(), layout.align())
+        unsafe { PTR_DEALLOC(ptr, layout.size(), layout.align()) }
     }
     #[inline(always)]
     unsafe fn realloc(
@@ -40,6 +42,6 @@ unsafe impl GlobalAlloc for Allocator {
         layout: core::alloc::Layout,
         new_size: usize,
     ) -> *mut u8 {
-        PTR_REALLOC(ptr, layout.size(), layout.align(), new_size)
+        unsafe { PTR_REALLOC(ptr, layout.size(), layout.align(), new_size) }
     }
 }

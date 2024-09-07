@@ -379,12 +379,14 @@ unsafe fn ntt2_single_block<const P: u64, const INV: bool, const TWIDDLE: bool>(
     mut px: *mut u64,
     ptf: *const u64,
 ) -> (*mut u64, *const u64) {
-    let w1 = if TWIDDLE { *ptf } else { 0 };
-    for _ in 0..s1 {
-        (*px, *px.add(s1)) = ntt2_kernel::<P, INV, TWIDDLE>(w1, *px, *px.add(s1));
-        px = px.add(1);
+    unsafe {
+        let w1 = if TWIDDLE { *ptf } else { 0 };
+        for _ in 0..s1 {
+            (*px, *px.add(s1)) = ntt2_kernel::<P, INV, TWIDDLE>(w1, *px, *px.add(s1));
+            px = px.add(1);
+        }
+        (px.add(s1), ptf.add(1))
     }
-    (px.add(s1), ptf.add(1))
 }
 const fn ntt3_kernel<const P: u64, const INV: bool, const TWIDDLE: bool>(
     w1: u64,
@@ -414,14 +416,16 @@ unsafe fn ntt3_single_block<const P: u64, const INV: bool, const TWIDDLE: bool>(
     mut px: *mut u64,
     ptf: *const u64,
 ) -> (*mut u64, *const u64) {
-    let w1 = if TWIDDLE { *ptf } else { 0 };
-    let w2 = Arith::<P>::mmulmod(w1, w1);
-    for _ in 0..s1 {
-        (*px, *px.add(s1), *px.add(2 * s1)) =
-            ntt3_kernel::<P, INV, TWIDDLE>(w1, w2, *px, *px.add(s1), *px.add(2 * s1));
-        px = px.add(1);
+    unsafe {
+        let w1 = if TWIDDLE { *ptf } else { 0 };
+        let w2 = Arith::<P>::mmulmod(w1, w1);
+        for _ in 0..s1 {
+            (*px, *px.add(s1), *px.add(2 * s1)) =
+                ntt3_kernel::<P, INV, TWIDDLE>(w1, w2, *px, *px.add(s1), *px.add(2 * s1));
+            px = px.add(1);
+        }
+        (px.add(2 * s1), ptf.add(1))
     }
-    (px.add(2 * s1), ptf.add(1))
 }
 const fn ntt4_kernel<const P: u64, const INV: bool, const TWIDDLE: bool>(
     w1: u64,
@@ -456,22 +460,24 @@ unsafe fn ntt4_single_block<const P: u64, const INV: bool, const TWIDDLE: bool>(
     mut px: *mut u64,
     ptf: *const u64,
 ) -> (*mut u64, *const u64) {
-    let w1 = if TWIDDLE { *ptf } else { 0 };
-    let w2 = Arith::<P>::mmulmod(w1, w1);
-    let w3 = Arith::<P>::mmulmod(w1, w2);
-    for _ in 0..s1 {
-        (*px, *px.add(s1), *px.add(2 * s1), *px.add(3 * s1)) = ntt4_kernel::<P, INV, TWIDDLE>(
-            w1,
-            w2,
-            w3,
-            *px,
-            *px.add(s1),
-            *px.add(2 * s1),
-            *px.add(3 * s1),
-        );
-        px = px.add(1);
+    unsafe {
+        let w1 = if TWIDDLE { *ptf } else { 0 };
+        let w2 = Arith::<P>::mmulmod(w1, w1);
+        let w3 = Arith::<P>::mmulmod(w1, w2);
+        for _ in 0..s1 {
+            (*px, *px.add(s1), *px.add(2 * s1), *px.add(3 * s1)) = ntt4_kernel::<P, INV, TWIDDLE>(
+                w1,
+                w2,
+                w3,
+                *px,
+                *px.add(s1),
+                *px.add(2 * s1),
+                *px.add(3 * s1),
+            );
+            px = px.add(1);
+        }
+        (px.add(3 * s1), ptf.add(1))
     }
-    (px.add(3 * s1), ptf.add(1))
 }
 const fn ntt5_kernel<const P: u64, const INV: bool, const TWIDDLE: bool>(
     w1: u64,
@@ -523,31 +529,33 @@ unsafe fn ntt5_single_block<const P: u64, const INV: bool, const TWIDDLE: bool>(
     mut px: *mut u64,
     ptf: *const u64,
 ) -> (*mut u64, *const u64) {
-    let w1 = if TWIDDLE { *ptf } else { 0 };
-    let w2 = Arith::<P>::mmulmod(w1, w1);
-    let w3 = Arith::<P>::mmulmod(w1, w2);
-    let w4 = Arith::<P>::mmulmod(w2, w2);
-    for _ in 0..s1 {
-        (
-            *px,
-            *px.add(s1),
-            *px.add(2 * s1),
-            *px.add(3 * s1),
-            *px.add(4 * s1),
-        ) = ntt5_kernel::<P, INV, TWIDDLE>(
-            w1,
-            w2,
-            w3,
-            w4,
-            *px,
-            *px.add(s1),
-            *px.add(2 * s1),
-            *px.add(3 * s1),
-            *px.add(4 * s1),
-        );
-        px = px.add(1);
+    unsafe {
+        let w1 = if TWIDDLE { *ptf } else { 0 };
+        let w2 = Arith::<P>::mmulmod(w1, w1);
+        let w3 = Arith::<P>::mmulmod(w1, w2);
+        let w4 = Arith::<P>::mmulmod(w2, w2);
+        for _ in 0..s1 {
+            (
+                *px,
+                *px.add(s1),
+                *px.add(2 * s1),
+                *px.add(3 * s1),
+                *px.add(4 * s1),
+            ) = ntt5_kernel::<P, INV, TWIDDLE>(
+                w1,
+                w2,
+                w3,
+                w4,
+                *px,
+                *px.add(s1),
+                *px.add(2 * s1),
+                *px.add(3 * s1),
+                *px.add(4 * s1),
+            );
+            px = px.add(1);
+        }
+        (px.add(4 * s1), ptf.add(1))
     }
-    (px.add(4 * s1), ptf.add(1))
 }
 const fn ntt6_kernel<const P: u64, const INV: bool, const TWIDDLE: bool>(
     w1: u64,
@@ -602,35 +610,37 @@ unsafe fn ntt6_single_block<const P: u64, const INV: bool, const TWIDDLE: bool>(
     mut px: *mut u64,
     ptf: *const u64,
 ) -> (*mut u64, *const u64) {
-    let w1 = if TWIDDLE { *ptf } else { 0 };
-    let w2 = Arith::<P>::mmulmod(w1, w1);
-    let w3 = Arith::<P>::mmulmod(w1, w2);
-    let w4 = Arith::<P>::mmulmod(w2, w2);
-    let w5 = Arith::<P>::mmulmod(w2, w3);
-    for _ in 0..s1 {
-        (
-            *px,
-            *px.add(s1),
-            *px.add(2 * s1),
-            *px.add(3 * s1),
-            *px.add(4 * s1),
-            *px.add(5 * s1),
-        ) = ntt6_kernel::<P, INV, TWIDDLE>(
-            w1,
-            w2,
-            w3,
-            w4,
-            w5,
-            *px,
-            *px.add(s1),
-            *px.add(2 * s1),
-            *px.add(3 * s1),
-            *px.add(4 * s1),
-            *px.add(5 * s1),
-        );
-        px = px.add(1);
+    unsafe {
+        let w1 = if TWIDDLE { *ptf } else { 0 };
+        let w2 = Arith::<P>::mmulmod(w1, w1);
+        let w3 = Arith::<P>::mmulmod(w1, w2);
+        let w4 = Arith::<P>::mmulmod(w2, w2);
+        let w5 = Arith::<P>::mmulmod(w2, w3);
+        for _ in 0..s1 {
+            (
+                *px,
+                *px.add(s1),
+                *px.add(2 * s1),
+                *px.add(3 * s1),
+                *px.add(4 * s1),
+                *px.add(5 * s1),
+            ) = ntt6_kernel::<P, INV, TWIDDLE>(
+                w1,
+                w2,
+                w3,
+                w4,
+                w5,
+                *px,
+                *px.add(s1),
+                *px.add(2 * s1),
+                *px.add(3 * s1),
+                *px.add(4 * s1),
+                *px.add(5 * s1),
+            );
+            px = px.add(1);
+        }
+        (px.add(5 * s1), ptf.add(1))
     }
-    (px.add(5 * s1), ptf.add(1))
 }
 
 fn ntt_dif_dit<const P: u64, const INV: bool>(plan: &NttPlan, x: &mut [u64], tf_list: &[u64]) {

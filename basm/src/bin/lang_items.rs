@@ -1,4 +1,4 @@
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn _basm_main() {
     crate::solution::main()
 }
@@ -8,23 +8,23 @@ mod runtime {
     #[global_allocator]
     static ALLOC: basm::platform::allocator::Allocator = basm::platform::allocator::Allocator;
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     #[cfg(target_os = "windows")]
     static mut _fltused: i32 = 0;
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     #[cfg(target_os = "windows")]
     extern "win64" fn __CxxFrameHandler3() -> ! {
         unsafe { core::hint::unreachable_unchecked() }
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     #[allow(non_snake_case)]
     fn _Unwind_Resume() {
         unsafe { core::hint::unreachable_unchecked() }
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     fn rust_eh_personality() {
         unsafe { core::hint::unreachable_unchecked() }
     }

@@ -71,43 +71,47 @@ struct Elf32Rel {
 }
 
 unsafe fn find_tag(mut ptr: *const Elf32Dyn, tag: u32) -> *const Elf32Dyn {
-    while (*ptr).d_tag != 0 {
-        if (*ptr).d_tag == tag {
-            return ptr;
+    unsafe {
+        while (*ptr).d_tag != 0 {
+            if (*ptr).d_tag == tag {
+                return ptr;
+            }
+            ptr = ptr.add(1);
         }
-        ptr = ptr.add(1);
+        core::ptr::null()
     }
-    core::ptr::null()
 }
 
 pub unsafe extern "C" fn relocate(addr_image_base: u32, addr_dynamic_section: u32) {
-    let ptr_dyn = addr_dynamic_section as *const Elf32Dyn;
-    let ptr_rel = find_tag(ptr_dyn, DT_REL);
-    let ptr_relsz = find_tag(ptr_dyn, DT_RELSZ);
-    let ptr_relent = find_tag(ptr_dyn, DT_RELENT);
+    unsafe {
+        let ptr_dyn = addr_dynamic_section as *const Elf32Dyn;
+        let ptr_rel = find_tag(ptr_dyn, DT_REL);
+        let ptr_relsz = find_tag(ptr_dyn, DT_RELSZ);
+        let ptr_relent = find_tag(ptr_dyn, DT_RELENT);
 
-    /* do not use .is_null() since the method itself requires relocations, at least in debug mode */
-    if ptr_rel == core::ptr::null()
-        || ptr_relsz == core::ptr::null()
-        || ptr_relent == core::ptr::null()
-    {
-        return;
-    }
-
-    let mut j = 0;
-    while j < (*ptr_relsz).d_val_or_ptr {
-        let pst_rel = (addr_image_base + (*ptr_rel).d_val_or_ptr + j) as *mut Elf32Rel;
-        let ul_offset = (*pst_rel).r_offset;
-        let ul_info = (*pst_rel).r_info;
-        if ul_info as u8 == R_386_RELATIVE {
-            let ptr_target = (addr_image_base + ul_offset) as *mut u32;
-            *ptr_target += addr_image_base;
-        } else if ul_info as u8 == R_386_NONE {
-            /* do nothing */
-        } else {
-            /* not implemented */
-            panic!();
+        /* do not use .is_null() since the method itself requires relocations, at least in debug mode */
+        if ptr_rel == core::ptr::null()
+            || ptr_relsz == core::ptr::null()
+            || ptr_relent == core::ptr::null()
+        {
+            return;
         }
-        j += (*ptr_relent).d_val_or_ptr;
+
+        let mut j = 0;
+        while j < (*ptr_relsz).d_val_or_ptr {
+            let pst_rel = (addr_image_base + (*ptr_rel).d_val_or_ptr + j) as *mut Elf32Rel;
+            let ul_offset = (*pst_rel).r_offset;
+            let ul_info = (*pst_rel).r_info;
+            if ul_info as u8 == R_386_RELATIVE {
+                let ptr_target = (addr_image_base + ul_offset) as *mut u32;
+                *ptr_target += addr_image_base;
+            } else if ul_info as u8 == R_386_NONE {
+                /* do nothing */
+            } else {
+                /* not implemented */
+                panic!();
+            }
+            j += (*ptr_relent).d_val_or_ptr;
+        }
     }
 }
