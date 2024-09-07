@@ -13,10 +13,12 @@ mod deserialize;
 pub use deserialize::De;
 
 pub unsafe fn eat(ptr_serialized: usize) -> &'static [u8] {
-    const SIZE: usize = core::mem::size_of::<usize>();
-    let mut buf = core::slice::from_raw_parts(ptr_serialized as *const u8, SIZE);
-    let len = usize::de(&mut buf);
-    core::slice::from_raw_parts((ptr_serialized + SIZE) as *const u8, len)
+    unsafe {
+        const SIZE: usize = core::mem::size_of::<usize>();
+        let mut buf = core::slice::from_raw_parts(ptr_serialized as *const u8, SIZE);
+        let len = usize::de(&mut buf);
+        core::slice::from_raw_parts((ptr_serialized + SIZE) as *const u8, len)
+    }
 }
 
 /// Calls external function `ptr_fn_remote: fn(usize) -> usize` on function implementation problems.

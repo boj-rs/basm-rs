@@ -169,9 +169,7 @@ pub static mut WINAPI: WinApi = WinApi {
 static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_windows::System> =
     dlmalloc::Dlmalloc::new(dlmalloc_windows::System::new());
 unsafe fn dlmalloc_alloc(size: usize, align: usize) -> *mut u8 {
-    unsafe {
-        DLMALLOC.memalign(align, size)
-    }
+    unsafe { DLMALLOC.memalign(align, size) }
 }
 unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
     unsafe {

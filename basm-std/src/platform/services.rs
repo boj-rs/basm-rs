@@ -46,29 +46,41 @@ pub fn install(platform_data_by_loader: usize) {
     }
 }
 unsafe fn addr(fn_id: usize) -> usize {
-    core::ptr::read((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize)
+    unsafe {
+        core::ptr::read((PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize)
+    }
 }
 pub unsafe fn install_single_service(fn_id: usize, fn_ptr: usize) {
-    core::ptr::write(
-        (PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize,
-        fn_ptr,
-    )
+    unsafe {
+        core::ptr::write(
+            (PLATFORM_DATA + 32 + fn_id * core::mem::size_of::<usize>()) as *mut usize,
+            fn_ptr,
+        )
+    }
 }
 pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {
-    let fn_ptr: native_func::A = core::mem::transmute(addr(1));
-    fn_ptr(size, align)
+    unsafe {
+        let fn_ptr: native_func::A = core::mem::transmute(addr(1));
+        fn_ptr(size, align)
+    }
 }
 pub unsafe fn alloc_zeroed(size: usize, align: usize) -> *mut u8 {
-    let fn_ptr: native_func::A = core::mem::transmute(addr(2));
-    fn_ptr(size, align)
+    unsafe {
+        let fn_ptr: native_func::A = core::mem::transmute(addr(2));
+        fn_ptr(size, align)
+    }
 }
 pub unsafe fn dealloc(ptr: *mut u8, size: usize, align: usize) {
-    let fn_ptr: native_func::B = core::mem::transmute(addr(3));
-    fn_ptr(ptr, size, align)
+    unsafe {
+        let fn_ptr: native_func::B = core::mem::transmute(addr(3));
+        fn_ptr(ptr, size, align)
+    }
 }
 pub unsafe fn realloc(ptr: *mut u8, old_size: usize, old_align: usize, new_size: usize) -> *mut u8 {
-    let fn_ptr: native_func::C = core::mem::transmute(addr(4));
-    fn_ptr(ptr, old_size, old_align, new_size)
+    unsafe {
+        let fn_ptr: native_func::C = core::mem::transmute(addr(4));
+        fn_ptr(ptr, old_size, old_align, new_size)
+    }
 }
 pub fn read_stdio(fd: usize, buf: &mut [u8]) -> usize {
     #[cfg(not(all(feature = "short", target_os = "linux")))]

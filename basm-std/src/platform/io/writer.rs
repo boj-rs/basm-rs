@@ -27,49 +27,51 @@ struct B128([u8; 16]);
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    let x = _mm_cvtsi32_si128(n as i32);
-    let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
-    let mul_10000_merge = _mm_set1_epi32(55536);
-    let div_var = _mm_setr_epi16(
-        8389,
-        5243,
-        13108,
-        0x8000u16 as i16,
-        8389,
-        5243,
-        13108,
-        0x8000u16 as i16,
-    );
-    let shift_var = _mm_setr_epi16(
-        1 << 7,
-        1 << 11,
-        1 << 13,
-        (1 << 15) as i16,
-        1 << 7,
-        1 << 11,
-        1 << 13,
-        (1 << 15) as i16,
-    );
-    let mul_10 = _mm_set1_epi16(10);
-    let ascii0 = _mm_set1_epi8(48);
-    let x_div_10000 = _mm_srli_epi64::<45>(_mm_mul_epu32(x, div_10000));
-    let y = _mm_add_epi32(x, _mm_mul_epu32(x_div_10000, mul_10000_merge));
-    let t0 = _mm_slli_epi16::<2>(_mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y)));
-    let t1 = _mm_mulhi_epu16(t0, div_var);
-    let t2 = _mm_mulhi_epu16(t1, shift_var);
-    let t3 = _mm_slli_epi64::<16>(t2);
-    let t4 = _mm_mullo_epi16(t3, mul_10);
-    let t5 = _mm_sub_epi16(t2, t4);
-    let t6 = _mm_packus_epi16(_mm_setzero_si128(), t5);
-    let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(t6, _mm_setzero_si128()));
-    let offset = (mask & !0x8000).trailing_ones() as usize;
-    let ascii = _mm_add_epi8(t6, ascii0);
-    _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
-    offset
+    unsafe {
+        #[cfg(target_arch = "x86")]
+        use core::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use core::arch::x86_64::*;
+        let x = _mm_cvtsi32_si128(n as i32);
+        let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
+        let mul_10000_merge = _mm_set1_epi32(55536);
+        let div_var = _mm_setr_epi16(
+            8389,
+            5243,
+            13108,
+            0x8000u16 as i16,
+            8389,
+            5243,
+            13108,
+            0x8000u16 as i16,
+        );
+        let shift_var = _mm_setr_epi16(
+            1 << 7,
+            1 << 11,
+            1 << 13,
+            (1 << 15) as i16,
+            1 << 7,
+            1 << 11,
+            1 << 13,
+            (1 << 15) as i16,
+        );
+        let mul_10 = _mm_set1_epi16(10);
+        let ascii0 = _mm_set1_epi8(48);
+        let x_div_10000 = _mm_srli_epi64::<45>(_mm_mul_epu32(x, div_10000));
+        let y = _mm_add_epi32(x, _mm_mul_epu32(x_div_10000, mul_10000_merge));
+        let t0 = _mm_slli_epi16::<2>(_mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y)));
+        let t1 = _mm_mulhi_epu16(t0, div_var);
+        let t2 = _mm_mulhi_epu16(t1, shift_var);
+        let t3 = _mm_slli_epi64::<16>(t2);
+        let t4 = _mm_mullo_epi16(t3, mul_10);
+        let t5 = _mm_sub_epi16(t2, t4);
+        let t6 = _mm_packus_epi16(_mm_setzero_si128(), t5);
+        let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(t6, _mm_setzero_si128()));
+        let offset = (mask & !0x8000).trailing_ones() as usize;
+        let ascii = _mm_add_epi8(t6, ascii0);
+        _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
+        offset
+    }
 }
 #[cfg(not(feature = "short"))]
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]

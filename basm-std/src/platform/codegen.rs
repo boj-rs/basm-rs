@@ -98,7 +98,7 @@ unsafe extern "win64" {
 
 #[cfg(target_os = "windows")]
 unsafe extern "sysv64" fn get_kernel32() -> usize {
-    LoadLibraryA(b"KERNEL32\0".as_ptr())
+    unsafe { LoadLibraryA(b"KERNEL32\0".as_ptr()) }
 }
 
 #[cfg(all(target_os = "windows", target_env = "gnu"))]
@@ -118,60 +118,62 @@ mod chkstk_gnu {
 #[unsafe(no_mangle)]
 #[naked]
 pub unsafe extern "win64" fn _basm_start() -> ! {
-    // Microsoft x64 ABI requires RSP to be aligned
-    //   on the 16-byte boundary BEFORE `call` instruction.
-    // Also, when called as the entrypoint by the Windows OS,
-    //   RSP will be 16-byte aligned BEFORE `call` instruction.
-    // In addition, we need to provide a `shadow space` of 32 bytes.
-    asm!(
-        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-        "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
-        "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
-        "jc     2f",
-        "call   {3}",
-        "lea    rdi, [rip+{4}]",
-        "push   rdi",                       // GetProcAddress
-        "push   rax",                       // handle to kernel32
-        "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
-        "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
-        "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
-        "sub    rsp, 32",
-        "jmp    3f",
-        "2:",
-        "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
-        "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
-        "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
-        "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
-        "call   {0}",
-        "3:",
-        "bt     QWORD PTR [rbx + 8], 0",
-        "jnc    4f",
-        // BEGIN Linux patch
-        // Linux ABI requires us to actually move the stack pointer
-        //   `before' accessing the yet-to-be-committed stack pages.
-        // However, it is not necessary to touch the pages in advance,
-        //    meaning it is okay to completely *disable* this mechanism.
-        // See: https://stackoverflow.com/a/46791370
-        //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
-        // 0:  c3                      ret
-        "mov    BYTE PTR [rip + {2}], 0xc3",
-        "mov    BYTE PTR [rip + {5}], 0xc3",
-        "mov    BYTE PTR [rip + {6}], 0xc3",
-        // END Linux patch
-        "4:",
-        "mov    rcx, rbx",
-        "call   {1}",
-        "leave",
-        "ret",
-        sym loader::amd64_pe::relocate,
-        sym _start_rust,
-        sym __chkstk,
-        sym get_kernel32,
-        sym GetProcAddress,
-        sym chkstk_gnu::___chkstk_ms,
-        sym chkstk_gnu::___chkstk,
-        options(noreturn)
-    );
+    unsafe {
+        // Microsoft x64 ABI requires RSP to be aligned
+        //   on the 16-byte boundary BEFORE `call` instruction.
+        // Also, when called as the entrypoint by the Windows OS,
+        //   RSP will be 16-byte aligned BEFORE `call` instruction.
+        // In addition, we need to provide a `shadow space` of 32 bytes.
+        asm!(
+            "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+            "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
+            "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
+            "jc     2f",
+            "call   {3}",
+            "lea    rdi, [rip+{4}]",
+            "push   rdi",                       // GetProcAddress
+            "push   rax",                       // handle to kernel32
+            "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
+            "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
+            "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
+            "sub    rsp, 32",
+            "jmp    3f",
+            "2:",
+            "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
+            "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
+            "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
+            "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
+            "call   {0}",
+            "3:",
+            "bt     QWORD PTR [rbx + 8], 0",
+            "jnc    4f",
+            // BEGIN Linux patch
+            // Linux ABI requires us to actually move the stack pointer
+            //   `before' accessing the yet-to-be-committed stack pages.
+            // However, it is not necessary to touch the pages in advance,
+            //    meaning it is okay to completely *disable* this mechanism.
+            // See: https://stackoverflow.com/a/46791370
+            //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
+            // 0:  c3                      ret
+            "mov    BYTE PTR [rip + {2}], 0xc3",
+            "mov    BYTE PTR [rip + {5}], 0xc3",
+            "mov    BYTE PTR [rip + {6}], 0xc3",
+            // END Linux patch
+            "4:",
+            "mov    rcx, rbx",
+            "call   {1}",
+            "leave",
+            "ret",
+            sym loader::amd64_pe::relocate,
+            sym _start_rust,
+            sym __chkstk,
+            sym get_kernel32,
+            sym GetProcAddress,
+            sym chkstk_gnu::___chkstk_ms,
+            sym chkstk_gnu::___chkstk,
+            options(noreturn)
+        );
+    }
 }
 
 #[cfg(target_arch = "x86")]
@@ -291,56 +293,60 @@ fn _start_rust(platform_data: usize) -> i32 {
 #[repr(align(4))]
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 pub unsafe extern "win64" fn __chkstk() -> ! {
-    asm!(
-        "push   rcx",
-        "push   rax",
-        "cmp    rax, 4096",
-        "lea    rcx, QWORD PTR [rsp + 24]",
-        "jb     2f",
-        "3:",
-        "sub    rcx, 4096",
-        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
-        "sub    rax, 4096",
-        "cmp    rax, 4096",
-        "ja     3b",
-        "2:",
-        "sub    rcx, rax",
-        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
-        "pop    rax",
-        "pop    rcx",
-        "ret",
-        options(noreturn)
-    );
+    unsafe {
+        asm!(
+            "push   rcx",
+            "push   rax",
+            "cmp    rax, 4096",
+            "lea    rcx, QWORD PTR [rsp + 24]",
+            "jb     2f",
+            "3:",
+            "sub    rcx, 4096",
+            "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
+            "sub    rax, 4096",
+            "cmp    rax, 4096",
+            "ja     3b",
+            "2:",
+            "sub    rcx, rax",
+            "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
+            "pop    rax",
+            "pop    rcx",
+            "ret",
+            options(noreturn)
+        );
+    }
 }
 
 pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {
-    use crate::platform::services::write_stdio;
-    use alloc::string::ToString;
-    write_stdio(2, _pi.to_string().as_bytes());
-    write_stdio(2, b"\n");
+    unsafe {
+        use crate::platform::services::write_stdio;
+        use alloc::string::ToString;
+        write_stdio(2, _pi.to_string().as_bytes());
+        write_stdio(2, b"\n");
 
-    // Rust sets an exit code of 101 when the process panicked.
-    // Hence, we follow that practice for maximum compatibility.
-    // Reference: https://rust-cli.github.io/book/in-depth/exit-code.html
-    #[cfg(all(windows, target_arch = "x86_64"))]
-    {
-        unsafe extern "win64" {
-            fn ExitProcess(uExitCode: u32) -> !;
+        // Rust sets an exit code of 101 when the process panicked.
+        // Hence, we follow that practice for maximum compatibility.
+        // Reference: https://rust-cli.github.io/book/in-depth/exit-code.html
+        #[cfg(all(windows, target_arch = "x86_64"))]
+        {
+            unsafe extern "win64" {
+                fn ExitProcess(uExitCode: u32) -> !;
+            }
+            ExitProcess(101)
         }
-        ExitProcess(101)
+        #[cfg(target_os = "linux")]
+        {
+            crate::platform::os::linux::syscall::exit_group(101)
+        }
+        #[cfg(target_os = "macos")]
+        {
+            crate::platform::os::macos::syscall::exit_group(101)
+        }
+        #[cfg(not(any(
+            all(windows, target_arch = "x86_64"),
+            target_os = "linux",
+            target_os = "macos"
+        )))]
+        core::hint::unreachable_unchecked()
     }
-    #[cfg(target_os = "linux")]
-    {
-        crate::platform::os::linux::syscall::exit_group(101)
-    }
-    #[cfg(target_os = "macos")]
-    {
-        crate::platform::os::macos::syscall::exit_group(101)
-    }
-    #[cfg(not(any(
-        all(windows, target_arch = "x86_64"),
-        target_os = "linux",
-        target_os = "macos"
-    )))]
-    core::hint::unreachable_unchecked()
 }
