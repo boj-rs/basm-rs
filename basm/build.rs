@@ -51,7 +51,8 @@ fn main() {
         }
         "x86_64-unknown-linux-gnu"
         | "x86_64-unknown-linux-gnu-short"
-        | "i686-unknown-linux-gnu" => {
+        | "i686-unknown-linux-gnu"
+        | "aarch64-unknown-linux-gnu" => {
             link_args_basm.push("-nostartfiles");
             link_args_basm.push("-nostdlib");
             link_args_basm.push("-static-pie");
