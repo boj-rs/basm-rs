@@ -280,21 +280,22 @@ pub unsafe extern "C" fn _basm_start() -> ! {
 }
 
 #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
-//#[repr(align(8))]
 pub unsafe extern "C" fn _basm_start() -> ! {
-    asm!(
-        "sub    sp, sp, #96",
-        "mov    x0, #2",    // 2 = ENV_ID_LINUX
-        "str    x0, [sp, #(8 * 0)]",
-        "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
-        "str    x0, [sp, #(8 * 1)]",
-        "mov    x0, sp",
-        "bl     {0}",
-        sym _start_rust,
-        options(noreturn)
-    )
+    unsafe {
+        asm!(
+            "sub    sp, sp, #96",
+            "mov    x0, #2",    // 2 = ENV_ID_LINUX
+            "str    x0, [sp, #(8 * 0)]",
+            "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
+            "str    x0, [sp, #(8 * 1)]",
+            "mov    x0, sp",
+            "bl     {0}",
+            sym _start_rust,
+            options(noreturn)
+        )
+    }
 }
 
 /* We prevent inlining solution::main, since if the user allocates
