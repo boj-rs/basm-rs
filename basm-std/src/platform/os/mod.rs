@@ -1,6 +1,6 @@
-#[cfg(not(any(target_arch = "wasm32")))]
+#[cfg(not(target_arch = "wasm32"))]
 pub mod linux;
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub mod macos;
 pub mod unknown;
 #[cfg(target_arch = "wasm32")]
