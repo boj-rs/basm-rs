@@ -2,7 +2,7 @@
 use core::arch::asm;
 
 use crate::platform;
-#[cfg(not(any(target_arch = "wasm32", target_arch = "aarch64")))]
+#[cfg(not(any(target_arch = "wasm32", all(target_os = "macos", target_arch = "aarch64"))))]
 use crate::platform::loader;
 
 /* We need to support multiple scenarios.
@@ -285,13 +285,19 @@ pub unsafe extern "C" fn _basm_start() -> ! {
 pub unsafe extern "C" fn _basm_start() -> ! {
     unsafe {
         asm!(
+            "adrp   x0, __ehdr_start",
+            "add    x0, x0, #:lo12:__ehdr_start",
+            "adrp   x1, _DYNAMIC",
+            "add    x1, x1, #:lo12:_DYNAMIC",
+            "bl     {0}",
             "sub    sp, sp, #96",
             "mov    x0, #2",    // 2 = ENV_ID_LINUX
             "str    x0, [sp, #(8 * 0)]",
             "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
             "str    x0, [sp, #(8 * 1)]",
             "mov    x0, sp",
-            "bl     {0}",
+            "bl     {1}",
+            sym loader::aarch64_elf::relocate,
             sym _start_rust,
             options(noreturn)
         )
