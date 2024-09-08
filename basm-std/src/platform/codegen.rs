@@ -2,7 +2,10 @@
 use core::arch::asm;
 
 use crate::platform;
-#[cfg(not(any(target_arch = "wasm32", all(target_os = "macos", target_arch = "aarch64"))))]
+#[cfg(not(any(
+    target_arch = "wasm32",
+    all(target_os = "macos", target_arch = "aarch64")
+)))]
 use crate::platform::loader;
 
 /* We need to support multiple scenarios.

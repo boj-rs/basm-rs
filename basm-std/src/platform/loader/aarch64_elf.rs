@@ -7,14 +7,14 @@ const DT_RELAENT: u64 = 9;
 #[repr(C, packed)]
 struct Elf64Dyn {
     d_tag: u64,
-    d_val_or_ptr: u64
+    d_val_or_ptr: u64,
 }
 
 #[repr(C, packed)]
 struct Elf64Rela {
     r_offset: u64,
     r_info: u64,
-    r_addend: u64
+    r_addend: u64,
 }
 
 unsafe fn locate_dynamic_hdr(addr_dynamic_section: u64, d_tag: u64) -> *const Elf64Dyn {
@@ -38,9 +38,10 @@ pub unsafe extern "C" fn relocate(addr_image_base: u64, addr_dynamic_section: u6
         let dyn_ptr_relasz = locate_dynamic_hdr(addr_dynamic_section, DT_RELASZ);
         let dyn_ptr_relaent = locate_dynamic_hdr(addr_dynamic_section, DT_RELAENT);
 
-        if dyn_ptr_rela == core::ptr::null() ||
-            dyn_ptr_relasz == core::ptr::null() ||
-            dyn_ptr_relaent == core::ptr::null() {
+        if dyn_ptr_rela == core::ptr::null()
+            || dyn_ptr_relasz == core::ptr::null()
+            || dyn_ptr_relaent == core::ptr::null()
+        {
             return;
         }
 
