@@ -14,7 +14,7 @@ basm.rs는 Rust 코드를 [백준 온라인 저지](https://www.acmicpc.net/)를
 
 ## 바로 시작하기
 
-[GitHub Codespaces](https://codespaces.new/kiwiyou/basm-rs)에 접속하셔서 Codespace를 생성하시면 Visual Studio Code 창이 열립니다. GitHub 로그인이 필요합니다.
+[GitHub Codespaces](https://codespaces.new/boj-rs/basm-rs)에 접속하셔서 Codespace를 생성하시면 Visual Studio Code 창이 열립니다. GitHub 로그인이 필요합니다.
 
 로컬 환경에서 개발하시려면 `사용법` 섹션의 설명을 참고해주세요.
 
