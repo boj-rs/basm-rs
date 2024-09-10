@@ -45,7 +45,7 @@ jobs:
         run: cargo fmt --check --all
       - name: Test
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
-        run: cargo test --lib -- --test-threads 1
+        run: cargo test --no-fail-fast -- --test-threads 1
       - name: Check cargo build
         if: ${{ matrix.target != 'wasm32-unknown-unknown' }}
         run: |
