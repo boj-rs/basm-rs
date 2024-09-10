@@ -1,4 +1,4 @@
-// Generated with https://github.com/kiwiyou/basm-rs
+// Generated with https://github.com/boj-rs/basm-rs
 // Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 
 // SOLUTION BEGIN
