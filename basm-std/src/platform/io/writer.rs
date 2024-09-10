@@ -142,6 +142,7 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single byte to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
     /// let mut writer: Writer = Default::default();
     /// writer.byte(b'c'); // c
     /// ```
@@ -153,6 +154,7 @@ impl<const N: usize> Writer<N> {
     ///
     /// This method ensures an extra byte in the buffer to make sure that `println()` can safely use the private method `byte_unchecked`. It is achieved by `self.try_flush(1)`.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
     /// let mut writer: Writer = Default::default();
     /// writer.bytes("Hello World".as_bytes()); // Hello World
     /// ```
@@ -182,6 +184,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `&str` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.str("Hello, World"); // Hello, World
     /// ```
     pub fn str(&mut self, s: &str) {
@@ -189,6 +193,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `i8` to standard output.
     /// ```no run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.i8(i8::MIN); // -128
     /// ```
     pub fn i8(&mut self, n: i8) {
@@ -196,6 +202,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `u8` to standard output.
     /// ```no run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.u8(u8::MAX); // 255
     /// ```
     pub fn u8(&mut self, n: u8) {
@@ -203,6 +211,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `i16` to standard output.
     /// ```no run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.i16(i16::MIN); // -32768
     /// ```
     pub fn i16(&mut self, n: i16) {
@@ -210,6 +220,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `u16` to standard output.
     /// ```no run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.u16(u16::MAX); // 65535
     /// ```
     pub fn u16(&mut self, n: u16) {
@@ -217,6 +229,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `i32` to standard output.
     /// ```no run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.i32(i32::MIN); // -2147483648
     /// ```
     pub fn i32(&mut self, n: i32) {
@@ -229,6 +243,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `u32` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.u32(u32::MAX); // 4294967295
     /// ```
     #[cfg(not(feature = "short"))]
@@ -262,6 +278,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `i64` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.i64(i64::MIN); // -9223372036854775808
     /// ```
     pub fn i64(&mut self, n: i64) {
@@ -274,6 +292,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `u64` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.u64(u64::MAX); // 18446744073709551615
     /// ```
     #[cfg(not(feature = "short"))]
@@ -344,6 +364,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `i128` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.i128(i128::MIN); // -170141183460469231731687303715884105728
     /// ```
     pub fn i128(&mut self, n: i128) {
@@ -356,6 +378,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `u128` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.u128(u128::MAX); // 340282366920938463463374607431768211455
     /// ```
     pub fn u128(&mut self, mut n: u128) {
@@ -380,6 +404,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `isize` to standard output. Note that the in-memory size of `isize` depends on the target platform.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.isize(isize::MIN); // -9223372036854775808 (On 64-bit targets)
     /// ```
     #[cfg(target_pointer_width = "64")]
@@ -388,6 +414,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `usize` to standard output. Note that the in-memory size of `isize` depends on the target platform.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.usize(usize::MAX); // 18446744073709551615 (On 64-bit targets)
     /// ```
     #[cfg(target_pointer_width = "64")]
@@ -404,6 +432,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `f64` to standard output.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.f64(1.23); // 1.23
     /// ```
     pub fn f64(&mut self, f: f64) {
@@ -413,6 +443,8 @@ impl<const N: usize> Writer<N> {
     }
     /// Writes a single `char` to standard output, encoded as UTF-8.
     /// ```no_run
+    /// use basm_std::platform::io::Writer;
+    /// let mut writer: Writer = Default::default();
     /// writer.char('c'); // c
     /// ```
     pub fn char(&mut self, c: char) {
