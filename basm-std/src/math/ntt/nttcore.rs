@@ -77,11 +77,7 @@ impl<const P: u64> Arith<P> {
         let m = (x as u64).wrapping_mul(Self::PINV);
         let y = ((m as u128 * P as u128) >> 64) as u64;
         let (out, overflow) = ((x >> 64) as u64).overflowing_sub(y);
-        if overflow {
-            out.wrapping_add(P)
-        } else {
-            out
-        }
+        if overflow { out.wrapping_add(P) } else { out }
     }
     // Multiplication with Montgomery reduction:
     //   a * b * R^-1 mod P
@@ -145,11 +141,7 @@ impl<const P: u64> Arith<P> {
     // Computes a + b mod P, output range [0, 2^64)
     pub const fn addmod64(a: u64, b: u64) -> u64 {
         let (out, overflow) = a.overflowing_add(b);
-        if overflow {
-            out.wrapping_sub(P)
-        } else {
-            out
-        }
+        if overflow { out.wrapping_sub(P) } else { out }
     }
     // Computes a + b mod P, selects addmod64 or addmod depending on INV && TWIDDLE
     pub const fn addmodopt_invtw<const INV: bool, const TWIDDLE: bool>(a: u64, b: u64) -> u64 {
@@ -162,11 +154,7 @@ impl<const P: u64> Arith<P> {
     // Computes a - b mod P, output range [0, P)
     pub const fn submod(a: u64, b: u64) -> u64 {
         let (out, overflow) = a.overflowing_sub(b);
-        if overflow {
-            out.wrapping_add(P)
-        } else {
-            out
-        }
+        if overflow { out.wrapping_add(P) } else { out }
     }
 }
 

@@ -37,7 +37,7 @@ impl<T> DfsIter<T> for JaggedDfsIter {
     }
 
     fn to(&self, graph: &Self::G) -> Self::V {
-        graph.link[self.1 as usize].1 .0 as usize
+        graph.link[self.1 as usize].1.0 as usize
     }
 
     fn id(&self, _: &Self::G) -> Self::E {
@@ -45,7 +45,7 @@ impl<T> DfsIter<T> for JaggedDfsIter {
     }
 
     fn data<'a>(&self, graph: &'a Self::G) -> &'a T {
-        &graph.link[self.1 as usize].1 .1
+        &graph.link[self.1 as usize].1.1
     }
 
     fn next(&mut self, graph: &Self::G) -> bool {

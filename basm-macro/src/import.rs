@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parse::{Parse, ParseStream},
     Result, Signature, Token,
+    parse::{Parse, ParseStream},
 };
 
 use super::types::{Mangle, TFunction};

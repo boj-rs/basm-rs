@@ -2,7 +2,7 @@
 
 use crate::math::{
     gcd, is_prime_u64,
-    miller_rabin::{OddMont, M},
+    miller_rabin::{M, OddMont},
 };
 use alloc::{vec, vec::Vec};
 

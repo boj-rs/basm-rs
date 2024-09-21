@@ -498,11 +498,7 @@ impl<const N: usize> ReaderTrait for Reader<N> {
             let s = unsafe { core::str::from_utf8_unchecked(s_u8) };
             let out = f64::from_str(s);
             self.skip_until_whitespace();
-            if let Ok(ans) = out {
-                ans
-            } else {
-                f64::NAN
-            }
+            if let Ok(ans) = out { ans } else { f64::NAN }
         }
     }
 }

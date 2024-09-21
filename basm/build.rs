@@ -34,8 +34,10 @@ fn main() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let stdout = stdout.trim();
             if !stdout.contains("x86_64-w64-mingw32-gcc") {
-                panic!("Failed to locate MinGW64 (x86_64-w64-mingw32-gcc).\n{0}",
-                    "Please make sure MinGW64 is installed and added in the PATH environment variable.");
+                panic!(
+                    "Failed to locate MinGW64 (x86_64-w64-mingw32-gcc).\n{0}",
+                    "Please make sure MinGW64 is installed and added in the PATH environment variable."
+                );
             }
             link_args_basm.push("-nostartfiles");
             link_args_basm.push("-nostdlib");

@@ -214,11 +214,7 @@ impl LinearSieve {
 
     fn next_len(cur_upto: usize, x: usize) -> usize {
         let out = cur_upto + (cur_upto >> 1) + 1;
-        if x > out {
-            x
-        } else {
-            out
-        }
+        if x > out { x } else { out }
     }
 }
 

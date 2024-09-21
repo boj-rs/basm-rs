@@ -339,11 +339,7 @@ impl F64Ops for f64 {
     #[inline]
     fn rem_euclid(self, rhs: f64) -> f64 {
         let r = self % rhs;
-        if r < 0.0 {
-            r + rhs.abs()
-        } else {
-            r
-        }
+        if r < 0.0 { r + rhs.abs() } else { r }
     }
 
     /// Raises a number to an integer power.
@@ -377,11 +373,7 @@ impl F64Ops for f64 {
             powx *= powx;
             m /= 2;
         }
-        if n < 0 {
-            1.0 / r
-        } else {
-            r
-        }
+        if n < 0 { 1.0 / r } else { r }
     }
 
     /// Raises a number to a floating point power.
