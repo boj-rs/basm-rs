@@ -1,3 +1,6 @@
+pub mod bplus_tree;
+pub use bplus_tree::*;
+
 pub mod jagged_vec;
 pub use jagged_vec::*;
 
