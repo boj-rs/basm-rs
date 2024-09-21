@@ -169,12 +169,16 @@ pub static mut WINAPI: WinApi = WinApi {
 static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_windows::System> =
     dlmalloc::Dlmalloc::new(dlmalloc_windows::System::new());
 unsafe fn dlmalloc_alloc(size: usize, align: usize) -> *mut u8 {
-    unsafe { DLMALLOC.memalign(align, size) }
+    unsafe {
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        dlmalloc.memalign(align, size)
+    }
 }
 unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
     unsafe {
-        let ptr = DLMALLOC.memalign(align, size);
-        if !ptr.is_null() && DLMALLOC.calloc_must_clear(ptr) {
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        let ptr = dlmalloc.memalign(align, size);
+        if !ptr.is_null() && dlmalloc.calloc_must_clear(ptr) {
             core::ptr::write_bytes(ptr, 0, size);
         }
         ptr
@@ -182,7 +186,8 @@ unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
 }
 unsafe fn dlmalloc_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
     unsafe {
-        DLMALLOC.free(ptr);
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        dlmalloc.free(ptr);
     }
 }
 unsafe fn dlmalloc_realloc(
@@ -192,13 +197,14 @@ unsafe fn dlmalloc_realloc(
     new_size: usize,
 ) -> *mut u8 {
     unsafe {
-        if old_align <= DLMALLOC.malloc_alignment() {
-            DLMALLOC.realloc(ptr, new_size)
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        if old_align <= dlmalloc.malloc_alignment() {
+            dlmalloc.realloc(ptr, new_size)
         } else {
-            let ptr_new = DLMALLOC.memalign(old_align, new_size);
+            let ptr_new = dlmalloc.memalign(old_align, new_size);
             if !ptr_new.is_null() {
                 core::ptr::copy_nonoverlapping(ptr, ptr_new, core::cmp::min(old_size, new_size));
-                DLMALLOC.free(ptr);
+                dlmalloc.free(ptr);
             }
             ptr_new
         }
@@ -210,46 +216,48 @@ mod services_override {
     basm_abi! {pub unsafe fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize {
         unsafe {
             debug_assert!(fd == 0);
-            let handle = WINAPI.GetStdHandle(WinApi::STD_INPUT_HANDLE);
+            let winapi = &mut *core::ptr::addr_of_mut!(WINAPI);
+            let handle = winapi.GetStdHandle(WinApi::STD_INPUT_HANDLE);
             let mut bytes_read: u32 = 0;
             let mut ov: Overlapped = Default::default();
-            ov.set_off(WINAPI.io_off[fd]);
-            let mut ret = WINAPI.ReadFile(handle, buf, count as u32,
+            ov.set_off(winapi.io_off[fd]);
+            let mut ret = winapi.ReadFile(handle, buf, count as u32,
                 &mut bytes_read as *mut u32, &mut ov as *mut Overlapped);
             if ret == 0 {
-                let err = WINAPI.GetLastError();
+                let err = winapi.GetLastError();
                 if err == WinApi::ERROR_IO_PENDING {
-                    ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
+                    ret = winapi.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                         &mut bytes_read as *mut u32, 1);
                 }
                 if ret != 0 { return 0; }
             }
-            WINAPI.io_off[fd] += bytes_read as u64;
+            winapi.io_off[fd] += bytes_read as u64;
             bytes_read as usize
         }
     }}
     basm_abi! {pub unsafe fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize {
             unsafe {
             debug_assert!(fd == 1 || fd == 2);
+            let winapi = &mut *core::ptr::addr_of_mut!(WINAPI);
             let handle = match fd {
-                1 => { WINAPI.GetStdHandle(WinApi::STD_OUTPUT_HANDLE) },
-                2 => { WINAPI.GetStdHandle(WinApi::STD_ERROR_HANDLE) },
+                1 => { winapi.GetStdHandle(WinApi::STD_OUTPUT_HANDLE) },
+                2 => { winapi.GetStdHandle(WinApi::STD_ERROR_HANDLE) },
                 _ => { unreachable!(); }
             };
             let mut bytes_written: u32 = 0;
             let mut ov: Overlapped = Default::default();
-            ov.set_off(WINAPI.io_off[fd]);
-            let mut ret = WINAPI.WriteFile(handle, buf, count as u32,
+            ov.set_off(winapi.io_off[fd]);
+            let mut ret = winapi.WriteFile(handle, buf, count as u32,
                 &mut bytes_written as *mut u32, &mut ov as *mut Overlapped);
             if ret == 0 {
-                let err = WINAPI.GetLastError();
+                let err = winapi.GetLastError();
                 if err == WinApi::ERROR_IO_PENDING {
-                    ret = WINAPI.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
+                    ret = winapi.GetOverlappedResult(handle, &mut ov as *mut Overlapped,
                         &mut bytes_written as *mut u32, 1);
                 }
                 if ret != 0 { return 0; }
             }
-            WINAPI.io_off[fd] += bytes_written as u64;
+            winapi.io_off[fd] += bytes_written as u64;
             bytes_written as usize
         }
     }}

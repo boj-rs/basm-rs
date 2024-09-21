@@ -4,12 +4,16 @@ use super::super::{allocator, services};
 static mut DLMALLOC: dlmalloc::Dlmalloc<dlmalloc_wasm32::System> =
     dlmalloc::Dlmalloc::new(dlmalloc_wasm32::System::new());
 unsafe fn dlmalloc_alloc(size: usize, align: usize) -> *mut u8 {
-    unsafe { DLMALLOC.memalign(align, size) }
+    unsafe {
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        dlmalloc.memalign(align, size)
+    }
 }
 unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
     unsafe {
-        let ptr = DLMALLOC.memalign(align, size);
-        if !ptr.is_null() && DLMALLOC.calloc_must_clear(ptr) {
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        let ptr = dlmalloc.memalign(align, size);
+        if !ptr.is_null() && dlmalloc.calloc_must_clear(ptr) {
             core::ptr::write_bytes(ptr, 0, size);
         }
         ptr
@@ -17,7 +21,8 @@ unsafe fn dlmalloc_alloc_zeroed(size: usize, align: usize) -> *mut u8 {
 }
 unsafe fn dlmalloc_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
     unsafe {
-        DLMALLOC.free(ptr);
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        dlmalloc.free(ptr);
     }
 }
 unsafe fn dlmalloc_realloc(
@@ -27,13 +32,14 @@ unsafe fn dlmalloc_realloc(
     new_size: usize,
 ) -> *mut u8 {
     unsafe {
-        if old_align <= DLMALLOC.malloc_alignment() {
-            DLMALLOC.realloc(ptr, new_size)
+        let dlmalloc = &mut *core::ptr::addr_of_mut!(DLMALLOC);
+        if old_align <= dlmalloc.malloc_alignment() {
+            dlmalloc.realloc(ptr, new_size)
         } else {
-            let ptr_new = DLMALLOC.memalign(old_align, new_size);
+            let ptr_new = dlmalloc.memalign(old_align, new_size);
             if !ptr_new.is_null() {
                 core::ptr::copy_nonoverlapping(ptr, ptr_new, core::cmp::min(old_size, new_size));
-                DLMALLOC.free(ptr);
+                dlmalloc.free(ptr);
             }
             ptr_new
         }

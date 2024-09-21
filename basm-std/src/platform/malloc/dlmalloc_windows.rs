@@ -22,7 +22,8 @@ impl Default for System {
 unsafe impl DlmallocAllocator for System {
     fn alloc(&self, size: usize) -> (*mut u8, usize, u32) {
         let addr = unsafe {
-            super::super::os::windows::WINAPI.VirtualAlloc(
+            let winapi = &*core::ptr::addr_of_mut!(super::super::os::windows::WINAPI);
+            winapi.VirtualAlloc(
                 ptr::null_mut(),
                 size,
                 0x00003000, /* MEM_COMMIT | MEM_RESERVE */
@@ -49,7 +50,8 @@ unsafe impl DlmallocAllocator for System {
     #[allow(unused)]
     fn free(&self, ptr: *mut u8, size: usize) -> bool {
         unsafe {
-            super::super::os::windows::WINAPI.VirtualFree(ptr, 0, 0x00008000 /* MEM_RELEASE */) != 0
+            let winapi = &*core::ptr::addr_of_mut!(super::super::os::windows::WINAPI);
+            winapi.VirtualFree(ptr, 0, 0x00008000 /* MEM_RELEASE */) != 0
         }
     }
 
