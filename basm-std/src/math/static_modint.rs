@@ -24,6 +24,7 @@ impl<const M: u64> From<ModInt<M>> for u64 {
     }
 }
 
+// TODO: Handle the case for `self.0 + rhs.0` overflow
 impl<const M: u64> Add for ModInt<M> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
@@ -31,15 +32,17 @@ impl<const M: u64> Add for ModInt<M> {
     }
 }
 
+// TODO: Same with `Add`
 impl<const M: u64> AddAssign for ModInt<M> {
     fn add_assign(&mut self, rhs: Self) {
         self.0 = (self.0 + rhs.0) % M;
     }
 }
 
+// TODO: Try removing `i128` cast
 impl<const M: u64> Div for ModInt<M> {
     type Output = Self;
-    /// May panic
+    /// May panic if M == 0
     fn div(self, rhs: Self) -> Self::Output {
         let inv = super::egcd(rhs.0 as i128, M as i128).1;
         let inv = (M as i128 + inv) as u64 % M;
@@ -47,6 +50,7 @@ impl<const M: u64> Div for ModInt<M> {
     }
 }
 
+// TODO: Same with `Div`
 impl<const M: u64> DivAssign for ModInt<M> {
     fn div_assign(&mut self, rhs: Self) {
         let inv = super::egcd(rhs.0 as i128, M as i128).1;
@@ -55,6 +59,7 @@ impl<const M: u64> DivAssign for ModInt<M> {
     }
 }
 
+// TODO: Handle the case for `self.0 * rhs.0` overflow
 impl<const M: u64> Mul for ModInt<M> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -62,12 +67,14 @@ impl<const M: u64> Mul for ModInt<M> {
     }
 }
 
+// TODO: Same with `Mul`
 impl<const M: u64> MulAssign for ModInt<M> {
     fn mul_assign(&mut self, rhs: Self) {
         self.0 = (self.0 * rhs.0) % M;
     }
 }
 
+// TODO: Check if there's a more performant way, doable without literal rem operation
 impl<const M: u64> Neg for ModInt<M> {
     type Output = Self;
     fn neg(self) -> Self::Output {
@@ -75,6 +82,8 @@ impl<const M: u64> Neg for ModInt<M> {
     }
 }
 
+// TODO: This, or `self + (-rhs)`, which is more performant?
+// TODO: Handle the case where `M + self.0` overflows
 impl<const M: u64> Sub for ModInt<M> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -82,6 +91,8 @@ impl<const M: u64> Sub for ModInt<M> {
     }
 }
 
+// TODO: This, or `self += -rhs`, which is more performant?
+// TODO: Handle the case where `M + self.0` overflows
 impl<const M: u64> SubAssign for ModInt<M> {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 = (M + self.0 - rhs.0) % M;
