@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 
 fn mac3_two_primes(acc: &mut [u64], b: &[u64], c: &[u64], bits: u64) {
     assert!(bits < 63);
-    let b_len = ((64 * b.len() as u64 + bits - 1) / bits) as usize;
-    let c_len = ((64 * c.len() as u64 + bits - 1) / bits) as usize;
+    let b_len = (64 * b.len() as u64).div_ceil(bits) as usize;
+    let c_len = (64 * c.len() as u64).div_ceil(bits) as usize;
     let min_len = b_len + c_len;
     let plan_x = NttPlan::build::<P2>(min_len);
     let plan_y = NttPlan::build::<P3>(min_len);

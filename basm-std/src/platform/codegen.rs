@@ -99,13 +99,13 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 #[allow(non_snake_case)]
 #[link(name = "kernel32")]
 unsafe extern "win64" {
-    fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
-    fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
+    fn LoadLibraryA(lpLibFileName: *const i8) -> usize;
+    fn GetProcAddress(hModule: usize, lpProcName: *const i8) -> usize;
 }
 
 #[cfg(target_os = "windows")]
 unsafe extern "sysv64" fn get_kernel32() -> usize {
-    unsafe { LoadLibraryA(b"KERNEL32\0".as_ptr()) }
+    unsafe { LoadLibraryA(c"KERNEL32".as_ptr()) }
 }
 
 #[cfg(all(target_os = "windows", target_env = "gnu"))]

@@ -267,35 +267,35 @@ pub unsafe fn init() {
     unsafe {
         let pd = services::platform_data();
         let kernel32 = pd.win_kernel32 as usize;
-        let GetProcAddress: ms_abi! {fn(usize, *const u8) -> usize} =
+        let GetProcAddress: ms_abi! {fn(usize, *const i8) -> usize} =
             core::mem::transmute(pd.win_GetProcAddress as usize);
         WINAPI.ptr_VirtualAlloc = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"VirtualAlloc\0".as_ptr(),
+            c"VirtualAlloc".as_ptr(),
         )));
         WINAPI.ptr_VirtualFree = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"VirtualFree\0".as_ptr(),
+            c"VirtualFree".as_ptr(),
         )));
         WINAPI.ptr_GetStdHandle = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"GetStdHandle\0".as_ptr(),
+            c"GetStdHandle".as_ptr(),
         )));
         WINAPI.ptr_ReadFile = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"ReadFile\0".as_ptr(),
+            c"ReadFile".as_ptr(),
         )));
         WINAPI.ptr_WriteFile = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"WriteFile\0".as_ptr(),
+            c"WriteFile".as_ptr(),
         )));
         WINAPI.ptr_GetOverlappedResult = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"GetOverlappedResult\0".as_ptr(),
+            c"GetOverlappedResult".as_ptr(),
         )));
         WINAPI.ptr_GetLastError = Some(core::mem::transmute(GetProcAddress(
             kernel32,
-            b"GetLastError\0".as_ptr(),
+            c"GetLastError".as_ptr(),
         )));
 
         // On Windows, set console codepage to UTF-8,
@@ -303,10 +303,10 @@ pub unsafe fn init() {
         // which depends on the host platform's language and
         // other factors.
         let SetConsoleCP: ms_abi! {fn(u32) -> i32} =
-            core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleCP\0".as_ptr()));
+            core::mem::transmute(GetProcAddress(kernel32, c"SetConsoleCP".as_ptr()));
         SetConsoleCP(WinApi::CP_UTF8); // for stdin
         let SetConsoleOutputCP: ms_abi! {fn(u32) -> i32} =
-            core::mem::transmute(GetProcAddress(kernel32, b"SetConsoleOutputCP\0".as_ptr()));
+            core::mem::transmute(GetProcAddress(kernel32, c"SetConsoleOutputCP".as_ptr()));
         SetConsoleOutputCP(WinApi::CP_UTF8); // for stdout
 
         allocator::install_malloc_impl(

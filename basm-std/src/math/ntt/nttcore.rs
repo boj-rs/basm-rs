@@ -853,7 +853,7 @@ pub const fn compute_bits(l: u64) -> u64 {
     while lo < hi {
         let mid = (lo + hi + 1) / 2;
         let single_digit_max_val = (1u64 << mid) - 1;
-        let l_corrected = (total_bits + mid - 1) / mid;
+        let l_corrected = total_bits.div_ceil(mid);
         let (lhs, overflow) = (single_digit_max_val as u128)
             .pow(2)
             .overflowing_mul(l_corrected as u128);
