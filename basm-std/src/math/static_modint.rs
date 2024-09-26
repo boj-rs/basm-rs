@@ -109,7 +109,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_static_small_mod_add() {
+    fn static_small_mod_add() {
         let proper = |a: u64, b: u64, m: u64| ((a as u128 + b as u128) % (m as u128)) as u64;
         macro_rules! test {
             ($($m:expr),*) => {$(
@@ -136,7 +136,7 @@ mod test {
     }
 
     #[test]
-    fn test_static_large_mod_add() {
+    fn static_large_mod_add() {
         let proper = |a: u64, b: u64, m: u64| ((a as u128 + b as u128) % (m as u128)) as u64;
         macro_rules! test {
             ($($m:expr),*) => {$(
@@ -157,6 +157,121 @@ mod test {
         test!(
             u64::MAX / 2,
             u64::MAX / 2 + 1,
+            u64::MAX / 2 - 1000,
+            u64::MAX / 3 * 2 + 40,
+            u64::MAX - 1,
+            u64::MAX
+        );
+    }
+
+    #[test]
+    fn static_small_mod_sub() {
+        let proper =
+            |a: u64, b: u64, m: u64| ((a as i128 - b as i128).rem_euclid(m as i128)) as u64;
+        macro_rules! test {
+            ($($m:expr),*) => {$(
+                {
+                    const M: u64 = $m;
+                    for mut a in 0..100 {
+                        if a > 50 {
+                            a = a * 29 + 18;
+                        }
+                        let am = ModInt::<{ M }>::from(a);
+                        for mut b in 0..100 {
+                            if b > 50 {
+                                b = b * 29 + 18;
+                            }
+                            let bm = ModInt::<{ M }>::from(b);
+                            let t = am - bm;
+                            assert_eq!(proper(a, b, M), t.0);
+                        }
+                    }
+                }
+            )*};
+        }
+        test!(2, 10, 593, 11729378, 2343246813781979);
+    }
+
+    #[test]
+    fn static_large_mod_sub() {
+        let proper =
+            |a: u64, b: u64, m: u64| ((a as i128 - b as i128).rem_euclid(m as i128)) as u64;
+        macro_rules! test {
+            ($($m:expr),*) => {$(
+                {
+                    const M: u64 = $m;
+                    let m = M / 3 * 2;
+                    for a in [m, m.wrapping_add(1), m.wrapping_add(2), m.wrapping_add(30)] {
+                        let am = ModInt::<{ M }>::from(a);
+                        for b in [m, m.wrapping_add(1), m.wrapping_add(2), m.wrapping_add(30)] {
+                            let bm = ModInt::<{ M }>::from(b);
+                            let t = am - bm;
+                            assert_eq!(proper(a, b, M), t.0);
+                        }
+                    }
+                }
+            )*};
+        }
+        test!(
+            u64::MAX / 2,
+            u64::MAX / 2 + 1,
+            u64::MAX / 2 - 1000,
+            u64::MAX / 3 * 2 + 40,
+            u64::MAX - 1,
+            u64::MAX
+        );
+    }
+
+    #[test]
+    fn static_small_mod_mul() {
+        let proper = |a: u64, b: u64, m: u64| ((a as u128 * b as u128) % (m as u128)) as u64;
+        macro_rules! test {
+            ($($m:expr),*) => {$(
+                {
+                    const M: u64 = $m;
+                    for mut a in 0..100 {
+                        if a > 50 {
+                            a = a * 29 + 18;
+                        }
+                        let am = ModInt::<{ M }>::from(a);
+                        for mut b in 0..100 {
+                            if b > 50 {
+                                b = b * 29 + 18;
+                            }
+                            let bm = ModInt::<{ M }>::from(b);
+                            let t = am * bm;
+                            assert_eq!(proper(a, b, M), t.0);
+                        }
+                    }
+                }
+            )*};
+        }
+        test!(2, 10, 593, 11729378, 2343246813781979);
+    }
+
+    #[test]
+    fn static_large_mod_mul() {
+        let proper = |a: u64, b: u64, m: u64| ((a as u128 * b as u128) % (m as u128)) as u64;
+        macro_rules! test {
+            ($($m:expr),*) => {$(
+                {
+                    const M: u64 = $m;
+                    let m = M / 3 * 2;
+                    for a in [m, m.wrapping_add(1), m.wrapping_add(2), m.wrapping_add(30)] {
+                        let am = ModInt::<{ M }>::from(a);
+                        for b in [m, m.wrapping_add(1), m.wrapping_add(2), m.wrapping_add(30)] {
+                            let bm = ModInt::<{ M }>::from(b);
+                            let t = am * bm;
+                            assert_eq!(proper(a, b, M), t.0);
+                        }
+                    }
+                }
+            )*};
+        }
+        test!(
+            u64::MAX / 2,
+            u64::MAX / 2 + 1,
+            u64::MAX / 2 - 1000,
             u64::MAX / 3 * 2 + 40,
             u64::MAX - 1,
             u64::MAX
