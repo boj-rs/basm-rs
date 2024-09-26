@@ -1,8 +1,6 @@
 // Currently, no work has been done for preventing correctness issues from overflowing and
 // performance problems. This should only be considered as a sort of skeleton code.
 
-use super::GcdOps;
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Modulo(pub u64, u128);
 
