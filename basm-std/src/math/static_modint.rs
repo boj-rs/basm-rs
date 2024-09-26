@@ -3,6 +3,8 @@
 
 use core::{fmt::Display, ops::*};
 
+use super::GcdOps;
+
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
 pub struct ModInt<const M: u64>(u64);
 
@@ -35,19 +37,23 @@ impl<const M: u64> Add for ModInt<M> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         let (val, carry) = self.0.overflowing_add(rhs.0);
-        if carry {
-            let v: u64 = (1u64 << (u64::BITS - 1)) % M;
-            Self((val + (v >> 1)) % M)
+        Self(if val >= M || carry {
+            val.wrapping_sub(M)
         } else {
-            Self(val % M)
-        }
+            val
+        })
     }
 }
 
 // TODO: Same with `Add`
 impl<const M: u64> AddAssign for ModInt<M> {
     fn add_assign(&mut self, rhs: Self) {
-        self.0 = (self.0 + rhs.0) % M;
+        let (val, carry) = self.0.overflowing_add(rhs.0);
+        self.0 = if val >= M || carry {
+            val.wrapping_sub(M)
+        } else {
+            val
+        }
     }
 }
 
@@ -94,20 +100,18 @@ impl<const M: u64> Neg for ModInt<M> {
     }
 }
 
-// TODO: This, or `self + (-rhs)`, which is more performant?
-// TODO: Handle the case where `M + self.0` overflows
+// TODO: Is there any better way in terms of performance?
 impl<const M: u64> Sub for ModInt<M> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        Self((M + self.0 - rhs.0) % M)
+        self + (-rhs)
     }
 }
 
-// TODO: This, or `self += -rhs`, which is more performant?
-// TODO: Handle the case where `M + self.0` overflows
+// TODO: Same with `Sub`
 impl<const M: u64> SubAssign for ModInt<M> {
     fn sub_assign(&mut self, rhs: Self) {
-        self.0 = (M + self.0 - rhs.0) % M;
+        *self += -rhs;
     }
 }
 
