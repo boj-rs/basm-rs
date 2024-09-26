@@ -81,14 +81,14 @@ impl<const M: u64> DivAssign for ModInt<M> {
 impl<const M: u64> Mul for ModInt<M> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
-        Self((self.0 * rhs.0) % M)
+        Self(((self.0 as u128 * rhs.0 as u128) % (M as u128)) as u64)
     }
 }
 
 // TODO: Same with `Mul`
 impl<const M: u64> MulAssign for ModInt<M> {
     fn mul_assign(&mut self, rhs: Self) {
-        self.0 = (self.0 * rhs.0) % M;
+        self.0 = ((self.0 as u128 * rhs.0 as u128) % (M as u128)) as u64;
     }
 }
 
