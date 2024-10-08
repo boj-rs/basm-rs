@@ -2,7 +2,11 @@ use super::super::allocator;
 use super::super::malloc::{dlmalloc, dlmalloc_linux};
 
 pub mod syscall {
+    #[cfg(not(target_arch = "x86"))]
     use core::arch::asm;
+    #[cfg(target_arch = "x86")]
+    use core::arch::naked_asm;
+
     pub const PROT_READ: i32 = 0x01;
     pub const PROT_WRITE: i32 = 0x02;
     pub const MAP_PRIVATE: i32 = 0x02;
@@ -140,7 +144,7 @@ pub mod syscall {
         arg5: usize,
     ) -> usize {
         unsafe {
-            asm!(
+            naked_asm!(
                 "push ebp",
                 "push ebx",
                 "push esi",
@@ -157,8 +161,7 @@ pub mod syscall {
                 "pop esi",
                 "pop ebx",
                 "pop ebp",
-                "ret",
-                options(noreturn)
+                "ret"
             );
         }
     }
