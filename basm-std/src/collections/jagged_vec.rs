@@ -78,7 +78,7 @@ pub struct RowIter<'a, T> {
     idx: u32,
 }
 
-impl<'a, T> RowIter<'a, T> {
+impl<T> RowIter<'_, T> {
     pub fn id(&self) -> Option<usize> {
         (self.idx != u32::MAX).then_some(self.idx as usize)
     }
