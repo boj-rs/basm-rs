@@ -627,8 +627,7 @@ basm/src/solution.rs를 다음과 같이 수정합니다.
 use alloc::{format, string::String, vec::Vec};
 use basm::serialization::Pair;
 use basm_macro::{basm_export, basm_import};
-pub fn main() {
-}
+pub fn main() {}
 
 basm_import! {
     fn guess(b: String) -> Pair::<i32, i32>;
@@ -640,7 +639,7 @@ static mut N: i32 = 0;
 #[basm_export]
 fn init(_t: i32, n: i32) {
     unsafe {
-        ALL.clear();
+        (*core::ptr::addr_of_mut!(ALL)).clear();
         N = n;
         let pow10_n = 10i32.pow(n as u32);
         'outer: for i in 0..pow10_n {
@@ -648,16 +647,18 @@ fn init(_t: i32, n: i32) {
             let mut j = i;
             for _ in 0..n {
                 let d = (j % 10) as usize;
-                if digits[d] { continue 'outer; }
+                if digits[d] {
+                    continue 'outer;
+                }
                 digits[d] = true;
                 j /= 10;
             }
-            ALL.push(i);
+            (*core::ptr::addr_of_mut!(ALL)).push(i);
         }
     }
 }
 
-fn check(mut x: i32, mut y: i32) -> Pair::<i32, i32> {
+fn check(mut x: i32, mut y: i32) -> Pair<i32, i32> {
     let mut digits_x = [false; 10];
     let mut digits_y = [false; 10];
     let mut strikes = 0;
@@ -666,9 +667,15 @@ fn check(mut x: i32, mut y: i32) -> Pair::<i32, i32> {
         for _ in 0..N {
             let d_x = (x % 10) as usize;
             let d_y = (y % 10) as usize;
-            if d_x == d_y { strikes += 1; }
-            if digits_x[d_y] { balls += 1; }
-            if digits_y[d_x] { balls += 1; }
+            if d_x == d_y {
+                strikes += 1;
+            }
+            if digits_x[d_y] {
+                balls += 1;
+            }
+            if digits_y[d_x] {
+                balls += 1;
+            }
             digits_x[d_x] = true;
             digits_y[d_y] = true;
             x /= 10;
@@ -680,13 +687,19 @@ fn check(mut x: i32, mut y: i32) -> Pair::<i32, i32> {
 
 #[basm_export]
 fn game() {
-    let mut all = unsafe { ALL.clone() };
+    let mut all = unsafe { (*core::ptr::addr_of!(ALL)).clone() };
     let n = unsafe { N };
     loop {
         let query = all[0];
-        let query_str = if n == 3 { format!("{:03}", query) } else { format!("{:04}", query) };
+        let query_str = if n == 3 {
+            format!("{:03}", query)
+        } else {
+            format!("{:04}", query)
+        };
         let out = guess(query_str);
-        if out == Pair(n, 0) { break; }
+        if out == Pair(n, 0) {
+            break;
+        }
         let mut all_new = Vec::new();
         for x in all {
             if check(x, query) == out {

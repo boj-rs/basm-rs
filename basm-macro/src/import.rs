@@ -43,7 +43,9 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
         }
     };
     let out = quote! {
+        #[allow(non_snake_case)]
         mod #basm_import_mod {
+            #[allow(non_snake_case)]
             mod #internals {
                 pub static mut SER_VEC: alloc::vec::Vec::<u8> = alloc::vec::Vec::<u8>::new();
                 pub static mut PTR_FN: usize = 0;
@@ -57,12 +59,12 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
                 pub unsafe extern "C" fn free() { SER_VEC.clear() }
 
                 #[cfg(target_arch = "x86_64")]
-                #[no_mangle]
+                #[unsafe(no_mangle)]
                 #[inline(never)]
                 pub unsafe extern "win64" fn #basm_import(ptr_fn: usize) { PTR_FN = ptr_fn; }
 
                 #[cfg(not(target_arch = "x86_64"))]
-                #[no_mangle]
+                #[unsafe(no_mangle)]
                 #[inline(never)]
                 pub unsafe extern "C" fn #basm_import(ptr_fn: usize) { PTR_FN = ptr_fn; }
             }
@@ -79,8 +81,8 @@ fn import_impl_single(sig: &Signature) -> TokenStream {
                     let ptr_serialized = basm_std::serialization::call_import(#internals::PTR_FN, #internals::SER_VEC.as_ptr() as usize);
 
                     let mut buf: &'static [u8] = basm_std::serialization::eat(ptr_serialized);
-                    type return_type = #return_type;
-                    let out = return_type::de(&mut buf);
+                    type ReturnType = #return_type;
+                    let out = ReturnType::de(&mut buf);
                     let ptr_free_remote = usize::de(&mut buf);
                     assert!(buf.is_empty());
 

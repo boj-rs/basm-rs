@@ -38,7 +38,9 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let out = quote! {
         #[allow(clippy::ptr_arg)]
         #itemfn
+        #[allow(non_snake_case)]
         mod #basm_export_mod {
+            #[allow(non_snake_case)]
             mod #internals {
                 pub static mut SER_VEC: alloc::vec::Vec::<u8> = alloc::vec::Vec::<u8>::new();
 
@@ -51,14 +53,14 @@ pub fn export_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 pub unsafe extern "C" fn free() { SER_VEC.clear() }
 
                 #[cfg(target_arch = "x86_64")]
-                #[no_mangle]
+                #[unsafe(no_mangle)]
                 #[inline(never)]
                 unsafe extern "win64" fn #basm_export(ptr_serialized: usize) -> usize {
                     super::basm_export_impl(ptr_serialized)
                 }
 
                 #[cfg(not(target_arch = "x86_64"))]
-                #[no_mangle]
+                #[unsafe(no_mangle)]
                 #[inline(never)]
                 unsafe extern "C" fn #basm_export(ptr_serialized: usize) -> usize {
                     super::basm_export_impl(ptr_serialized)
