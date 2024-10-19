@@ -1,5 +1,13 @@
+use alloc::boxed::Box;
 use core::marker::PhantomData;
+use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ops::RangeBounds;
+
+// The degree of BPTree.
+// (degree: the minimum number of children in internal node)
+// Each InternalNode (except for root) has T <= #(children) <= 2*T.
+// The root has 0 <= #(children) <= 2*T, with 0 only allowed when the tree is empty.
+const T: usize = 4;
 
 pub trait LazyOp<V, U> {
     fn binary_op(t1: V, t2: V) -> V;
@@ -12,10 +20,34 @@ pub struct BPTreeMap<K, V, U, F>
 where
     F: LazyOp<V, U>,
 {
-    _k: PhantomData<K>,
-    _v: PhantomData<V>,
-    _u: PhantomData<U>,
+    root: InternalNode<K, V, U>,
+    // Starts from 0.
+    // When 0, the tree is empty.
+    // When 1, root points an InternalNode whose children consist of LeafNodes.
+    depth: usize,
     _f: PhantomData<F>,
+}
+
+struct InternalNode<K, V, U> {
+    // Filled from the beginning.
+    children: [ChildPtr<K, V, U>; 2*T],
+    keys: [MaybeUninit<K>; 2*T - 1],
+    values: [MaybeUninit<V>; 2*T],
+    // The lazy op u sits above all children of the present node.
+    // It is not present in LeafNode.
+    u: U,
+    _v: PhantomData<V>,
+}
+
+struct LeafNode<K, V> {
+    count: usize,
+    keys: [MaybeUninit<K>; 2*T],
+    values: [MaybeUninit<V>; 2*T],
+}
+
+union ChildPtr<K, V, U> {
+    internal_node: ManuallyDrop<Option<Box<InternalNode<K, V, U>>>>,
+    leaf_node: ManuallyDrop<Option<Box<LeafNode<K, V>>>>,
 }
 
 pub struct PeekMutPoint<K, V, U> {
@@ -45,15 +77,29 @@ impl<K, V, U, F: LazyOp<V, U>> Default for BPTreeMap<K, V, U, F> {
     }
 }
 
+impl<K, V, U> Default for ChildPtr<K, V, U> {
+    fn default() -> Self {
+        Self {
+            internal_node: ManuallyDrop::new(None)
+        }
+    }
+}
+
 impl<K, V, U, F> BPTreeMap<K, V, U, F>
 where
     F: LazyOp<V, U>,
 {
     pub fn new() -> Self {
+        assert!(T >= 2);
         Self {
-            _k: Default::default(),
-            _v: Default::default(),
-            _u: Default::default(),
+            root: InternalNode {
+                children: Default::default(),
+                keys: MaybeUninit::uninit_array(),
+                values: MaybeUninit::uninit_array(),
+                u: F::id_op(),
+                _v: Default::default(),
+            },
+            depth: 0,
             _f: Default::default(),
         }
     }
