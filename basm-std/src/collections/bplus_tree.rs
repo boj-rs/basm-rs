@@ -184,9 +184,15 @@ where
             if depth == 0 {
                 ManuallyDrop::drop(&mut self.leaf_node);
                 self.leaf_node = ManuallyDrop::new(None);
-            } else if let Some(x) = Option::take(&mut self.internal_node) {
-                for mut c in x.children {
-                    c.drop_by_depth(depth - 1);
+            } else if let Some(mut x) = Option::take(&mut self.internal_node) {
+                for i in 0..x.children.len() {
+                    if x.keys[i].is_null() {
+                        break;
+                    } else {
+                        x.children[i].drop_by_depth(depth - 1);
+                        x.values[i].assume_init_drop();
+                        x.lazies[i].assume_init_drop();
+                    }
                 }
                 self.internal_node = ManuallyDrop::new(None);
             }
