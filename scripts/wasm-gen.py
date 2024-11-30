@@ -21,7 +21,10 @@ sol = srcpack.read_assemble("basm/", target_language)
 sol_b64 = base64.b64encode(deflate_raw(sol.encode('utf8'))).decode('ascii')
 
 # binary
-with open("target/wasm32-unknown-unknown/release/basm-submit.wasm", "rb") as f:
+target = os.environ.get("CARGO_TARGET_DIR", "target")
+if len(target) == 0:
+    target = "target"
+with open(f"{target}/wasm32-unknown-unknown/release/basm-submit.wasm", "rb") as f:
     code = f.read()
 code = base64.b64encode(deflate_raw(code)).decode('ascii')
 

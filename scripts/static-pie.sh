@@ -74,6 +74,8 @@ if [[ "$lang_name" == "CFnImpl" ]]; then
   lang_name="C"
 fi
 
+cargo_target_dir=${CARGO_TARGET_DIR:-"target"}
+
 >&2 echo "Building project for target ${target_name}, language ${lang_name}, build mode ${build_mode}"
 
 if [[ "$build_mode" == "Debug" ]]; then
@@ -83,10 +85,10 @@ else
 fi
 
 if [[ "$target_name" == "x86_64-pc-windows-msvc" ]] || [[ "$target_name" == "x86_64-pc-windows-gnu" ]]; then
-  python3 scripts/static-pie-gen.py basm/ "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit.exe "$stub" "$lang_name" "$template"
+  python3 scripts/static-pie-gen.py basm/ "$target_name" "$cargo_target_dir"/"$target_name"/"$build_mode_dir"/basm-submit.exe "$stub" "$lang_name" "$template"
 else
-  cp target/"$target_name"/"$build_mode_dir"/basm-submit target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
-  objcopy --strip-all target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
-  objcopy --remove-section .eh_frame --remove-section .gcc_except_table --remove-section .gnu.hash target/"$target_name"/"$build_mode_dir"/basm-submit-stripped
-  python3 scripts/static-pie-gen.py basm/ "$target_name" target/"$target_name"/"$build_mode_dir"/basm-submit-stripped "$stub" "$lang_name" "$template"
+  cp "$cargo_target_dir"/"$target_name"/"$build_mode_dir"/basm-submit "$cargo_target_dir"/"$target_name"/"$build_mode_dir"/basm-submit-stripped
+  objcopy --strip-all "$cargo_target_dir"/"$target_name"/"$build_mode_dir"/basm-submit-stripped
+  objcopy --remove-section .eh_frame --remove-section .gcc_except_table --remove-section .gnu.hash "$cargo_target_dir"/"$target_name"/"$build_mode_dir"/basm-submit-stripped
+  python3 scripts/static-pie-gen.py basm/ "$target_name" "$cargo_target_dir"/"$target_name"/"$build_mode_dir"/basm-submit-stripped "$stub" "$lang_name" "$template"
 fi
