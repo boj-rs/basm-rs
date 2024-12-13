@@ -552,6 +552,15 @@ macro_rules! impl_print{
                     self.byte_unchecked(b'\n');
                 }
             }
+            impl<const N: usize> Print<&mut $ty> for Writer<N> {
+                fn print(&mut self, x: &mut $ty) {
+                    self.$ty(*x);
+                }
+                fn println(&mut self, x: &mut $ty) {
+                    self.$ty(*x);
+                    self.byte_unchecked(b'\n');
+                }
+            }
         )*
     }
 }
