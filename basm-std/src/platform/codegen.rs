@@ -182,23 +182,16 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 }
 
 #[cfg(target_arch = "x86")]
-#[unsafe(no_mangle)]
-#[naked]
-#[unsafe(link_section = ".data")]
-unsafe extern "cdecl" fn _get_start_offset() -> ! {
-    unsafe {
-        naked_asm!("lea    eax, [_basm_start]", "ret");
-    }
+extern "cdecl" fn _get_start_offset() -> usize {
+    _basm_start as usize
 }
 
 #[cfg(target_arch = "x86")]
-#[unsafe(no_mangle)]
-#[naked]
-#[unsafe(link_section = ".data")]
-unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
-    unsafe {
-        naked_asm!("lea    eax, [_DYNAMIC]", "ret");
+extern "cdecl" fn _get_dynamic_section_offset() -> usize {
+    unsafe extern "C" {
+        fn _DYNAMIC();
     }
+    _DYNAMIC as usize
 }
 
 #[cfg(target_arch = "x86")]
@@ -227,17 +220,17 @@ pub unsafe extern "cdecl" fn _basm_start() -> ! {
             "3:",
             "call   4f",
             "4:",
-            "pop    ecx",                       // ecx = _basm_start + 36 (obtained by counting the opcode size in bytes)
-            "push   edx",                       // [esp + 0] = PLATFORM_DATA table
+            "pop    ebx",                       // ebx = _basm_start + 36 (obtained by counting the opcode size in bytes)
+            "push   edx",                       // [esp + 0] = PLATFORM_DATA table, stack is aligned
             "call   {2}",                       // eax = offset of _basm_start from the image base
-            "sub    ecx, eax",
-            "sub    ecx, 36",                   // ecx = the in-memory image base (i.e., __ehdr_start)
+            "sub    ebx, eax",
+            "sub    ebx, 36",                   // ebx = the in-memory image base (i.e., __ehdr_start)
             "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
-            "add    eax, ecx",                  // eax = _DYNAMIC table
+            "lea    esi, [ebx + eax]",          // esi = _DYNAMIC table
             "sub    esp, 8",                    // For stack alignment
-            "push   eax",
-            "push   ecx",
-            "call   {0}",
+            "push   esi",
+            "push   ebx",
+            "call   {0}",                       // call loader::i686_elf::relocate
             "add    esp, 16",
             "call   {1}",
             "mov    esp, ebp",
