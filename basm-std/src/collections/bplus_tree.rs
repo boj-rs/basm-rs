@@ -684,8 +684,8 @@ where
     pub fn remove(&mut self, _key: &K) -> Option<V> {
         None
     }
-    pub fn get(&self, _key: &K) -> Option<&V> {
-        None
+    pub fn get(&self, key: &K) -> Option<V> {
+        self.get_range(key..=key)
     }
     pub fn get_mut(&mut self, _key: &K) -> Option<PeekMutPoint<K, V, U>> {
         None
