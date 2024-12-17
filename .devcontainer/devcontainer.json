@@ -1,15 +1,17 @@
 {
     "name": "basm-rs",
-    "extensions": [
-        "ms-vsliveshare.vsliveshare",
-        "rust-lang.rust-analyzer",
-        "vadimcn.vscode-lldb"
-    ],
     "dockerFile": "Dockerfile",
-    "settings": {
-        "editor.formatOnSave": true
-    },
     "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vsliveshare.vsliveshare",
+                "rust-lang.rust-analyzer",
+                "vadimcn.vscode-lldb"
+            ],
+            "settings": {
+                "editor.formatOnSave": true
+            }
+        },
         "codespaces": {
             "openFiles": [
                 "basm/src/solution.rs"
