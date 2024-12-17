@@ -698,28 +698,38 @@ where
             let mut out = None;
             let mut l = &self.root;
             let mut r = &ChildPtr::<K, V, U, F>::default();
+            let mut u_l = F::compose(&F::id_op(), &self.lazy);
+            let mut u_r = F::compose(&F::id_op(), &self.lazy);
             for _ in (1..self.depth).rev() {
                 if unsafe { r.internal_node.is_some() } {
-                    let (s, _, partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
+                    let (s, _, mut partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
+                    partial_sum = partial_sum.map(|x| F::apply(&u_l, &x));
                     if let Some(x) = partial_sum {
                         out = Some(if let Some(y) = out { F::binary_op(&x, &y) } else { x });
                     }
+                    u_l = F::compose(&u_l, unsafe { l.as_internal_node_ref().lazies[s].assume_init_ref() });
                     l = unsafe { &l.as_internal_node_ref().children[s] };
-                    let (_, e, partial_sum) = unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
+                    let (_, e, mut partial_sum) = unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
+                    partial_sum = partial_sum.map(|x| F::apply(&u_r, &x));
                     if let Some(x) = partial_sum {
                         out = Some(if let Some(y) = out { F::binary_op(&y, &x) } else { x });
                     }
+                    u_r = F::compose(&u_r, unsafe { r.as_internal_node_ref().lazies[e].assume_init_ref() });
                     r = unsafe { &r.as_internal_node_ref().children[e] };
                 } else {
-                    let (s, e, partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
+                    let (s, e, mut partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
+                    partial_sum = partial_sum.map(|x| F::apply(&u_l, &x));
                     if e > s {
+                        u_r = F::compose(&u_l, unsafe { l.as_internal_node_ref().lazies[e].assume_init_ref() });
                         r = unsafe { &l.as_internal_node_ref().children[e] };
                     }
+                    u_l = F::compose(&u_l, unsafe { l.as_internal_node_ref().lazies[s].assume_init_ref() });
                     l = unsafe { &l.as_internal_node_ref().children[s] };
                     out = partial_sum;
                 }
             }
-            if let Some(x) = unsafe { l.as_leaf_node_ref() }.aggregate_range(&range) {
+            if let Some(mut x) = unsafe { l.as_leaf_node_ref() }.aggregate_range(&range) {
+                x = F::apply(&u_l, &x);
                 out = Some(if let Some(y) = out {
                     F::binary_op(&x, &y)
                 } else {
@@ -727,7 +737,8 @@ where
                 });
             }
             if unsafe { r.internal_node.is_some() } {
-                if let Some(x) = unsafe { r.as_leaf_node_ref() }.aggregate_range(&range) {
+                if let Some(mut x) = unsafe { r.as_leaf_node_ref() }.aggregate_range(&range) {
+                    x = F::apply(&u_r, &x);
                     out = Some(if let Some(y) = out {
                         F::binary_op(&y, &x)
                     } else {
