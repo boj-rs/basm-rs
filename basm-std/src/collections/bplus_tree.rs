@@ -1,8 +1,9 @@
 use alloc::boxed::Box;
-use core::cmp::Ordering::{Equal, Greater, Less};
+use core::cmp::Ordering::{self, Equal, Greater, Less};
 use core::marker::PhantomData;
 use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ops::RangeBounds;
+use core::ops::Bound::*;
 
 // The degree of BPTree.
 // (degree: the minimum number of children in internal node)
@@ -84,23 +85,39 @@ where
     _u: PhantomData<U>,
 }
 
-pub struct PeekMutRange<K, V, U>
+pub struct PeekMutRange<'a, K, V, U, F>
 where
     K: Ord,
+    F: LazyOp<V, U>,
 {
+    tree: &'a mut BPTreeMap<K, V, U, F>,
+    op: U,
+    value: V,
     _k: PhantomData<K>,
     _v: PhantomData<V>,
     _u: PhantomData<U>,
 }
 
-impl<K, V, U> PeekMutRange<K, V, U>
+impl<'a, K, V, U, F> PeekMutRange<'a, K, V, U, F>
 where
     K: Ord,
+    F: LazyOp<V, U>,
 {
-    pub fn value(&mut self) -> V {
-        todo!()
+    pub fn value(&self) -> &V {
+        &self.value
     }
-    pub fn apply(&mut self, _u: &U) {
+    pub fn apply(&mut self, u: &U) {
+        self.op = F::compose(u, &self.op);
+        self.value = F::apply(u, &self.value);
+    }
+}
+
+impl<'a, K, V, U, F> Drop for PeekMutRange<'a, K, V, U, F>
+where
+    K: Ord,
+    F: LazyOp<V, U>,
+{
+    fn drop(&mut self) {
         todo!()
     }
 }
@@ -336,6 +353,41 @@ where
             out2.unwrap_or(F::apply(&F::id_op(), out))
         }
     }
+    /// [start, end] only potentially has overlap; outside it, no overlap is guaranteed.
+    /// Returns (start, end, sum on start+1..=end-1)
+    /// 
+    /// For `Unbounded`, we ignore any sort of safety margin.
+    fn aggregate_range<R: RangeBounds<K>>(&self, range: &R, lt_unbounded: bool, rt_unbounded: bool) -> (usize, usize, Option<V>) {
+        let mut start = 0;
+        while start < self.keys.len() && !self.keys[start].is_null() && match range.start_bound() {
+            Included(k) => k.cmp(unsafe { &*self.keys[start] }) == Ordering::Greater,
+            Excluded(k) => k.cmp(unsafe { &*self.keys[start] }) != Ordering::Less,
+            Unbounded => false,
+        } {
+            start += 1;
+        }
+        let mut end = start;
+        while end < self.keys.len() && !self.keys[end].is_null() && match range.end_bound() {
+            Included(k) => k.cmp(unsafe { &*self.keys[end] }) != Ordering::Less,
+            Excluded(k) => k.cmp(unsafe { &*self.keys[end] }) == Ordering::Greater,
+            Unbounded => true,
+        } {
+            end += 1;
+        }
+        start = start.saturating_sub(1); // we consider [start, end)
+        let mut out = None;
+        let rstart = if lt_unbounded { start } else { start + 1 };
+        let rend = if rt_unbounded { end } else { end - 1 };
+        for i in rstart..rend {
+            let v = unsafe { self.values[i].assume_init_ref() };
+            if let Some(x) = out {
+                out = Some(F::binary_op(&x, v));
+            } else {
+                out = Some(F::apply(&F::id_op(), v));
+            }
+        }
+        (start, end.saturating_sub(1), out)
+    }
 }
 
 impl<K, V, U, F> LeafNode<K, V, U, F>
@@ -414,6 +466,22 @@ where
             }
             out2.unwrap_or(F::apply(&F::id_op(), out))
         }
+    }
+    /// Returns sum of all values whose keys fall in `range`.
+    fn aggregate_range<R: RangeBounds<K>>(&self, range: &R) -> Option<V> {
+        let mut out = None;
+        for i in 0..self.count {
+            let v = unsafe { self.keys[i].assume_init_ref() };
+            if range.contains(v) {
+                let y = unsafe { self.values[i].assume_init_ref() };
+                out = Some(if let Some(x) = out {
+                    F::binary_op(&x, y)
+                } else {
+                    F::apply(&F::id_op(), y)
+                });
+            }
+        }
+        out
     }
 }
 
@@ -622,8 +690,53 @@ where
     pub fn get_mut(&mut self, _key: &K) -> Option<PeekMutPoint<K, V, U>> {
         None
     }
-    pub fn get_range<R: RangeBounds<K>>(&self, _range: R) -> Option<V> {
-        None
+    pub fn get_range<R: RangeBounds<K>>(&self, range: R) -> Option<V> {
+        if self.depth == 0 {
+            None
+        } else {
+            // we must consider lazy propagation downwards
+            let mut out = None;
+            let mut l = &self.root;
+            let mut r = &ChildPtr::<K, V, U, F>::default();
+            for _ in (1..self.depth).rev() {
+                if unsafe { r.internal_node.is_some() } {
+                    let (s, _, partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
+                    if let Some(x) = partial_sum {
+                        out = Some(if let Some(y) = out { F::binary_op(&x, &y) } else { x });
+                    }
+                    l = unsafe { &l.as_internal_node_ref().children[s] };
+                    let (_, e, partial_sum) = unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
+                    if let Some(x) = partial_sum {
+                        out = Some(if let Some(y) = out { F::binary_op(&y, &x) } else { x });
+                    }
+                    r = unsafe { &r.as_internal_node_ref().children[e] };
+                } else {
+                    let (s, e, partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
+                    if e > s {
+                        r = unsafe { &l.as_internal_node_ref().children[e] };
+                    }
+                    l = unsafe { &l.as_internal_node_ref().children[s] };
+                    out = partial_sum;
+                }
+            }
+            if let Some(x) = unsafe { l.as_leaf_node_ref() }.aggregate_range(&range) {
+                out = Some(if let Some(y) = out {
+                    F::binary_op(&x, &y)
+                } else {
+                    x
+                });
+            }
+            if unsafe { r.internal_node.is_some() } {
+                if let Some(x) = unsafe { r.as_leaf_node_ref() }.aggregate_range(&range) {
+                    out = Some(if let Some(y) = out {
+                        F::binary_op(&y, &x)
+                    } else {
+                        x
+                    });
+                }
+            }
+            out
+        }
     }
     pub fn get_range_mut<R: RangeBounds<K>>(&mut self, _range: R) -> Option<PeekMutRange<K, V, U>> {
         None
