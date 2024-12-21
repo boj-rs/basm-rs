@@ -1,9 +1,11 @@
+#![allow(clippy::needless_range_loop)]
+
 use alloc::boxed::Box;
 use core::cmp::Ordering::{self, Equal, Greater, Less};
 use core::marker::PhantomData;
 use core::mem::{ManuallyDrop, MaybeUninit};
-use core::ops::RangeBounds;
 use core::ops::Bound::*;
+use core::ops::RangeBounds;
 
 // The degree of BPTree.
 // (degree: the minimum number of children in internal node)
@@ -113,12 +115,15 @@ where
     tree: &'a mut BPTreeMap<K, V, U, F>,
     op: U,
     value: V,
+    // [lt_ptr, lt_start, lt_end, rt_ptr, rt_start, rt_end]
+    // (rt_ptr is 0 if it does not exist)
+    stack: [MaybeUninit<[usize; 6]>; MAX_STACK_DEPTH],
     _k: PhantomData<K>,
     _v: PhantomData<V>,
     _u: PhantomData<U>,
 }
 
-impl<'a, K, V, U, F> PeekMutRange<'a, K, V, U, F>
+impl<K, V, U, F> PeekMutRange<'_, K, V, U, F>
 where
     K: Ord,
     F: LazyOp<V, U>,
@@ -132,13 +137,87 @@ where
     }
 }
 
-impl<'a, K, V, U, F> Drop for PeekMutRange<'a, K, V, U, F>
+impl<K, V, U, F> Drop for PeekMutRange<'_, K, V, U, F>
 where
     K: Ord,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
-        todo!()
+        if self.tree.depth == 0 {
+            return;
+        }
+        unsafe {
+            // handle leaf nodes
+            let x = self.stack[self.tree.depth - 1].assume_init_ref();
+            let ptr = &mut *(x[0] as *mut LeafNode<K, V, U, F>);
+            for i in x[1]..x[2] {
+                ptr.values[i] =
+                    MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+            }
+            let mut lval = Some(ptr.aggregate());
+            let mut rval = if x[3] == 0 {
+                None
+            } else {
+                let ptr = &mut *(x[3] as *mut LeafNode<K, V, U, F>);
+                for i in x[4]..x[5] {
+                    ptr.values[i] =
+                        MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                }
+                Some(ptr.aggregate())
+            };
+            // traverse up the tree to the root
+            for d in (0..self.tree.depth - 1).rev() {
+                let x = self.stack[d].assume_init_ref();
+                if x[3] == 0 {
+                    let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
+                    for i in x[1] + 1..x[2] {
+                        ptr.lazies[i] = MaybeUninit::new(F::compose(
+                            &self.op,
+                            &ptr.lazies[i].assume_init_read(),
+                        ));
+                        ptr.values[i] =
+                            MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                    }
+                    ptr.values[x[1]].assume_init_drop();
+                    ptr.values[x[1]] = MaybeUninit::new(lval.unwrap());
+                    if rval.is_some() {
+                        ptr.values[x[2]].assume_init_drop();
+                        ptr.values[x[2]] = MaybeUninit::new(rval.unwrap());
+                        rval = None;
+                    }
+                    lval = Some(ptr.aggregate());
+                } else {
+                    // left
+                    let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
+                    for i in x[1] + 1..=x[2] {
+                        ptr.lazies[i] = MaybeUninit::new(F::compose(
+                            &self.op,
+                            &ptr.lazies[i].assume_init_read(),
+                        ));
+                        ptr.values[i] =
+                            MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                    }
+                    ptr.values[x[1]].assume_init_drop();
+                    ptr.values[x[1]] = MaybeUninit::new(lval.unwrap());
+                    lval = Some(ptr.aggregate());
+                    // right
+                    let ptr = &mut *(x[3] as *mut InternalNode<K, V, U, F>);
+                    for i in x[4]..x[5] {
+                        ptr.lazies[i] = MaybeUninit::new(F::compose(
+                            &self.op,
+                            &ptr.lazies[i].assume_init_read(),
+                        ));
+                        ptr.values[i] =
+                            MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                    }
+                    ptr.values[x[5]].assume_init_drop();
+                    ptr.values[x[5]] = MaybeUninit::new(rval.unwrap());
+                    rval = Some(ptr.aggregate());
+                }
+            }
+            // replace the sum for the whole tree
+            self.tree.value = lval;
+        }
     }
 }
 
@@ -373,25 +452,36 @@ where
             out2.unwrap_or(F::apply(&F::id_op(), out))
         }
     }
-    /// [start, end] only potentially has overlap; outside it, no overlap is guaranteed.
+    /// \[start, end\] only potentially has overlap; outside it, no overlap is guaranteed.
     /// Returns (start, end, sum on start+1..=end-1)
-    /// 
+    ///
     /// For `Unbounded`, we ignore any sort of safety margin.
-    fn aggregate_range<R: RangeBounds<K>>(&self, range: &R, lt_unbounded: bool, rt_unbounded: bool) -> (usize, usize, Option<V>) {
+    fn aggregate_range<R: RangeBounds<K>>(
+        &self,
+        range: &R,
+        lt_unbounded: bool,
+        rt_unbounded: bool,
+    ) -> (usize, usize, Option<V>) {
         let mut start = 0;
-        while start < self.keys.len() && !self.keys[start].is_null() && match range.start_bound() {
-            Included(k) => k.cmp(unsafe { &*self.keys[start] }) == Ordering::Greater,
-            Excluded(k) => k.cmp(unsafe { &*self.keys[start] }) != Ordering::Less,
-            Unbounded => false,
-        } {
+        while start < self.keys.len()
+            && !self.keys[start].is_null()
+            && match range.start_bound() {
+                Included(k) => k.cmp(unsafe { &*self.keys[start] }) == Ordering::Greater,
+                Excluded(k) => k.cmp(unsafe { &*self.keys[start] }) != Ordering::Less,
+                Unbounded => false,
+            }
+        {
             start += 1;
         }
         let mut end = start;
-        while end < self.keys.len() && !self.keys[end].is_null() && match range.end_bound() {
-            Included(k) => k.cmp(unsafe { &*self.keys[end] }) != Ordering::Less,
-            Excluded(k) => k.cmp(unsafe { &*self.keys[end] }) == Ordering::Greater,
-            Unbounded => true,
-        } {
+        while end < self.keys.len()
+            && !self.keys[end].is_null()
+            && match range.end_bound() {
+                Included(k) => k.cmp(unsafe { &*self.keys[end] }) != Ordering::Less,
+                Excluded(k) => k.cmp(unsafe { &*self.keys[end] }) == Ordering::Greater,
+                Unbounded => true,
+            }
+        {
             end += 1;
         }
         start = start.saturating_sub(1); // we consider [start, end)
@@ -400,11 +490,7 @@ where
         let rend = if rt_unbounded { end } else { end - 1 };
         for i in rstart..rend {
             let v = unsafe { self.values[i].assume_init_ref() };
-            if let Some(x) = out {
-                out = Some(F::binary_op(&x, v));
-            } else {
-                out = Some(F::apply(&F::id_op(), v));
-            }
+            out = F::binary_op_option(out.as_ref(), Some(v));
         }
         (start, end.saturating_sub(1), out)
     }
@@ -488,20 +574,25 @@ where
         }
     }
     /// Returns sum of all values whose keys fall in `range`.
-    fn aggregate_range<R: RangeBounds<K>>(&self, range: &R) -> Option<V> {
-        let mut out = None;
-        for i in 0..self.count {
-            let v = unsafe { self.keys[i].assume_init_ref() };
-            if range.contains(v) {
-                let y = unsafe { self.values[i].assume_init_ref() };
-                out = Some(if let Some(x) = out {
-                    F::binary_op(&x, y)
-                } else {
-                    F::clone_value(y)
-                });
-            }
+    ///
+    /// Note: usize values represent [start, end)
+    fn aggregate_range<R: RangeBounds<K>>(&self, range: &R) -> (usize, usize, Option<V>) {
+        let mut start = 0;
+        while start < self.count && !range.contains(unsafe { self.keys[start].assume_init_ref() }) {
+            start += 1;
         }
-        out
+        let mut end = start;
+        let mut out = None;
+        while end < self.count && range.contains(unsafe { self.keys[end].assume_init_ref() }) {
+            let y = unsafe { self.values[end].assume_init_ref() };
+            out = Some(if let Some(x) = out {
+                F::binary_op(&x, y)
+            } else {
+                F::clone_value(y)
+            });
+            end += 1;
+        }
+        (start, end, out)
     }
 }
 
@@ -719,42 +810,177 @@ where
             let mut l = &self.root;
             let mut r = &ChildPtr::<K, V, U, F>::default();
             let mut u_l = F::clone_op(&self.lazy);
-            let mut u_r = F::clone_op(&self.lazy);
-            for _ in (1..self.depth).rev() {
+            let mut u_r = F::id_op();
+            for _ in 0..self.depth - 1 {
                 if unsafe { r.internal_node.is_some() } {
-                    let (s, _, mut partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
+                    let (s, _, mut partial_sum) =
+                        unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
                     partial_sum = F::apply_option(&u_l, partial_sum.as_ref());
                     out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
-                    u_l = F::compose(&u_l, unsafe { l.as_internal_node_ref().lazies[s].assume_init_ref() });
+                    u_l = F::compose(&u_l, unsafe {
+                        l.as_internal_node_ref().lazies[s].assume_init_ref()
+                    });
                     l = unsafe { &l.as_internal_node_ref().children[s] };
-                    let (_, e, mut partial_sum) = unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
+                    let (_, e, mut partial_sum) =
+                        unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
                     partial_sum = F::apply_option(&u_r, partial_sum.as_ref());
                     out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
-                    u_r = F::compose(&u_r, unsafe { r.as_internal_node_ref().lazies[e].assume_init_ref() });
+                    u_r = F::compose(&u_r, unsafe {
+                        r.as_internal_node_ref().lazies[e].assume_init_ref()
+                    });
                     r = unsafe { &r.as_internal_node_ref().children[e] };
                 } else {
-                    let (s, e, mut partial_sum) = unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
+                    let (s, e, mut partial_sum) =
+                        unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
                     partial_sum = F::apply_option(&u_l, partial_sum.as_ref());
                     if e > s {
-                        u_r = F::compose(&u_l, unsafe { l.as_internal_node_ref().lazies[e].assume_init_ref() });
+                        u_r = F::compose(&u_l, unsafe {
+                            l.as_internal_node_ref().lazies[e].assume_init_ref()
+                        });
                         r = unsafe { &l.as_internal_node_ref().children[e] };
                     }
-                    u_l = F::compose(&u_l, unsafe { l.as_internal_node_ref().lazies[s].assume_init_ref() });
+                    u_l = F::compose(&u_l, unsafe {
+                        l.as_internal_node_ref().lazies[s].assume_init_ref()
+                    });
                     l = unsafe { &l.as_internal_node_ref().children[s] };
                     out = partial_sum;
                 }
             }
-            let partial_sum = F::apply_option(&u_l, unsafe { l.as_leaf_node_ref() }.aggregate_range(&range).as_ref());
+            let partial_sum = F::apply_option(
+                &u_l,
+                unsafe { l.as_leaf_node_ref() }
+                    .aggregate_range(&range)
+                    .2
+                    .as_ref(),
+            );
             out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
             if unsafe { r.leaf_node.is_some() } {
-                let partial_sum = F::apply_option(&u_r, unsafe { r.as_leaf_node_ref() }.aggregate_range(&range).as_ref());
+                let partial_sum = F::apply_option(
+                    &u_r,
+                    unsafe { r.as_leaf_node_ref() }
+                        .aggregate_range(&range)
+                        .2
+                        .as_ref(),
+                );
                 out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
             }
             out
         }
     }
-    pub fn get_range_mut<R: RangeBounds<K>>(&mut self, _range: R) -> Option<PeekMutRange<K, V, U>> {
-        None
+    pub fn get_range_mut<R: RangeBounds<K>>(
+        &mut self,
+        range: R,
+    ) -> Option<PeekMutRange<K, V, U, F>> {
+        if self.depth == 0 {
+            None
+        } else {
+            // we must consider lazy propagation downwards
+            let mut stack = MaybeUninit::uninit_array();
+            let mut out = None;
+            let mut l = &mut self.root;
+            let mut r = &mut ChildPtr::<K, V, U, F>::default();
+            let mut u_l = F::clone_op(&self.lazy);
+            let mut u_r = F::id_op();
+            self.lazy = F::id_op();
+            for i in 0..self.depth - 1 {
+                if unsafe { r.internal_node.is_some() } {
+                    unsafe { l.as_internal_node_mut() }.push(&u_l);
+                    let (ls, le, partial_sum) =
+                        unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
+                    out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
+                    u_l = unsafe { l.as_internal_node_ref().lazies[ls].assume_init_read() };
+                    unsafe { l.as_internal_node_mut() }.lazies[ls] = MaybeUninit::new(F::id_op());
+
+                    unsafe { r.as_internal_node_mut() }.push(&u_r);
+                    let (rs, re, partial_sum) =
+                        unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
+                    out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
+                    u_r = unsafe { r.as_internal_node_ref().lazies[re].assume_init_read() };
+                    unsafe { r.as_internal_node_mut() }.lazies[re] = MaybeUninit::new(F::id_op());
+
+                    unsafe {
+                        stack[i] = MaybeUninit::new([
+                            l.as_leaf_node_ref() as *const _ as usize,
+                            ls,
+                            le,
+                            r.as_leaf_node_ref() as *const _ as usize,
+                            rs,
+                            re,
+                        ]);
+                    }
+
+                    l = unsafe { &mut l.as_internal_node_mut().children[ls] };
+                    r = unsafe { &mut r.as_internal_node_mut().children[re] };
+                } else {
+                    unsafe { l.as_internal_node_mut() }.push(&u_l);
+                    let (s, e, partial_sum) =
+                        unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
+                    if e > s {
+                        u_r = unsafe { l.as_internal_node_ref().lazies[e].assume_init_read() };
+                        unsafe { l.as_internal_node_mut() }.lazies[e] =
+                            MaybeUninit::new(F::id_op());
+                    }
+                    u_l = unsafe { l.as_internal_node_ref().lazies[s].assume_init_read() };
+                    unsafe { l.as_internal_node_mut() }.lazies[s] = MaybeUninit::new(F::id_op());
+                    unsafe {
+                        stack[i] = MaybeUninit::new([
+                            l.as_leaf_node_ref() as *const _ as usize,
+                            s,
+                            e,
+                            0,
+                            0,
+                            0,
+                        ]);
+                    }
+                    if e > s {
+                        let (ll, lr) = unsafe { l.as_internal_node_mut().children.split_at_mut(e) };
+                        r = &mut lr[0];
+                        l = &mut ll[s];
+                    } else {
+                        l = unsafe { &mut l.as_internal_node_mut().children[s] };
+                    }
+                    out = partial_sum;
+                }
+            }
+            unsafe { l.as_leaf_node_mut() }.push(&u_l);
+            let (ls, le, partial_sum) = unsafe { l.as_leaf_node_ref() }.aggregate_range(&range);
+            out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
+            if unsafe { r.leaf_node.is_some() } {
+                unsafe { r.as_leaf_node_mut() }.push(&u_r);
+                let (rs, re, partial_sum) = unsafe { r.as_leaf_node_ref() }.aggregate_range(&range);
+                out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
+                unsafe {
+                    stack[self.depth - 1] = MaybeUninit::new([
+                        l.as_leaf_node_ref() as *const _ as usize,
+                        ls,
+                        le,
+                        r.as_leaf_node_ref() as *const _ as usize,
+                        rs,
+                        re,
+                    ]);
+                }
+            } else {
+                unsafe {
+                    stack[self.depth - 1] = MaybeUninit::new([
+                        l.as_leaf_node_ref() as *const _ as usize,
+                        ls,
+                        le,
+                        0,
+                        0,
+                        0,
+                    ]);
+                }
+            }
+            out.map(|x| PeekMutRange {
+                tree: self,
+                op: F::id_op(),
+                value: x,
+                stack,
+                _k: PhantomData,
+                _v: PhantomData,
+                _u: PhantomData,
+            })
+        }
     }
 }
 
@@ -779,6 +1005,7 @@ mod test {
                 0
             }
         }
+
         let mut bptm = BPTreeMap::<usize, (i64, usize), i64, F>::new();
         let n = 10;
         for i in 1..=n {
@@ -797,5 +1024,33 @@ mod test {
         assert_eq!(Some((39, 8)), bptm.get_range(..9));
         assert_eq!(Some((39, 8)), bptm.get_range(..=8));
         assert_eq!(Some((55, 8)), bptm.get_range(3..));
+        assert_eq!(Some((5, 2)), bptm.get_range(2..=3));
+        assert_eq!(Some((23, 5)), bptm.get_range(2..=6));
+
+        let mut bptm = BPTreeMap::<usize, (i64, usize), i64, F>::new();
+        let n = 100;
+        let mut v = vec![0; n + 1];
+        for i in 1..=n {
+            v[i] = i as i64;
+            bptm.insert(i, (v[i], 1));
+        }
+        for j in 0..20 {
+            let mut s = ((j * j * j + j * 37 + 394) % n as i64 + 1) as usize;
+            let mut e = (s * s * s + s * 37 + 394) % n + 1;
+            if s > e {
+                (s, e) = (e, s);
+            }
+            if j < 10 {
+                let delta = j * j;
+                bptm.get_range_mut(s..=e).unwrap().apply(&delta);
+                for i in s..=e {
+                    v[i] += delta;
+                }
+            } else {
+                let gt = (v[s..=e].iter().sum::<i64>(), e - s + 1);
+                let val = bptm.get_range(s..=e).unwrap();
+                assert_eq!(gt, val);
+            }
+        }
     }
 }
