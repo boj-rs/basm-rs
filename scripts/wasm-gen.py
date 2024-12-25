@@ -16,8 +16,9 @@ def deflate_raw(input_bytes):
     return output_bytes
 
 # solution_src
-target_language = sys.argv[2]
-sol = srcpack.read_assemble("basm/", target_language)
+solution_src_path = sys.argv[1]
+target_language = sys.argv[3]
+sol = srcpack.read_assemble(solution_src_path, target_language)
 sol_b64 = base64.b64encode(deflate_raw(sol.encode('utf8'))).decode('ascii')
 
 # binary
@@ -29,7 +30,7 @@ with open(f"{target}/wasm32-unknown-unknown/release/basm-submit.wasm", "rb") as 
 code = base64.b64encode(deflate_raw(code)).decode('ascii')
 
 # template
-with open(locator.template_path(sys.argv[1]), "r") as f:
+with open(locator.template_path(sys.argv[2]), "r") as f:
     template = f.read()
 
 out = utils.multiple_replace(template, {

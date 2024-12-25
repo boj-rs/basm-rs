@@ -63,7 +63,7 @@ with open(compressed_binary_path, "wb") as f:
     f.write(compressed_memory_bin)
 
 # solution_src
-sol = srcpack.read_assemble("basm/", lang_name)
+sol = srcpack.read_assemble(solution_src_path, lang_name)
 
 # binary (raw)
 # Since we append a little-endian 8-byte nonnegative integer, we can practically ensure that the last byte is zero.

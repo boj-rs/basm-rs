@@ -31,6 +31,7 @@ def main(args):
     cargo_target_dir = os.environ.get("CARGO_TARGET_DIR", "target")
     short = any("short" in x for x in cargo_args)
     python = "python" if os.name == "nt" else "python3"
+    solution_src_path = "basm/"
 
     if target == "x86_64-unknown-linux-gnu":
         stub = "static-pie-stub-amd64.bin"
@@ -104,14 +105,14 @@ def main(args):
         cmds.append(["cargo", "+nightly", "build"] + extra_config + ["--target", target_cargo, "--bin", "basm-submit", "--features=submit", "--release"] + cargo_args)
 
     if target in ["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"]:
-        cmds.append([python, "scripts/static-pie-gen.py", "basm/", target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit.exe", stub, lang, template])
+        cmds.append([python, "scripts/static-pie-gen.py", solution_src_path, target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit.exe", stub, lang, template])
     elif target in "wasm32-unknown-unknown":
-        cmds.append([python, "scripts/wasm-gen.py", template, lang])
+        cmds.append([python, "scripts/wasm-gen.py", solution_src_path, template, lang])
     else:        
         cmds.append(["cp", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped"])
         cmds.append(["objcopy", "--strip-all", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped"])
         cmds.append(["objcopy", "--remove-section", ".eh_frame", "--remove-section", ".gcc_except_table", "--remove-section", ".gnu.hash", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped"])
-        cmds.append([python, "scripts/static-pie-gen.py", "basm/", target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped", stub, lang, template])
+        cmds.append([python, "scripts/static-pie-gen.py", solution_src_path, target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped", stub, lang, template])
 
     run_cmds(cmds)
 
