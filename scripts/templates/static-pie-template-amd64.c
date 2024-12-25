@@ -44,22 +44,21 @@ typedef unsigned long long uint64_t;
 #define BASMCALL
 #endif
 
-// Base85 decoder. Code adapted from:
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-const char *b85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>\?@^_`{|}~";
-void b85tobin(void *dest, char const *src) {
-    uint32_t *p = (uint32_t *)dest;
-    uint8_t digittobin[256];
-    for (uint8_t i=0; i<85; i++) digittobin[(uint8_t)b85[i]] = i;
+void b91tobin(void *dest, char const *src) {
+    uint8_t *p = (uint8_t *)dest;
+    uint32_t eax = 0x1f;
     while (1) {
         while (*src == '\0') src++;
-        if (*src == ']') break;
-        uint32_t value = 0;
-        for (uint32_t i=0; i<5; i++) {
-            value *= 85;
-            value += digittobin[(uint8_t)*src++];
-        }
-        *p++ = (value >> 24) | ((value >> 8) & 0xff00) | ((value << 8) & 0xff0000) | (value << 24);
+        uint32_t x = (uint32_t) *src++;
+        if (x < 0x24) return;
+        while (*src == '\0') src++;
+        uint32_t y = (uint32_t) *src++;
+        eax <<= 13;
+        eax += (y - 0x24) * 91 + (x - 0x24);
+        do {
+            *p++ = (uint8_t) eax;
+            eax >>= 8;
+        } while (eax & (1 << 12));
     }
 }
 
@@ -139,7 +138,7 @@ stub_ptr get_stub() {
     return (stub_ptr) stub;
 }
 #endif
-char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
+char payload[][$$$$min_len_4096$$$$] = $$$$binary_base91_chunked$$$$;
 
 #if defined(__linux__) && (defined(BOJ) || defined(BASM_CI))
 int main() {}
@@ -189,8 +188,8 @@ int main(int argc, char *argv[]) {
 
     stub_ptr stub = get_stub();
 #if defined(__linux__)
-    uint8_t stubbuf[68 + $$$$stub_len$$$$] = "QMd~L002n8@6D@;XGJ3cz5oya01pLO>naZmS5~+Q0000n|450>x(5IN07=KfA^-pYO)<bp|Hw@-$qxlyU&9Xz]";
-    b85tobin(stubbuf, (char const *)stubbuf);
+    uint8_t stubbuf[68 + $$$$stub_len$$$$] = "H;|DR:$$$|7x6E69i$6',&%Q$$?@GjeBmVodz$C?$$c7h{.>j<g9%Q$$Q80&F$$$f5U$5L@=aT8S92:|1&.C!";
+    b91tobin(stubbuf, (char const *)stubbuf);
     /* prepend thunk and relocate stub onto stack */
     for (size_t i = 0; i < $$$$stub_len$$$$; i++) stubbuf[68 + i] = (uint8_t)stub_raw[i];
     size_t base = ((size_t)stub_raw) & 0xFFFFFFFFFFFFF000ULL; // page-aligned pointer to munmap in thunk
@@ -205,7 +204,7 @@ int main(int argc, char *argv[]) {
     pd.ptr_alloc_rwx = (void *) (stubbuf + 0x1c); // thunk implements its own svc_alloc_rwx
     stub = (stub_ptr) stubbuf;
 #endif
-    b85tobin(payload, (char const *)payload);
+    b91tobin(payload, (char const *)payload);
     return stub(&pd, payload);
 }
 // LOADER END

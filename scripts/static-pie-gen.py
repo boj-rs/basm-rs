@@ -83,24 +83,21 @@ with open(compressed_binary_path, "rb") as f:
 
 code_b91 = base91.encode(code).decode('ascii')
 code_b91_len = len(code_b91)
-code_b91 = '"' + code_b91 + '"'
-
-code = bytearray(code)
-while len(code) % 4 != 0:
-    code.append(0)
-code_b85 = base64.b85encode(code, pad=False).decode('ascii') + ']'
+code_b91_quoted = '"' + code_b91 + '"'
 
 if lang_name == "C":
     L = 4095
     s = []
-    for i in range(0, len(code_b85), L):
-        x = code_b85[i:min(i+L,len(code_b85))]
-        x = x.replace("?", "\\?")
+    for i in range(0, len(code_b91), L):
+        x = code_b91[i:min(i+L,len(code_b91))]
+        # Escape '\' and '?'
+        x = x.replace('\\', '\\\\')
+        x = x.replace('?', '\\?')
         x = '"' + x + '",\n'
         s.append(x)
     r = "{\n" + "".join(s) + "}"
 else:
-    r = '"' + code_b85 + '"'
+    r = '"' + code_b91 + '"'
 
 # stub
 with open(stub_path, "rb") as f:
@@ -112,17 +109,15 @@ if lang_name == "Rust" and "x86_64" in target_name:
 
 stub_b91 = base91.encode(stub).decode('ascii')
 stub_b91_len = len(stub_b91)
+if lang_name == "C":
+    stub_b91 = stub_b91.replace("\\", "\\\\")
+    stub_b91 = stub_b91.replace("?", "\\?")
 stub_b91 = '"' + stub_b91 + '"'
 
 stub = bytearray(stub)
 while len(stub) % 4 != 0:
     stub.append(0)
 stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
-stub_b85 = base64.b85encode(stub, pad=False).decode('ascii') + ']'
-stub_b85_len = len(stub_b85)
-if lang_name == "C":
-    stub_b85 = stub_b85.replace("?", "\\?")
-stub_b85 = '"' + stub_b85 + '"'
 
 # template
 template_candidates = [template_path]
@@ -146,18 +141,15 @@ for each_template_path in template_candidates:
     out_candidate = utils.multiple_replace(template, {
         "$$$$solution_src$$$$": sol,
         "$$$$stub_raw$$$$": stub_raw,
-        "$$$$stub_base85$$$$": stub_b85,
         "$$$$stub_len$$$$": str(len(stub)),
-        "$$$$stub_base85_len$$$$": str(stub_b85_len),
         "$$$$stub_base91$$$$": stub_b91,
         "$$$$stub_base91_len$$$$": str(stub_b91_len),
-        "$$$$binary_base85$$$$": r,
-        "$$$$binary_base85_len$$$$": str(len(code_b85)),
-        "$$$$binary_base91$$$$": code_b91,
+        "$$$$binary_base91$$$$": code_b91_quoted,
         "$$$$binary_base91_len$$$$": str(code_b91_len),
         "$$$$binary_raw_base91$$$$": code_raw_b91,
         "$$$$binary_raw_base91_len$$$$": str(code_raw_b91_len),
-        "$$$$min_len_4096$$$$": str(min(len(code_b85)+1, 4096)),
+        "$$$$binary_base91_chunked$$$$": r,
+        "$$$$min_len_4096$$$$": str(min(len(code_b91)+1, 4096)),
         "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
         "$$$$exports_cpp$$$$": exports_cpp
     })
