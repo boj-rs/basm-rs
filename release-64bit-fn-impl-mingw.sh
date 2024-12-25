@@ -1,1 +1,1 @@
-scripts/static-pie.sh x86_64-pc-windows-gnu CFnImpl Release "$@"
+python3 scripts/static-pie.py --target x86_64-pc-windows-gnu --lang CFnImpl --profile Release --cargo_args "$@"

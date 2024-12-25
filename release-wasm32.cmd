@@ -1,9 +1,10 @@
 @echo off
-cargo +nightly build --target wasm32-unknown-unknown --bin=basm-submit --features=submit --release || goto :error
-python scripts/wasm-gen.py wasm-template.js JavaScript || goto :error
+python scripts/static-pie.py --target wasm32-unknown-unknown --lang JavaScript --profile Release --cargo_args %* || goto :error
 
 :; exit 0
+endlocal
 exit /b 0
 
 :error
+endlocal
 exit /b %errorlevel%
