@@ -124,11 +124,11 @@ Windows 환경에서 빌드하는 방법입니다.
 
 * `release-html.cmd`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
 
-* VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
+* VS Code의 `build-release-amd64-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
-* VS Code의 `build-release-amd64-win-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
+* VS Code의 `build-release-amd64-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
 
-* VS Code의 `build-release-wasm32-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
+* VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
 Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
@@ -138,7 +138,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
 
-* Note: C 또는 Rust 코드로 출력하는 shell script에 `--features short` option을 전달하면 짧은 코드가 출력됩니다. 짧은 코드 생성 기능은 템플릿 길이 단축 및 basm-std 내부 구현 최적화를 통해 구현되어 있습니다. `--features short` option으로 생성된 코드는 Linux x64 환경에서만 실행이 가능하고 Windows에서 실행이 불가능합니다.
+* Note: C 또는 Rust 코드로 출력하는 shell script에 `--features short` option을 전달하면 짧은 코드가 출력됩니다. 짧은 코드 생성 기능은 템플릿 길이 단축 및 basm-std 내부 구현 최적화를 통해 구현되어 있습니다. `--features short` option을 적용한 빌드는 Windows 및 Linux에서 가능하지만, 생성된 코드는 Linux x64 환경에서만 실행이 가능하고 Windows에서 실행이 불가능합니다. VS Code에서는 `build-release-amd64-short-submit` 및 `build-release-amd64-rs-short-submit` Task를 통해 사용이 가능합니다.
 
 * `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
 
