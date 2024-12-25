@@ -313,7 +313,7 @@ impl<const N: usize> Reader<N> {
         }
     }
 
-    #[cfg(not(feature = "short"))]
+    #[cfg(any(not(feature = "short"), feature = "fastio"))]
     fn noskip_u64(&mut self) -> u64 {
         const POW10: [u32; 9] = [
             1,
@@ -343,7 +343,7 @@ impl<const N: usize> Reader<N> {
             out += c;
         }
     }
-    #[cfg(feature = "short")]
+    #[cfg(all(feature = "short", not(feature = "fastio")))]
     fn noskip_u64(&mut self) -> u64 {
         let mut n = 0;
         loop {

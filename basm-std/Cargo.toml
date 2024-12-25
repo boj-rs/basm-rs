@@ -35,5 +35,7 @@ compiler_builtins = { version = "0.1.139", features = ["mem"] }
 codegen = []
 # Favors short routines for code golf.
 short = []
+# Use this feature to enable fast I/O routines under short. When short is not on, fast I/O is always on regardless of this feature.
+fastio = []
 # Configures the crate for submission.
 submit = []
