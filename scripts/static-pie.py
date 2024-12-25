@@ -59,11 +59,17 @@ def main(args):
     elif target in ["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"]:
         stub = "static-pie-stub-amd64.bin"
         if lang == "C":
-            template = "static-pie-template-amd64.c"
+            if short:
+                template = "static-pie-template-amd64-short.c"
+            else:
+                template = "static-pie-template-amd64.c"
         elif lang == "CFnImpl":
             template = "static-pie-template-amd64-fn-impl.cpp"
         elif lang == "Rust":
-            template = "static-pie-template-amd64.rs"
+            if short:
+                template = "static-pie-template-amd64-short.rs"
+            else:
+                template = "static-pie-template-amd64.rs"
         else:
             print(f"Language ${lang} is not supported for target ${target}", file=sys.stderr)
             exit()
