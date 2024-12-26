@@ -138,7 +138,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
 
-* Note: C 또는 Rust 코드로 출력하는 shell script에 `--features short` option을 전달하면 짧은 코드가 출력됩니다. 짧은 코드 생성 기능은 템플릿 길이 단축 및 basm-std 내부 구현 최적화를 통해 구현되어 있습니다. `--features short` option을 적용한 빌드는 Windows 및 Linux에서 가능하지만, 생성된 코드는 Linux x64 환경에서만 실행이 가능하고 Windows에서 실행이 불가능합니다. VS Code에서는 `build-release-amd64-short-submit` 및 `build-release-amd64-rs-short-submit` Task를 통해 사용이 가능합니다.
+* Note: C 또는 Rust 코드로 출력하는 shell script에 `--features short` option을 전달하면 짧은 코드가 출력됩니다. 짧은 코드 생성 기능은 템플릿 길이 단축 및 basm-std 내부 구현 최적화를 통해 구현되어 있습니다. `--features short` option을 적용한 빌드는 Windows 및 Linux에서 가능하지만, 생성된 코드는 Linux x64 환경에서만 실행이 가능하고 Windows에서 실행이 불가능합니다. VS Code에서는 `build-release-amd64-short-submit` 및 `build-release-amd64-rs-short-submit` Task를 통해 사용이 가능합니다. 또한, `--features short`를 사용하여 C 또는 Rust 코드로 출력하는 경우 `--no-lzma` 옵션을 사용하여 LZMA 압축을 비활성화할 수 있으며, 코드 길이가 긴 경우 이를 통해 속도 향상이 가능합니다. `--no-lzma` 옵션을 사용하지 않는 경우 LZMA 압축 여부는 생성되는 코드 길이가 실제로 짧아지는지에 따라 결정됩니다.
 
 * `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
 
