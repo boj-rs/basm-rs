@@ -4,7 +4,7 @@
 ; (prestub: the code that runs before the stub and sets the stage)
 ;
 ; build: nasm -f bin -O9 static-pie-prestub-amd64-shorter.asm -o static-pie-prestub-amd64-shorter.bin
-; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter.bin --octa
+; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter.bin --no-asciz
 ;       to obtain the form that can be embedded in Rust as inline assembly.
 
 BITS 64
@@ -19,7 +19,7 @@ _svc_alloc_rwx:
     xor     r9d, r9d                ; offset
     push    rsi                     ; save rsi
     xor     edi, edi                ; rdi=0
-    mov     esi, eax                ; size (anything in [1, 4096])
+    mov     rsi, qword [rel _end]   ; size in bytes
     mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
     push    0x22
     pop     r10                     ; flags
@@ -65,3 +65,6 @@ _jump_to_entrypoint:
     xor     ecx, ecx
     push    rcx
     call    rdi
+
+    align 8, db 0x90                 ; zero padding
+_end:
