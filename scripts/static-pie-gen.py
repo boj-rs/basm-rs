@@ -69,6 +69,7 @@ sol = srcpack.read_assemble(solution_src_path, lang_name)
 # Since we append a little-endian 8-byte nonnegative integer, we can practically ensure that the last byte is zero.
 code_raw = memory_bin[:-8]
 code_raw += (len(code_raw) + 8 - loader_fdict['entrypoint_offset']).to_bytes(8, byteorder='little')
+code_raw_len = len(code_raw)
 code_raw_b91 = base91.encode(code_raw, use_rle=True).decode('ascii')
 code_raw_b91_len = len(code_raw_b91)
 code_raw_b91 = '"' + code_raw_b91 + '"'
@@ -121,7 +122,7 @@ stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 
 # template
 template_candidates = [template_path]
-if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in template_path and len(code_raw) <= 4096 - 256:
+if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in template_path:
     template_candidates.append(template_path.replace("short", "shorter"))
 
 # exports
@@ -149,6 +150,7 @@ for each_template_path in template_candidates:
         "$$$$binary_raw_base91$$$$": code_raw_b91,
         "$$$$binary_raw_base91_len$$$$": str(code_raw_b91_len),
         "$$$$binary_base91_chunked$$$$": r,
+        "$$$$code_raw_len$$$$": str(code_raw_len),
         "$$$$min_len_4096$$$$": str(min(len(code_b91)+1, 4096)),
         "$$$$entrypoint_offset$$$$": str(loader_fdict['entrypoint_offset']),
         "$$$$exports_cpp$$$$": exports_cpp
