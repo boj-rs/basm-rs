@@ -20,22 +20,21 @@ $$$$solution_src$$$$
 #endif
 #endif
 
-// Base85 decoder. Code adapted from:
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-const char *b85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>\?@^_`{|}~";
-void b85tobin(void *dest, char const *src) {
-    uint32_t *p = (uint32_t *)dest;
-    uint8_t digittobin[256];
-    for (uint8_t i=0; i<85; i++) digittobin[(uint8_t)b85[i]] = i;
+void b91tobin(void *dest, char const *src) {
+    uint8_t *p = (uint8_t *)dest;
+    uint32_t eax = 0x1f;
     while (1) {
         while (*src == '\0') src++;
-        if (*src == ']') break;
-        uint32_t value = 0;
-        for (uint32_t i=0; i<5; i++) {
-            value *= 85;
-            value += digittobin[(uint8_t)*src++];
-        }
-        *p++ = (value >> 24) | ((value >> 8) & 0xff00) | ((value << 8) & 0xff0000) | (value << 24);
+        uint32_t x = (uint32_t) *src++;
+        if (x < 0x24) return;
+        while (*src == '\0') src++;
+        uint32_t y = (uint32_t) *src++;
+        eax <<= 13;
+        eax += (y - 0x24) * 91 + (x - 0x24);
+        do {
+            *p++ = (uint8_t) eax;
+            eax >>= 8;
+        } while (eax & (1 << 12));
     }
 }
 
@@ -99,8 +98,8 @@ void *svc_alloc_rwx(size_t size) {
 
 typedef int (*stub_ptr)(void *, void *);
 
-const char *stub_base85 = $$$$stub_base85$$$$;
-char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
+const char *stub_base91 = $$$$stub_base91$$$$;
+char payload[][$$$$min_len_4096$$$$] = $$$$binary_base91_chunked$$$$;
 
 int main(int argc, char *argv[]) {
     PLATFORM_DATA pd;
@@ -128,8 +127,8 @@ int main(int argc, char *argv[]) {
     pd.ptr_write_stdio      = (void *) svc_write_stdio;
 
     stub_ptr stub = (stub_ptr) svc_alloc_rwx(4096);
-    b85tobin((void *) stub, stub_base85);
-    b85tobin(payload, (char const *)payload);
+    b91tobin((void *) stub, stub_base91);
+    b91tobin(payload, (char const *)payload);
     return stub(&pd, payload);
 }
 // LOADER END

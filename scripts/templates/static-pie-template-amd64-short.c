@@ -8,22 +8,21 @@ typedef unsigned char u8;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 #define BASMCALL __attribute__((ms_abi))
-// Base85 decoder. Code adapted from:
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-const char *b85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>\?@^_`{|}~";
-void b85tobin(void *dest, char const *src) {
-    u32 *p = (u32 *)dest;
-    u8 digittobin[256];
-    for (u8 i=0; i<85; i++) digittobin[(u8)b85[i]] = i;
+void b91tobin(void *dest, char const *src) {
+    u8 *p = (u8 *)dest;
+    u32 eax = 0x1f;
     while (1) {
         while (*src == '\0') src++;
-        if (*src == ']') break;
-        u32 value = 0;
-        for (u32 i=0; i<5; i++) {
-            value *= 85;
-            value += digittobin[(u8)*src++];
-        }
-        *p++ = (value >> 24) | ((value >> 8) & 0xff00) | ((value << 8) & 0xff0000) | (value << 24);
+        u32 x = (u32) *src++;
+        if (x < 0x24) return;
+        while (*src == '\0') src++;
+        u32 y = (u32) *src++;
+        eax <<= 13;
+        eax += (y - 0x24) * 91 + (x - 0x24);
+        do {
+            *p++ = (u32) eax;
+            eax >>= 8;
+        } while (eax & (1 << 12));
     }
 }
 #pragma pack(push, 1)
@@ -35,7 +34,7 @@ typedef struct {
 } PLATFORM_DATA;
 #pragma pack(pop)
 typedef int (BASMCALL *stub_ptr)(void *, void *);
-char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
+char payload[][$$$$min_len_4096$$$$] = $$$$binary_base91_chunked$$$$;
 int main() {}
 #ifdef __cplusplus
 extern "C"
@@ -52,8 +51,8 @@ int __libc_start_main(
     pd.env_id = 2;
     pd.env_flags = 1;
     u8 stubbuf[68 + $$$$stub_len$$$$];
-    b85tobin(stubbuf, "QMd~L002n8@6D@;XGJ3cz5oya01pLO>naZmS5~+Q0000n|450>x(5IN07=KfA^-pYO)<bp|Hw@-$qxlyU&9Xz]");
-    b85tobin(stubbuf + 68, $$$$stub_base85$$$$);
+    b91tobin(stubbuf, "H;|DR:$$$|7x6E69i$6',&%Q$$?@GjeBmVodz$C?$$c7h{.>j<g9%Q$$Q80&F$$$f5U$5L@=aT8S92:|1&.C!");
+    b91tobin(stubbuf + 68, $$$$stub_base91$$$$);
     size_t base = ((size_t)main) & 0xFFFFFFFFFFFFF000ULL;
     *(u64 *)(stubbuf + 0x08) = (u64) base;
     *(u32 *)(stubbuf + 0x11) = (u32) 4096;
@@ -62,6 +61,6 @@ int __libc_start_main(
     len = ((len + 0xFFF) >> 12) << 12;
     syscall(10, base, len, 0x7);
     pd.fn_table[0] = (void *) (stubbuf + 0x1c);
-    b85tobin(payload, (char const *)payload);
+    b91tobin(payload, (char const *)payload);
     return ((stub_ptr) stubbuf)(&pd, payload);
 }

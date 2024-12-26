@@ -4,7 +4,7 @@
 ; (prestub: the code that runs before the stub and sets the stage)
 ;
 ; build: nasm -f bin -O9 static-pie-prestub-amd64-shorter-c.asm -o static-pie-prestub-amd64-shorter-c.bin
-; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter-c.bin --c
+; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter-c.bin --c --no-asciz
 ;       to obtain the form that can be embedded in C.
 
 BITS 64
@@ -29,6 +29,7 @@ section .text
     lea     rdi, [rsp + 8]
     push    rdi                     ; _start of relocated stub
     mov     ecx, _end - _start
+    add     ecx, 8                  ; binary size in bytes
     rep     movsb
 
 ; Jump to stack
@@ -51,7 +52,7 @@ _svc_alloc_rwx:
     cdq                             ; rdx=0
     xor     r9d, r9d                ; offset
     xor     edi, edi                ; rdi=0
-    mov     esi, eax                ; size (anything in [1, 4096])
+    mov     rsi, qword [rel _end]   ; size in bytes
     mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
     push    0x22
     pop     r10                     ; flags
@@ -97,4 +98,5 @@ _jump_to_entrypoint:
     push    rcx
     call    rdi
 
+    align 8, db 0x0                 ; zero padding
 _end:

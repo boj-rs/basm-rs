@@ -20,10 +20,10 @@ impl<const N: usize> Drop for Writer<N> {
     }
 }
 
-#[cfg(not(feature = "short"))]
+#[cfg(any(not(feature = "short"), feature = "fastio"))]
 #[repr(align(16))]
 struct B128([u8; 16]);
-#[cfg(not(feature = "short"))]
+#[cfg(any(not(feature = "short"), feature = "fastio"))]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
@@ -73,7 +73,7 @@ unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
         offset
     }
 }
-#[cfg(not(feature = "short"))]
+#[cfg(any(not(feature = "short"), feature = "fastio"))]
 #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
 unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
     let mut offset = 16;
@@ -158,7 +158,7 @@ impl<const N: usize> Writer<N> {
     /// let mut writer: Writer = Default::default();
     /// writer.bytes("Hello World".as_bytes()); // Hello World
     /// ```
-    #[cfg(not(feature = "short"))]
+    #[cfg(any(not(feature = "short"), feature = "fastio"))]
     pub fn bytes(&mut self, mut s: &[u8]) {
         while !s.is_empty() {
             let rem = s.len().min(self.buf[self.off..].len());
@@ -176,7 +176,7 @@ impl<const N: usize> Writer<N> {
     /// This function ensures an extra byte in the buffer to make sure that
     /// println() can safely use `byte_unchecked`. This is achieved by
     /// calling `self.try_flush(2)` (instead of `self.try_flush(1)`) in byte().
-    #[cfg(feature = "short")]
+    #[cfg(all(feature = "short", not(feature = "fastio")))]
     pub fn bytes(&mut self, s: &[u8]) {
         for x in s {
             self.byte(*x);
@@ -247,7 +247,7 @@ impl<const N: usize> Writer<N> {
     /// let mut writer: Writer = Default::default();
     /// writer.u32(u32::MAX); // 4294967295
     /// ```
-    #[cfg(not(feature = "short"))]
+    #[cfg(any(not(feature = "short"), feature = "fastio"))]
     pub fn u32(&mut self, n: u32) {
         self.try_flush(11);
         let mut b128 = B128([0u8; 16]);
@@ -272,7 +272,7 @@ impl<const N: usize> Writer<N> {
         }
         self.off += len;
     }
-    #[cfg(feature = "short")]
+    #[cfg(all(feature = "short", not(feature = "fastio")))]
     pub fn u32(&mut self, n: u32) {
         self.u64(n as u64)
     }
@@ -296,7 +296,7 @@ impl<const N: usize> Writer<N> {
     /// let mut writer: Writer = Default::default();
     /// writer.u64(u64::MAX); // 18446744073709551615
     /// ```
-    #[cfg(not(feature = "short"))]
+    #[cfg(any(not(feature = "short"), feature = "fastio"))]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21);
         let mut hi128 = B128([0u8; 16]);
@@ -340,7 +340,7 @@ impl<const N: usize> Writer<N> {
         }
         self.off += len;
     }
-    #[cfg(feature = "short")]
+    #[cfg(all(feature = "short", not(feature = "fastio")))]
     pub fn u64(&mut self, mut n: u64) {
         self.try_flush(21);
         let mut i = self.off;

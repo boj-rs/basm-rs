@@ -46,4 +46,5 @@ compiler_builtins = { version = "0.1.139", features = ["mem"] }
 
 [features]
 short = ["basm-std/short"]
+fastio = ["basm-std/fastio"]
 submit = ["basm-std/submit"]

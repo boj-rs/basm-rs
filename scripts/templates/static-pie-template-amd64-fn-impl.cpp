@@ -53,22 +53,21 @@ typedef unsigned long long uint64_t;
 #define BASMCALL
 #endif
 
-// Base85 decoder. Code adapted from:
-//     https://github.com/rafagafe/base85/blob/master/base85.c
-const char *b85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>\?@^_`{|}~";
-void b85tobin(void *dest, char const *src) {
-    uint32_t *p = (uint32_t *)dest;
-    uint8_t digittobin[256];
-    for (uint8_t i=0; i<85; i++) digittobin[(uint8_t)b85[i]] = i;
+void b91tobin(void *dest, char const *src) {
+    uint8_t *p = (uint8_t *)dest;
+    uint32_t eax = 0x1f;
     while (1) {
         while (*src == '\0') src++;
-        if (*src == ']') break;
-        uint32_t value = 0;
-        for (uint32_t i=0; i<5; i++) {
-            value *= 85;
-            value += digittobin[(uint8_t)*src++];
-        }
-        *p++ = (value >> 24) | ((value >> 8) & 0xff00) | ((value << 8) & 0xff0000) | (value << 24);
+        uint32_t x = (uint32_t) *src++;
+        if (x < 0x24) return;
+        while (*src == '\0') src++;
+        uint32_t y = (uint32_t) *src++;
+        eax <<= 13;
+        eax += (y - 0x24) * 91 + (x - 0x24);
+        do {
+            *p++ = (uint8_t) eax;
+            eax >>= 8;
+        } while (eax & (1 << 12));
     }
 }
 
@@ -148,7 +147,7 @@ stub_ptr get_stub() {
     return (stub_ptr) stub;
 }
 #endif
-char payload[][$$$$min_len_4096$$$$] = $$$$binary_base85$$$$;
+char payload[][$$$$min_len_4096$$$$] = $$$$binary_base91_chunked$$$$;
 
 static int g_loaded = 0;
 static PLATFORM_DATA g_pd;
@@ -181,7 +180,7 @@ size_t basm_load_module() {
         g_pd.ptr_write_stdio      = (void *) svc_write_stdio;
 #endif
         stub_ptr stub = get_stub();
-        b85tobin(payload, (char const *)payload);
+        b91tobin(payload, (char const *)payload);
         stub(&g_pd, payload);
         g_loaded = 1;
         basm_on_loaded();

@@ -134,7 +134,17 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
             "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
             "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
             "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
-            "jc     2f",
+            "jnc    2f",
+            "test   rbx, rbx",
+            "jnz    3f",                        // jump not taken if running under shorter template
+            "push   rbx",                       // GetProcAddress = 0
+            "push   rbx",                       // handle to kernel32 = 0
+            "push   1",                         // env_flags = 1 (ENV_FLAGS_LINUX_STYLE_CHKSTK)
+            "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+            "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
+            "lea    rsp, [rsp - 40]",           // extra 8 bytes for stack alignment
+            "jmp    3f",
+            "2:",
             "call   {3}",
             "lea    rdi, [rip+{4}]",
             "push   rdi",                       // GetProcAddress
@@ -142,17 +152,17 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
             "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
             "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
             "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
-            "sub    rsp, 32",
-            "jmp    3f",
-            "2:",
+            "lea    rsp, [rsp - 32]",
+            "jmp    4f",
+            "3:",
             "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
             "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
             "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
             "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
             "call   {0}",
-            "3:",
+            "4:",
             "bt     QWORD PTR [rbx + 8], 0",
-            "jnc    4f",
+            "jnc    5f",
             // BEGIN Linux patch
             // Linux ABI requires us to actually move the stack pointer
             //   `before' accessing the yet-to-be-committed stack pages.
@@ -165,7 +175,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
             "mov    BYTE PTR [rip + {5}], 0xc3",
             "mov    BYTE PTR [rip + {6}], 0xc3",
             // END Linux patch
-            "4:",
+            "5:",
             "mov    rcx, rbx",
             "call   {1}",
             "leave",

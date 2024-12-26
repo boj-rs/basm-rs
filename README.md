@@ -124,11 +124,11 @@ Windows 환경에서 빌드하는 방법입니다.
 
 * `release-html.cmd`를 실행하면 입력에 대한 출력을 계산할 수 있는 인터랙티브 HTML 페이지가 출력됩니다.
 
-* VS Code의 `build-release-amd64-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
+* VS Code의 `build-release-amd64-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 C 코드가 VS Code 편집기에서 열립니다.
 
-* VS Code의 `build-release-amd64-win-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
+* VS Code의 `build-release-amd64-rs-submit` Task를 실행하면 릴리즈 모드 빌드 후 64비트 환경에 제출 가능한 Rust 코드가 VS Code 편집기에서 열립니다.
 
-* VS Code의 `build-release-wasm32-win-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
+* VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
 Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
@@ -138,7 +138,7 @@ Linux (WSL 포함) 환경에서 빌드하는 방법입니다.
 
 * `release-rs.sh`를 실행하면 64비트 리눅스 환경(백준 온라인 저지 등)에 제출 가능한 Rust 코드가 출력됩니다. 생성된 코드를 Windows에서 컴파일하려면 crate type을 `cdylib`에서 `bin`으로 변경해야 합니다.
 
-* Note: C 또는 Rust 코드로 출력하는 shell script에 `--features short` option을 전달하면 짧은 코드가 출력됩니다. 짧은 코드 생성 기능은 템플릿 길이 단축 및 basm-std 내부 구현 최적화를 통해 구현되어 있습니다. `--features short` option으로 생성된 코드는 Linux x64 환경에서만 실행이 가능하고 Windows에서 실행이 불가능합니다.
+* Note: C 또는 Rust 코드로 출력하는 shell script에 `--features short` option을 전달하면 짧은 코드가 출력됩니다. 짧은 코드 생성 기능은 템플릿 길이 단축 및 basm-std 내부 구현 최적화를 통해 구현되어 있습니다. `--features short` option을 적용한 빌드는 Windows 및 Linux에서 가능하지만, 생성된 코드는 Linux x64 환경에서만 실행이 가능하고 Windows에서 실행이 불가능합니다. VS Code에서는 `build-release-amd64-short-submit` 및 `build-release-amd64-rs-short-submit` Task를 통해 사용이 가능합니다. 또한, `--features short`를 사용하여 C 또는 Rust 코드로 출력하는 경우 `--no-lzma` 옵션을 사용하여 LZMA 압축을 비활성화할 수 있으며, 코드 길이가 긴 경우 이를 통해 속도 향상이 가능합니다. `--no-lzma` 옵션을 사용하지 않는 경우 LZMA 압축 여부는 생성되는 코드 길이가 실제로 짧아지는지에 따라 결정됩니다.
 
 * `release-wasm32.sh`를 실행하면 제출 가능한 JavaScript (wasm32) 코드가 출력됩니다.
 
@@ -714,27 +714,6 @@ fn game() {
 빌드 및 실행은 이전 함수 구현 예제와 동일합니다.
 
 ## Open Source Attributions
-
-[base85](https://github.com/rafagafe/base85/blob/master/base85.c)
-```
-Copyright (c) 2016-2018 Rafa Garcia <rafagarcia77@gmail.com>.
-
-Permission is hereby  granted, free of charge, to any  person obtaining a copy
-of this software and associated  documentation files (the "Software"), to deal
-in the Software  without restriction, including without  limitation the rights
-to  use, copy,  modify, merge,  publish, distribute,  sublicense, and/or  sell
-copies  of  the Software,  and  to  permit persons  to  whom  the Software  is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE  IS PROVIDED "AS  IS", WITHOUT WARRANTY  OF ANY KIND,  EXPRESS OR
-IMPLIED,  INCLUDING BUT  NOT  LIMITED TO  THE  WARRANTIES OF  MERCHANTABILITY,
-FITNESS FOR  A PARTICULAR PURPOSE AND  NONINFRINGEMENT. IN NO EVENT  SHALL THE
-AUTHORS  OR COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES OR  OTHER
-LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
 
 [MINT64 OS](https://github.com/kkamagui/mint64os/blob/master/02.Kernel64/Source/Loader.c)
 ```

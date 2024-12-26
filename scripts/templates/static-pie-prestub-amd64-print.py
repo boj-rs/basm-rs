@@ -7,7 +7,7 @@ with open(fname, "rb") as f:
 prestub = bytearray(prestub)
 if len(prestub) > 0 and prestub[-1] == 0:
     prestub = prestub[:-1]
-    asciz = True
+    asciz = '--no-asciz' not in sys.argv
 else:
     asciz = False
 
