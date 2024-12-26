@@ -13,7 +13,9 @@ import sys
 import utils
 
 try:
-    solution_src_path, target_name, elf_path, stub_path, lang_name, template_path = sys.argv[1:]
+    no_lzma = "--no-lzma" in sys.argv
+    argv = [x for x in sys.argv if x != "--no-lzma"]
+    solution_src_path, target_name, elf_path, stub_path, lang_name, template_path = argv[1:]
     stub_path = locator.template_path(stub_path)
     template_path = locator.template_path(template_path)
 except ValueError:
@@ -124,6 +126,8 @@ stub_raw = '"' + "".join("\\x{:02x}".format(x) for x in stub) + '"'
 template_candidates = [template_path]
 if lang_name in ["C", "Rust"] and "x86_64" in target_name and "short" in template_path:
     template_candidates.append(template_path.replace("short", "shorter"))
+    if no_lzma:
+        template_candidates = template_candidates[1:]
 
 # exports
 exports_dict = loader_fdict.get("exports", dict())

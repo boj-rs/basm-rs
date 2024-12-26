@@ -19,7 +19,6 @@ def run_cmds(cmds):
             raise Exception("Build command terminated with a non-zero exit code {}.".format(completed_process.returncode))
 
 def main(args):
-    # TODO: devise way to handle short
     cmds = []
 
     target = args.target
@@ -27,9 +26,12 @@ def main(args):
     profile = args.profile
     profile_dir = {"Debug": "debug", "Release": "release"}[profile]
     cargo_args = args.cargo_args
+    # We remove "--no-lzma" since it is not actually a cargo arg.
+    no_lzma, cargo_args = "--no-lzma" in cargo_args, [x for x in cargo_args if x != "--no-lzma"]
 
     cargo_target_dir = os.environ.get("CARGO_TARGET_DIR", "target")
     short = any("short" in x for x in cargo_args)
+    assert not(no_lzma and not short), "--no-lzma is only applicable when not using --features short"
     python = "python" if os.name == "nt" else "python3"
     solution_src_path = "basm/"
 
@@ -75,6 +77,7 @@ def main(args):
             print(f"Language ${lang} is not supported for target ${target}", file=sys.stderr)
             exit()
     elif target == "wasm32-unknown-unknown":
+        assert not no_lzma, "--no-lzma is only applicable for C and Rust output"
         if lang == "JavaScript":
             template = "wasm-template.js"
         elif lang == "HTML":
@@ -105,14 +108,14 @@ def main(args):
         cmds.append(["cargo", "+nightly", "build"] + extra_config + ["--target", target_cargo, "--bin", "basm-submit", "--features=submit", "--release"] + cargo_args)
 
     if target in ["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"]:
-        cmds.append([python, "scripts/static-pie-gen.py", solution_src_path, target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit.exe", stub, lang, template])
+        cmds.append([python, "scripts/static-pie-gen.py", solution_src_path, target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit.exe", stub, lang, template] + (["--no-lzma"] if no_lzma else []))
     elif target in "wasm32-unknown-unknown":
         cmds.append([python, "scripts/wasm-gen.py", solution_src_path, template, lang])
     else:        
         cmds.append(["cp", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped"])
         cmds.append(["objcopy", "--strip-all", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped"])
         cmds.append(["objcopy", "--remove-section", ".eh_frame", "--remove-section", ".gcc_except_table", "--remove-section", ".gnu.hash", f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped"])
-        cmds.append([python, "scripts/static-pie-gen.py", solution_src_path, target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped", stub, lang, template])
+        cmds.append([python, "scripts/static-pie-gen.py", solution_src_path, target, f"{cargo_target_dir}/{target}/{profile_dir}/basm-submit-stripped", stub, lang, template] + (["--no-lzma"] if no_lzma else []))
 
     run_cmds(cmds)
 
