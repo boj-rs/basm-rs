@@ -1053,4 +1053,28 @@ mod test {
             }
         }
     }
+    #[test]
+    fn check_btree_duplicate_inserts() {
+        struct F;
+        impl LazyOp<usize, ()> for F {
+            fn binary_op(t1: &usize, t2: &usize) -> usize { t1 + t2 }
+            fn apply(_u: &(), t: &usize) -> usize { *t }
+            fn compose(_u1: &(), _u2: &()) {}
+            fn id_op() {}
+        }
+        let mut b = BPTreeMap::<i64, usize, (), F>::new();
+        let mut v = vec![];
+        let n = 100;
+        for i in 0..n {
+            let x = (i * i * i * i * i) % 1000;
+            let exists = b.insert(x, 1).is_some();
+            assert_eq!((i, x, exists), (i, x, v.contains(&x)));
+            v.push(x);
+        }
+        v.sort();
+        v.dedup();
+        for (i, &x) in v.iter().enumerate() {
+            assert_eq!(i, b.get_range(..=x).unwrap() - 1);
+        }
+    }
 }
