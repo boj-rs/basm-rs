@@ -997,7 +997,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             NTREEBINS as u32 - 1
         } else {
             let k = mem::size_of_val(&x) * 8 - 1 - (x.leading_zeros() as usize);
-            ((k << 1) + (size >> (k + TREEBIN_SHIFT - 1) & 1)) as u32
+            ((k << 1) + ((size >> (k + TREEBIN_SHIFT - 1)) & 1)) as u32
         }
     }
 

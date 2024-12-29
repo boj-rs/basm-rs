@@ -50,7 +50,7 @@ pub mod syscall {
     }
 
     #[derive(Default)]
-    #[repr(packed)]
+    #[repr(C, packed)]
     pub struct RLimit {
         pub rlim_cur: usize,
         pub rlim_max: usize,

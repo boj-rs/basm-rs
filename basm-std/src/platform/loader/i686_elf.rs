@@ -59,12 +59,12 @@ const R_386_NONE: u8 = 0; // none
 const R_386_RELATIVE: u8 = 8; // word64   B + A
 
 // ELF structs
-#[repr(packed)]
+#[repr(C, packed)]
 struct Elf32Dyn {
     d_tag: u32,
     d_val_or_ptr: u32,
 }
-#[repr(packed)]
+#[repr(C, packed)]
 struct Elf32Rel {
     r_offset: u32,
     r_info: u32,

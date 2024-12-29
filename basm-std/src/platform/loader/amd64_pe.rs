@@ -9,7 +9,7 @@ const IMAGE_REL_BASED_HIGHADJ: u16 = 4; // The base relocation adds the high 16 
 const IMAGE_REL_BASED_DIR64: u16 = 10; // The base relocation applies the difference to the 64-bit field at offset.
 
 // PE structs
-//#[repr(packed)]
+//#[repr(C, packed)]
 //struct ImageBaseRelocation {
 //    virtual_address:    u32,
 //    size_of_block:      u32,
