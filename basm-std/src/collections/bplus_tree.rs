@@ -732,25 +732,16 @@ where
                     if let Some(up_ptr_inner) = up_ptr {
                         // We need to insert up_ptr in the node n after position i
                         if let Some(mut right) = n.split_if_full(level) {
-                            if i + 1 > T {
+                            if i >= T {
                                 // insert to right.1 at i + 1 - T
                                 let r = right.as_internal_node_mut();
                                 r.insert_at(i + 1 - T, up_ptr_inner, level);
+                                r.pull_at(i - T, level);
                             } else {
                                 // insert to n at i + 1
                                 n.insert_at(i + 1, up_ptr_inner, level);
-                            }
-
-                            // n needs to be split
-                            // split -> insert on one side -> update aggregate values on up_ptr
-                            // (since n.recompute_aggregate() will be called below)
-                            if i >= T {
-                                let r = right.as_internal_node_mut();
-                                r.pull_at(i - T, level);
-                            } else {
                                 n.pull_at(i, level);
                             }
-
                             // Update up_ptr
                             up_ptr = Some(right);
                         } else {
@@ -1054,8 +1045,12 @@ mod test {
     fn check_btree_duplicate_inserts() {
         struct F;
         impl LazyOp<usize, ()> for F {
-            fn binary_op(t1: &usize, t2: &usize) -> usize { t1 + t2 }
-            fn apply(_u: &(), t: &usize) -> usize { *t }
+            fn binary_op(t1: &usize, t2: &usize) -> usize {
+                t1 + t2
+            }
+            fn apply(_u: &(), t: &usize) -> usize {
+                *t
+            }
             fn compose(_u1: &(), _u2: &()) {}
             fn id_op() {}
         }
