@@ -671,12 +671,9 @@ where
                             break;
                         } else {
                             match Ord::cmp(&*x.keys[i + 1], &key) {
-                                Less => {
+                                Less | Equal => {
                                     i += 1;
                                     continue;
-                                }
-                                Equal => {
-                                    break;
                                 }
                                 Greater => {
                                     // Updating x.key is needed since current key comes first.
