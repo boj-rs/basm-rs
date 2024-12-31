@@ -30,6 +30,14 @@ impl Readable for Line {
     }
 }
 
+pub struct Byte(pub u8);
+
+impl Readable for Byte {
+    fn read(reader: &mut impl ReaderTrait) -> Self {
+        Self(reader.ascii())
+    }
+}
+
 impl<T: Readable, const N: usize> Readable for [T; N] {
     fn read(reader: &mut impl ReaderTrait) -> Self {
         core::array::from_fn(|_| T::read(reader))

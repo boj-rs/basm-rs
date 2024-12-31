@@ -21,6 +21,7 @@ pub trait ReaderTrait: Sized {
     fn u128(&mut self) -> u128;
     fn usize(&mut self) -> usize;
     fn f64(&mut self) -> f64;
+    fn ascii(&mut self) -> u8;
     fn word(&mut self) -> String;
     fn line(&mut self) -> String;
     fn next<T: Readable>(&mut self) -> T {
@@ -246,15 +247,6 @@ impl<const N: usize> Reader<N> {
         }
     }
 
-    pub fn ascii(&mut self) -> u8 {
-        self.try_refill(1);
-        let mut out = 0u8;
-        if self.off < self.len {
-            out = unsafe { self.buf[self.off].assume_init() };
-            self.off += 1;
-        }
-        out
-    }
     pub fn word_buf(&mut self, buf: &mut [u8]) -> usize {
         self.skip_whitespace();
         let mut len = 0;
@@ -382,6 +374,60 @@ impl<const N: usize> Reader<N> {
         self.skip_whitespace();
         self.off == self.len
     }
+
+    /// Reads and collects `n` elements of type `T`, skipping any leading whitespace before each read.
+    pub fn collect_skip_whitespace<Cn: FromIterator<T>, T: Readable>(&mut self, n: usize) -> Cn {
+        Cn::from_iter(
+            (0..n).map(|_| {
+                self.skip_whitespace();
+                T::read(self)
+            })
+        )
+    }
+    /// Reads and collects an `n`-by-`m` matrix of type `T`, skipping any leading whitespace before each read.
+    pub fn collect_2d_skip_whitespace<Cnm: FromIterator<Cm>, Cm: FromIterator<T>, T: Readable>(
+        &mut self,
+        n: usize,
+        m: usize,
+    ) -> Cnm {
+        Cnm::from_iter(
+            (0..n).map(|_| {
+                Cm::from_iter(
+                    (0..m).map(|_| {
+                        self.skip_whitespace();
+                        T::read(self)
+                    })
+                )
+            })
+        )
+    }
+    /// Reads and collects an `n`-by-`m`-by-`p` tensor of type `T`, skipping any leading whitespace before each read.
+    pub fn collect_3d_skip_whitespace<
+        Cnmp: FromIterator<Cmp>,
+        Cmp: FromIterator<Cp>,
+        Cp: FromIterator<T>,
+        T: Readable,
+    >(
+        &mut self,
+        n: usize,
+        m: usize,
+        p: usize,
+    ) -> Cnmp {
+        Cnmp::from_iter(
+            (0..n).map(|_| {
+                Cmp::from_iter(
+                    (0..m).map(|_| {
+                        Cp::from_iter(
+                            (0..p).map(|_| {
+                                self.skip_whitespace();
+                                T::read(self)
+                            })
+                        )
+                    })
+                )
+            }),
+        )
+    }
 }
 
 impl<const N: usize> ReaderTrait for Reader<N> {
@@ -501,6 +547,16 @@ impl<const N: usize> ReaderTrait for Reader<N> {
             if let Ok(ans) = out { ans } else { f64::NAN }
         }
     }
+    fn ascii(&mut self) -> u8 {
+        self.try_refill(1);
+        let mut out = 0u8;
+        if self.off < self.len {
+            out = unsafe { self.buf[self.off].assume_init() };
+            self.off += 1;
+        }
+        out
+    }
+    
 }
 
 /*
