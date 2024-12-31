@@ -377,12 +377,10 @@ impl<const N: usize> Reader<N> {
 
     /// Reads and collects `n` elements of type `T`, skipping any leading whitespace before each read.
     pub fn collect_skip_whitespace<Cn: FromIterator<T>, T: Readable>(&mut self, n: usize) -> Cn {
-        Cn::from_iter(
-            (0..n).map(|_| {
-                self.skip_whitespace();
-                T::read(self)
-            })
-        )
+        Cn::from_iter((0..n).map(|_| {
+            self.skip_whitespace();
+            T::read(self)
+        }))
     }
     /// Reads and collects an `n`-by-`m` matrix of type `T`, skipping any leading whitespace before each read.
     pub fn collect_2d_skip_whitespace<Cnm: FromIterator<Cm>, Cm: FromIterator<T>, T: Readable>(
@@ -390,16 +388,12 @@ impl<const N: usize> Reader<N> {
         n: usize,
         m: usize,
     ) -> Cnm {
-        Cnm::from_iter(
-            (0..n).map(|_| {
-                Cm::from_iter(
-                    (0..m).map(|_| {
-                        self.skip_whitespace();
-                        T::read(self)
-                    })
-                )
-            })
-        )
+        Cnm::from_iter((0..n).map(|_| {
+            Cm::from_iter((0..m).map(|_| {
+                self.skip_whitespace();
+                T::read(self)
+            }))
+        }))
     }
     /// Reads and collects an `n`-by-`m`-by-`p` tensor of type `T`, skipping any leading whitespace before each read.
     pub fn collect_3d_skip_whitespace<
@@ -413,20 +407,14 @@ impl<const N: usize> Reader<N> {
         m: usize,
         p: usize,
     ) -> Cnmp {
-        Cnmp::from_iter(
-            (0..n).map(|_| {
-                Cmp::from_iter(
-                    (0..m).map(|_| {
-                        Cp::from_iter(
-                            (0..p).map(|_| {
-                                self.skip_whitespace();
-                                T::read(self)
-                            })
-                        )
-                    })
-                )
-            }),
-        )
+        Cnmp::from_iter((0..n).map(|_| {
+            Cmp::from_iter((0..m).map(|_| {
+                Cp::from_iter((0..p).map(|_| {
+                    self.skip_whitespace();
+                    T::read(self)
+                }))
+            }))
+        }))
     }
 }
 
@@ -556,7 +544,6 @@ impl<const N: usize> ReaderTrait for Reader<N> {
         }
         out
     }
-    
 }
 
 /*
