@@ -30,10 +30,11 @@ impl Readable for Line {
     }
 }
 
-pub struct Byte(pub u8);
+pub struct Nonwhite(pub u8);
 
-impl Readable for Byte {
+impl Readable for Nonwhite {
     fn read(reader: &mut impl ReaderTrait) -> Self {
+        reader.skip_whitespace();
         Self(reader.ascii())
     }
 }

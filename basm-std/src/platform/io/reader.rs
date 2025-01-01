@@ -24,6 +24,7 @@ pub trait ReaderTrait: Sized {
     fn ascii(&mut self) -> u8;
     fn word(&mut self) -> String;
     fn line(&mut self) -> String;
+    fn skip_whitespace(&mut self) -> usize;
     fn next<T: Readable>(&mut self) -> T {
         T::read(self)
     }
@@ -175,23 +176,7 @@ impl<const N: usize> Reader<N> {
         }
         consumed
     }
-    // We do not use avx2 for this function since most of the time
-    // we only skip a few whitespaces.
-    pub fn skip_whitespace(&mut self) -> usize {
-        let mut len = 0;
-        'outer: loop {
-            while self.off < self.len {
-                if unsafe { self.buf[self.off].assume_init() } > b' ' {
-                    break 'outer len;
-                }
-                self.off += 1;
-                len += 1;
-            }
-            if self.try_refill(1) == 0 {
-                break len;
-            }
-        }
-    }
+
     pub fn skip_until_whitespace(&mut self) -> usize {
         let mut len = 0;
         'outer: loop {
@@ -501,6 +486,23 @@ impl<const N: usize> ReaderTrait for Reader<N> {
             self.off += 1;
         }
         out
+    }
+    // We do not use avx2 for this function since most of the time
+    // we only skip a few whitespaces.
+    fn skip_whitespace(&mut self) -> usize {
+        let mut len = 0;
+        'outer: loop {
+            while self.off < self.len {
+                if unsafe { self.buf[self.off].assume_init() } > b' ' {
+                    break 'outer len;
+                }
+                self.off += 1;
+                len += 1;
+            }
+            if self.try_refill(1) == 0 {
+                break len;
+            }
+        }
     }
 }
 
