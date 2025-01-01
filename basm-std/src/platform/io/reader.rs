@@ -21,7 +21,7 @@ pub trait ReaderTrait: Sized {
     fn u128(&mut self) -> u128;
     fn usize(&mut self) -> usize;
     fn f64(&mut self) -> f64;
-    fn ascii(&mut self) -> u8;
+    fn byte(&mut self) -> u8;
     fn word(&mut self) -> String;
     fn line(&mut self) -> String;
     fn skip_whitespace(&mut self) -> usize;
@@ -478,7 +478,7 @@ impl<const N: usize> ReaderTrait for Reader<N> {
             if let Ok(ans) = out { ans } else { f64::NAN }
         }
     }
-    fn ascii(&mut self) -> u8 {
+    fn byte(&mut self) -> u8 {
         self.try_refill(1);
         let mut out = 0u8;
         if self.off < self.len {
