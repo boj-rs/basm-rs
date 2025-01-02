@@ -21,8 +21,10 @@ pub trait ReaderTrait: Sized {
     fn u128(&mut self) -> u128;
     fn usize(&mut self) -> usize;
     fn f64(&mut self) -> f64;
+    fn byte(&mut self) -> u8;
     fn word(&mut self) -> String;
     fn line(&mut self) -> String;
+    fn skip_whitespace(&mut self) -> usize;
     fn next<T: Readable>(&mut self) -> T {
         T::read(self)
     }
@@ -174,23 +176,7 @@ impl<const N: usize> Reader<N> {
         }
         consumed
     }
-    // We do not use avx2 for this function since most of the time
-    // we only skip a few whitespaces.
-    pub fn skip_whitespace(&mut self) -> usize {
-        let mut len = 0;
-        'outer: loop {
-            while self.off < self.len {
-                if unsafe { self.buf[self.off].assume_init() } > b' ' {
-                    break 'outer len;
-                }
-                self.off += 1;
-                len += 1;
-            }
-            if self.try_refill(1) == 0 {
-                break len;
-            }
-        }
-    }
+
     pub fn skip_until_whitespace(&mut self) -> usize {
         let mut len = 0;
         'outer: loop {
@@ -246,15 +232,6 @@ impl<const N: usize> Reader<N> {
         }
     }
 
-    pub fn ascii(&mut self) -> u8 {
-        self.try_refill(1);
-        let mut out = 0u8;
-        if self.off < self.len {
-            out = unsafe { self.buf[self.off].assume_init() };
-            self.off += 1;
-        }
-        out
-    }
     pub fn word_buf(&mut self, buf: &mut [u8]) -> usize {
         self.skip_whitespace();
         let mut len = 0;
@@ -499,6 +476,32 @@ impl<const N: usize> ReaderTrait for Reader<N> {
             let out = f64::from_str(s);
             self.skip_until_whitespace();
             if let Ok(ans) = out { ans } else { f64::NAN }
+        }
+    }
+    fn byte(&mut self) -> u8 {
+        self.try_refill(1);
+        let mut out = 0u8;
+        if self.off < self.len {
+            out = unsafe { self.buf[self.off].assume_init() };
+            self.off += 1;
+        }
+        out
+    }
+    // We do not use avx2 for this function since most of the time
+    // we only skip a few whitespaces.
+    fn skip_whitespace(&mut self) -> usize {
+        let mut len = 0;
+        'outer: loop {
+            while self.off < self.len {
+                if unsafe { self.buf[self.off].assume_init() } > b' ' {
+                    break 'outer len;
+                }
+                self.off += 1;
+                len += 1;
+            }
+            if self.try_refill(1) == 0 {
+                break len;
+            }
         }
     }
 }

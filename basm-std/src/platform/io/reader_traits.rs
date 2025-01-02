@@ -1,5 +1,6 @@
 use super::{Readable, ReaderTrait};
 use alloc::string::String;
+use core::ops::Deref;
 
 macro_rules! impl_primitive {
     ($($ty:ident)*) => {
@@ -27,6 +28,31 @@ pub struct Line(pub String);
 impl Readable for Line {
     fn read(reader: &mut impl ReaderTrait) -> Self {
         Self(reader.line())
+    }
+}
+
+impl Deref for Line {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub struct Nonwhite(pub u8);
+
+impl Readable for Nonwhite {
+    fn read(reader: &mut impl ReaderTrait) -> Self {
+        reader.skip_whitespace();
+        Self(reader.byte())
+    }
+}
+
+impl Deref for Nonwhite {
+    type Target = u8;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
