@@ -7,7 +7,7 @@ pub fn main() {
     for i in 0..n {
         for j in 0..n {
             reader.skip_whitespace();
-            let c = reader.ascii();
+            let c = reader.byte();
             if c == b'O' {
                 board[i] |= 1u32 << j;
             }
