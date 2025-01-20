@@ -119,9 +119,7 @@ impl<const N: usize> Writer<N> {
     }
     /// Flushes the buffer of the current `Writer`.
     pub fn flush(&mut self) {
-        services::write_stdio(1, unsafe {
-            MaybeUninit::slice_assume_init_ref(&self.buf[..self.off])
-        });
+        services::write_stdio(1, unsafe { self.buf[..self.off].assume_init_ref() });
         self.off = 0;
     }
     /// Flushes the buffer of the current `Writer` if readahead plus the current offset exceeds the buffer length,
@@ -163,7 +161,8 @@ impl<const N: usize> Writer<N> {
         while !s.is_empty() {
             let rem = s.len().min(self.buf[self.off..].len());
             unsafe {
-                MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + rem])
+                self.buf[self.off..self.off + rem]
+                    .assume_init_mut()
                     .copy_from_slice(&s[..rem]);
             }
             self.off += rem;
@@ -267,7 +266,8 @@ impl<const N: usize> Writer<N> {
         }
         let len = 16 - off;
         unsafe {
-            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+            self.buf[self.off..self.off + len]
+                .assume_init_mut()
                 .copy_from_slice(&b128.0[off..]);
         }
         self.off += len;
@@ -329,13 +329,15 @@ impl<const N: usize> Writer<N> {
         }
         let len = 16 - hioff;
         unsafe {
-            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+            self.buf[self.off..self.off + len]
+                .assume_init_mut()
                 .copy_from_slice(&hi128.0[hioff..]);
         }
         self.off += len;
         let len = 16 - looff;
         unsafe {
-            MaybeUninit::slice_assume_init_mut(&mut self.buf[self.off..self.off + len])
+            self.buf[self.off..self.off + len]
+                .assume_init_mut()
                 .copy_from_slice(&lo128.0[looff..]);
         }
         self.off += len;
@@ -392,7 +394,7 @@ impl<const N: usize> Writer<N> {
             buf[offset].write(b'0' + (n % 10) as u8);
             n /= 10;
         }
-        self.bytes(unsafe { MaybeUninit::slice_assume_init_ref(&buf[offset..]) });
+        self.bytes(unsafe { buf[offset..].assume_init_ref() });
     }
     #[cfg(target_pointer_width = "32")]
     pub fn isize(&mut self, n: isize) {

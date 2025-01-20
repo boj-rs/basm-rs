@@ -146,10 +146,7 @@ impl<const N: usize> Reader<N> {
                 if white_cnt == 0 {
                     /* No whitespace has been found. We have to read.
                      * We try to read as much as possible at once. */
-                    rem += services::read_stdio(
-                        0,
-                        MaybeUninit::slice_assume_init_mut(&mut self.buf[rem..Self::BUF_LEN]),
-                    );
+                    rem += services::read_stdio(0, self.buf[rem..Self::BUF_LEN].assume_init_mut());
                 }
                 /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
                  * This is safe since we spare 8 bytes at the end of the buffer. */
@@ -196,8 +193,7 @@ impl<const N: usize> Reader<N> {
         let mut total = 0;
         loop {
             let len = self.len - self.off;
-            let range =
-                unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.off + len]) };
+            let range = unsafe { self.buf[self.off..self.off + len].assume_init_ref() };
             if let Some(i) = unsafe { position::memchr(range, delim) } {
                 unsafe { buf.as_mut_vec() }.extend_from_slice(&range[..i]);
                 self.off += i + 1;
@@ -213,7 +209,7 @@ impl<const N: usize> Reader<N> {
         }
     }
     pub fn remain(&self) -> &[u8] {
-        unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..self.len]) }
+        unsafe { self.buf[self.off..self.len].assume_init_ref() }
     }
     pub fn discard(&mut self, until: u8) -> usize {
         let mut len = 0;
@@ -471,7 +467,7 @@ impl<const N: usize> ReaderTrait for Reader<N> {
         if end == self.off {
             f64::NAN
         } else {
-            let s_u8 = unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.off..end]) };
+            let s_u8 = unsafe { self.buf[self.off..end].assume_init_ref() };
             let s = unsafe { core::str::from_utf8_unchecked(s_u8) };
             let out = f64::from_str(s);
             self.skip_until_whitespace();
