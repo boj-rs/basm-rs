@@ -500,7 +500,9 @@ mod test {
         assert_eq!(Some(4i64), modinv(3i64, 11i64));
         assert_eq!(Some(4u64), modinv(3u64, 11u64));
         let p = 0u64.wrapping_sub((1u64 << 32) - 1);
-        assert_eq!(Some((p + 1) / 2), modinv(2u64, p));
+        #[allow(clippy::manual_div_ceil)]
+        let p_half = (p + 1) / 2;
+        assert_eq!(Some(p_half), modinv(2u64, p));
         assert_eq!(Some(9999999966u64), modinv(9999999966u64, 9999999967u64));
         assert_eq!(Some(12297829382473034411u64), modinv(3, 0u64));
         assert_eq!(

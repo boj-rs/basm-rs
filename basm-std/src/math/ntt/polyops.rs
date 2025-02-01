@@ -28,11 +28,11 @@ pub fn polyneginv_u64(h: &[u64], n: usize, modulo: u64) -> Option<Vec<u64>> {
     a[0] = modulo - h0_inv;
     let mut d = vec![n];
     while *d.last().unwrap() > 1 {
-        d.push((d.last().unwrap() + 1) / 2);
+        d.push(d.last().unwrap().div_ceil(2));
     }
     d.pop();
     let mut l = 1;
-    let mut h1a_c = vec![0; (n + 1) / 2];
+    let mut h1a_c = vec![0; n.div_ceil(2)];
     for &target_len in d.iter().rev() {
         let e = min(h.len(), target_len);
         let t = min(l + e - 1, target_len);

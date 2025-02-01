@@ -24,7 +24,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
         // Returns (theta, u)
         let (mut lo, mut hi) = (0, e);
         while lo < hi {
-            let mid = (lo + hi + 1) / 2;
+            let mid = (lo + hi).div_ceil(2);
             #[allow(clippy::collapsible_else_if)]
             if ppow[mid] == 0 {
                 if x == 0 {

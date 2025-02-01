@@ -849,9 +849,9 @@ pub fn pack_into(src: &[u64], dst1: &mut [u64], dst2: &mut [u64], bits: u64) {
 
 pub const fn compute_bits(l: u64) -> u64 {
     let total_bits = l * 64;
-    let (mut lo, mut hi) = (42, 62);
+    let (mut lo, mut hi) = (42u64, 62u64);
     while lo < hi {
-        let mid = (lo + hi + 1) / 2;
+        let mid = (lo + hi).div_ceil(2);
         let single_digit_max_val = (1u64 << mid) - 1;
         let l_corrected = total_bits.div_ceil(mid);
         let (lhs, overflow) = (single_digit_max_val as u128)
