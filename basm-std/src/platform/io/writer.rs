@@ -359,7 +359,7 @@ impl<const N: usize> Writer<N> {
         while j < i {
             i -= 1;
             unsafe {
-                MaybeUninit::slice_assume_init_mut(&mut self.buf).swap(j, i);
+                self.buf.assume_init_mut().swap(j, i);
             }
             j += 1;
         }
