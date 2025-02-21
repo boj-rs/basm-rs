@@ -71,7 +71,7 @@ impl F64Ops for f64 {
     /// assert_eq!(g.floor(), 3.0);
     /// assert_eq!(h.floor(), -4.0);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn floor(self) -> f64 {
         libm::floor(self)
@@ -89,7 +89,7 @@ impl F64Ops for f64 {
     /// assert_eq!(g.ceil(), 4.0);
     /// ```
     #[doc(alias = "ceiling")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ceil(self) -> f64 {
         libm::ceil(self)
@@ -113,7 +113,7 @@ impl F64Ops for f64 {
     /// assert_eq!(i.round(), 4.0);
     /// assert_eq!(j.round(), 5.0);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn round(self) -> f64 {
         libm::round(self)
@@ -137,7 +137,7 @@ impl F64Ops for f64 {
     /// assert_eq!(h.round_ties_even(), 4.0);
     /// assert_eq!(i.round_ties_even(), 4.0);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn round_ties_even(self) -> f64 {
         libm::rint(self)
@@ -158,7 +158,7 @@ impl F64Ops for f64 {
     /// assert_eq!(h.trunc(), -3.0);
     /// ```
     #[doc(alias = "truncate")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn trunc(self) -> f64 {
         libm::trunc(self)
@@ -177,7 +177,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference_x < 1e-10);
     /// assert!(abs_difference_y < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn fract(self) -> f64 {
         self - self.trunc()
@@ -199,7 +199,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(f64::NAN.abs().is_nan());
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn abs(self) -> f64 {
         libm::fabs(self)
@@ -221,7 +221,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(f64::NAN.signum().is_nan());
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn signum(self) -> f64 {
         if self.is_nan() {
@@ -252,7 +252,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(f64::NAN.copysign(1.0).is_nan());
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn copysign(self, sign: f64) -> f64 {
         libm::copysign(self, sign)
@@ -278,7 +278,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn mul_add(self, a: f64, b: f64) -> f64 {
         libm::fma(self, a, b)
@@ -301,7 +301,7 @@ impl F64Ops for f64 {
     /// assert_eq!(a.div_euclid(-b), -1.0); // 7.0 >= -4.0 * -1.0
     /// assert_eq!((-a).div_euclid(-b), 2.0); // -7.0 >= -4.0 * 2.0
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn div_euclid(self, rhs: f64) -> f64 {
         let q = (self / rhs).trunc();
@@ -335,7 +335,7 @@ impl F64Ops for f64 {
     /// assert!((-f64::EPSILON).rem_euclid(3.0) != 0.0);
     /// ```
     #[doc(alias = "modulo", alias = "mod")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn rem_euclid(self, rhs: f64) -> f64 {
         let r = self % rhs;
@@ -360,7 +360,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn powi(self, n: i32) -> f64 {
         let mut r = 1.0;
@@ -386,7 +386,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn powf(self, n: f64) -> f64 {
         libm::pow(self, n)
@@ -409,7 +409,7 @@ impl F64Ops for f64 {
     /// assert!(negative.sqrt().is_nan());
     /// assert!(negative_zero.sqrt() == negative_zero);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn sqrt(self) -> f64 {
         libm::sqrt(self)
@@ -429,7 +429,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn exp(self) -> f64 {
         libm::exp(self)
@@ -447,7 +447,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn exp2(self) -> f64 {
         libm::exp2(self)
@@ -474,7 +474,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ln(self) -> f64 {
         libm::log(self)
@@ -496,7 +496,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn log(self, base: f64) -> f64 {
         self.ln() / base.ln()
@@ -521,7 +521,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn log2(self) -> f64 {
         // The original implementation of log requires `log_wrapper` due to Solaris/Illumos
@@ -549,7 +549,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn log10(self) -> f64 {
         libm::log10(self)
@@ -576,7 +576,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference_x < 1e-10);
     /// assert!(abs_difference_y < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn abs_sub(self, other: f64) -> f64 {
         libm::fdim(self, other)
@@ -594,7 +594,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn cbrt(self) -> f64 {
         libm::cbrt(self)
@@ -616,7 +616,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn hypot(self, other: f64) -> f64 {
         libm::hypot(self, other)
@@ -633,7 +633,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn sin(self) -> f64 {
         libm::sin(self)
@@ -650,7 +650,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn cos(self) -> f64 {
         libm::cos(self)
@@ -666,7 +666,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-14);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn tan(self) -> f64 {
         libm::tan(self)
@@ -687,7 +687,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1e-10);
     /// ```
     #[doc(alias = "arcsin")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn asin(self) -> f64 {
         libm::asin(self)
@@ -708,7 +708,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1e-10);
     /// ```
     #[doc(alias = "arccos")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn acos(self) -> f64 {
         libm::acos(self)
@@ -728,7 +728,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1e-10);
     /// ```
     #[doc(alias = "arctan")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn atan(self) -> f64 {
         libm::atan(self)
@@ -760,7 +760,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference_1 < 1e-10);
     /// assert!(abs_difference_2 < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn atan2(self, other: f64) -> f64 {
         libm::atan2(self, other)
@@ -801,7 +801,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-20);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn exp_m1(self) -> f64 {
         libm::expm1(self)
@@ -822,7 +822,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1e-20);
     /// ```
     #[doc(alias = "log1p")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ln_1p(self) -> f64 {
         libm::log1p(self)
@@ -843,7 +843,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn sinh(self) -> f64 {
         libm::sinh(self)
@@ -864,7 +864,7 @@ impl F64Ops for f64 {
     /// // Same result
     /// assert!(abs_difference < 1.0e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn cosh(self) -> f64 {
         libm::cosh(self)
@@ -885,7 +885,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference < 1.0e-10);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn tanh(self) -> f64 {
         libm::tanh(self)
@@ -904,7 +904,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1.0e-10);
     /// ```
     #[doc(alias = "arcsinh")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn asinh(self) -> f64 {
         let ax = self.abs();
@@ -927,7 +927,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1.0e-10);
     /// ```
     #[doc(alias = "arccosh")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn acosh(self) -> f64 {
         if self < 1.0 {
@@ -950,7 +950,7 @@ impl F64Ops for f64 {
     /// assert!(abs_difference < 1.0e-10);
     /// ```
     #[doc(alias = "arctanh")]
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn atanh(self) -> f64 {
         0.5 * ((2.0 * self) / (1.0 - self)).ln_1p()
@@ -968,7 +968,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference <= f64::EPSILON);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn gamma(self) -> f64 {
         libm::tgamma(self)
@@ -988,7 +988,7 @@ impl F64Ops for f64 {
     ///
     /// assert!(abs_difference <= f64::EPSILON);
     /// ```
-    #[must_use = "method returns a new number and does not mutate the original value"]
+    //#[must_use = "method returns a new number and does not mutate the original value"]
     #[inline]
     fn ln_gamma(self) -> (f64, i32) {
         libm::lgamma_r(self)
@@ -1110,7 +1110,7 @@ impl F64Ops for f64 {
     ///
     /// Also note that "propagation" of NaNs here doesn't necessarily mean that the bitpattern of a NaN
     /// operand is conserved; see [explanation of NaN as a special value](f32) for more info.
-    #[must_use = "this returns the result of the comparison, without modifying either input"]
+    //#[must_use = "this returns the result of the comparison, without modifying either input"]
     #[inline]
     fn maximum(self, other: f64) -> f64 {
         if self > other {
@@ -1148,7 +1148,7 @@ impl F64Ops for f64 {
     ///
     /// Also note that "propagation" of NaNs here doesn't necessarily mean that the bitpattern of a NaN
     /// operand is conserved; see [explanation of NaN as a special value](f32) for more info.
-    #[must_use = "this returns the result of the comparison, without modifying either input"]
+    //#[must_use = "this returns the result of the comparison, without modifying either input"]
     #[inline]
     fn minimum(self, other: f64) -> f64 {
         if self < other {
