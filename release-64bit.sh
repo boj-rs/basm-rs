@@ -1,1 +1,1 @@
-python3 scripts/static-pie.py x86_64-unknown-linux-gnu C Release "$@"
+python3 scripts/static-pie.py --target x86_64-unknown-linux-gnu --lang C --profile Release --cargo_args "$@"
