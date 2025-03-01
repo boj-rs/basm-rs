@@ -1,6 +1,5 @@
 #![feature(fn_align)]
 #![feature(maybe_uninit_slice)]
-#![feature(maybe_uninit_uninit_array)]
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(naked_functions)]
 #![cfg_attr(not(test), no_std)]

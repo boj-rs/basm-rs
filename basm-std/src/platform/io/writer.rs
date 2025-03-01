@@ -113,7 +113,7 @@ impl<const N: usize> Writer<N> {
     /// ```
     pub fn new() -> Self {
         Self {
-            buf: MaybeUninit::uninit_array(),
+            buf: [const { MaybeUninit::uninit() }; N],
             off: 0,
         }
     }
@@ -385,7 +385,7 @@ impl<const N: usize> Writer<N> {
     /// writer.u128(u128::MAX); // 340282366920938463463374607431768211455
     /// ```
     pub fn u128(&mut self, mut n: u128) {
-        let mut buf: [MaybeUninit<u8>; 40] = MaybeUninit::uninit_array();
+        let mut buf = [const { MaybeUninit::<u8>::uninit() }; 40];
         let mut offset = buf.len() - 1;
         buf[offset].write(b'0' + (n % 10) as u8);
         n /= 10;

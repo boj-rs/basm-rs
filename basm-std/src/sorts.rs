@@ -41,7 +41,7 @@ fn sort_radix_by_key_rec<T, F: (Fn(&T) -> K) + Copy, K: Binary>(arr: &mut [T], k
     for v in arr.iter() {
         count[key_f(v).get_byte_at(pos) as usize] += 1;
     }
-    let mut last: [MaybeUninit<u32>; 257] = MaybeUninit::uninit_array();
+    let mut last = [const { MaybeUninit::<u32>::uninit() }; 257];
     last[0].write(0);
     last[1].write(0);
     for i in 2..=256 {

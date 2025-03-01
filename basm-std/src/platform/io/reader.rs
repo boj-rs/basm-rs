@@ -110,7 +110,7 @@ impl<const N: usize> Reader<N> {
     };
     pub fn new() -> Self {
         Self {
-            buf: MaybeUninit::uninit_array(),
+            buf: [const { MaybeUninit::uninit() }; N],
             len: 0,
             off: 0,
         }
