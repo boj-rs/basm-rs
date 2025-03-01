@@ -3,6 +3,9 @@
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(naked_functions)]
 #![cfg_attr(not(test), no_std)]
+#![cfg_attr(rustfmt, rustfmt_skip)] // temporary fix to keep compiler_builtins at the top to avoid linker errors
+
+extern crate compiler_builtins;
 extern crate alloc;
 
 pub mod collections;
