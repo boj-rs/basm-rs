@@ -8,3 +8,5 @@ Cargo.lock
 ._.DS_Store
 **/.DS_Store
 **/._.DS_Store
+target-bisector-*/
+rust.git/
