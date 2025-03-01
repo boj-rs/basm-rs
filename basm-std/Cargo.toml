@@ -15,19 +15,19 @@ libm = "0.2.8"
 ryu = "1.0"
 
 [target.x86_64-pc-windows-msvc.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 [target.x86_64-pc-windows-gnu.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 [target.x86_64-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 [target.i686-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 [target.aarch64-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 [target.aarch64-apple-darwin.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 [target.wasm32-unknown-unknown.dependencies]
-compiler_builtins = { version = "0.1.139", features = ["mem"] }
+compiler_builtins = { version = "0.1.149", features = ["mem"] }
 
 [features]
 # Enables codegen routines.
