@@ -251,8 +251,8 @@ where
         Self {
             children: Default::default(),
             keys: [core::ptr::null(); 2 * T],
-            values: MaybeUninit::uninit_array(),
-            lazies: MaybeUninit::uninit_array(),
+            values: [const { MaybeUninit::uninit() }; 2 * T],
+            lazies: [const { MaybeUninit::uninit() }; 2 * T],
             _v: PhantomData,
             _f: PhantomData,
         }
@@ -267,8 +267,8 @@ where
     fn default() -> Self {
         Self {
             count: 0,
-            keys: MaybeUninit::uninit_array(),
-            values: MaybeUninit::uninit_array(),
+            keys: [const { MaybeUninit::uninit() }; 2 * T],
+            values: [const { MaybeUninit::uninit() }; 2 * T],
             _u: PhantomData,
             _f: PhantomData,
         }
@@ -375,8 +375,8 @@ where
             let mut right_node = Box::new(Self {
                 children: Default::default(),
                 keys: [core::ptr::null(); 2 * T],
-                values: MaybeUninit::uninit_array(),
-                lazies: MaybeUninit::uninit_array(),
+                values: [const { MaybeUninit::uninit() }; 2 * T],
+                lazies: [const { MaybeUninit::uninit() }; 2 * T],
                 _v: PhantomData,
                 _f: PhantomData,
             });
@@ -506,8 +506,8 @@ where
             self.count = T;
             let mut right_node = Box::new(Self {
                 count: T,
-                keys: MaybeUninit::uninit_array(),
-                values: MaybeUninit::uninit_array(),
+                keys: [const { MaybeUninit::uninit() }; 2 * T],
+                values: [const { MaybeUninit::uninit() }; 2 * T],
                 _u: PhantomData,
                 _f: PhantomData,
             });
@@ -644,7 +644,7 @@ where
             } else {
                 #[allow(clippy::type_complexity)]
                 let mut stack: [MaybeUninit<(*mut InternalNode<K, V, U, F>, usize)>;
-                    MAX_STACK_DEPTH] = MaybeUninit::uninit_array();
+                    MAX_STACK_DEPTH] = [const { MaybeUninit::uninit() }; MAX_STACK_DEPTH];
                 let mut stack_size = 0usize;
 
                 // Phase 1: Go down to the leaf node, along which we propagate the lazy op.
@@ -863,7 +863,7 @@ where
             None
         } else {
             // we must consider lazy propagation downwards
-            let mut stack = MaybeUninit::uninit_array();
+            let mut stack = [const { MaybeUninit::uninit() }; MAX_STACK_DEPTH];
             let mut out = None;
             let mut l = &mut self.root;
             let mut r = &mut ChildPtr::<K, V, U, F>::default();
