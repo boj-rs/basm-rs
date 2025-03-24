@@ -394,7 +394,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             // self.init_top(mn, tbase as usize + tsize - mn as usize - top_foot_size);
             } else {
                 let mut sp = &mut self.seg as *mut Segment;
-                while !sp.is_null() && tbase != Segment::top(sp) {
+                while !sp.is_null() && !core::ptr::eq(tbase, Segment::top(sp)) {
                     sp = (*sp).next;
                 }
                 if !sp.is_null()
@@ -409,7 +409,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 } else {
                     self.least_addr = cmp::min(tbase, self.least_addr);
                     let mut sp = &mut self.seg as *mut Segment;
-                    while !sp.is_null() && (*sp).base != tbase.add(tsize) {
+                    while !sp.is_null() && !core::ptr::eq((*sp).base, tbase.add(tsize)) {
                         sp = (*sp).next;
                     }
                     if !sp.is_null() && !Segment::is_extern(sp) && Segment::sys_flags(sp) == flags {
@@ -480,7 +480,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                     self.dispose_chunk(r, rsize);
                 }
                 p
-            } else if next == self.top {
+            } else if core::ptr::eq(next, self.top) {
                 // extend into top
                 if oldsize + self.topsize <= nb {
                     return ptr::null_mut();
@@ -493,7 +493,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 self.top = newtop;
                 self.topsize = newtopsize;
                 p
-            } else if next == self.dv {
+            } else if core::ptr::eq(next, self.dv) {
                 // extend into dv
                 let dvs = self.dvsize;
                 if oldsize + dvs < nb {
@@ -672,7 +672,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 let prev = Chunk::minus_offset(p, prevsize);
                 psize += prevsize;
                 p = prev;
-                if p != self.dv {
+                if !core::ptr::eq(p, self.dv) {
                     self.unlink_chunk(p, prevsize);
                 } else if (*next).head & INUSE == INUSE {
                     self.dvsize = psize;
@@ -683,17 +683,17 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
 
             if !Chunk::cinuse(next) {
                 // consolidate forward
-                if next == self.top {
+                if core::ptr::eq(next, self.top) {
                     self.topsize += psize;
                     let tsize = self.topsize;
                     self.top = p;
                     (*p).head = tsize | PINUSE;
-                    if p == self.dv {
+                    if core::ptr::eq(p, self.dv) {
                         self.dv = ptr::null_mut();
                         self.dvsize = 0;
                     }
                     return;
-                } else if next == self.dv {
+                } else if core::ptr::eq(next, self.dv) {
                     self.dvsize += psize;
                     let dsize = self.dvsize;
                     self.dv = p;
@@ -704,7 +704,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                     psize += nsize;
                     self.unlink_chunk(next, nsize);
                     Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
-                    if p == self.dv {
+                    if core::ptr::eq(p, self.dv) {
                         self.dvsize = psize;
                         return;
                     }
@@ -754,13 +754,13 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             debug_assert!(qsize >= self.min_chunk_size());
 
             // consolidate the remainder with the first chunk of the old base
-            if oldfirst == self.top {
+            if core::ptr::eq(oldfirst, self.top) {
                 self.topsize += qsize;
                 let tsize = self.topsize;
                 self.top = q;
                 (*q).head = tsize | PINUSE;
                 self.check_top_chunk(q);
-            } else if oldfirst == self.dv {
+            } else if core::ptr::eq(oldfirst, self.dv) {
                 self.dvsize += qsize;
                 let dsize = self.dvsize;
                 self.dv = q;
@@ -836,7 +836,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             debug_assert!(nfences >= 2);
 
             // insert the rest of the old top into a bin as an ordinary free chunk
-            if csp != old_top {
+            if !core::ptr::eq(csp, old_top) {
                 let q = old_top as *mut Chunk;
                 let psize = csp as usize - old_top as usize;
                 let tn = Chunk::plus_offset(q, psize);
@@ -921,7 +921,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                     }
                     let rt = (*t).child[1];
                     t = (*t).child[(sizebits >> (mem::size_of::<usize>() * 8 - 1)) & 1];
-                    if !rt.is_null() && rt != t {
+                    if !rt.is_null() && !core::ptr::eq(rt, t) {
                         rst = rt;
                     }
                     if t.is_null() {
@@ -1004,10 +1004,10 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
     unsafe fn unlink_first_small_chunk(&mut self, head: *mut Chunk, next: *mut Chunk, idx: u32) {
         unsafe {
             let ptr = (*next).prev;
-            debug_assert!(next != head);
-            debug_assert!(next != ptr);
+            debug_assert!(!core::ptr::eq(next, head));
+            debug_assert!(!core::ptr::eq(next, ptr));
             debug_assert_eq!(Chunk::size(next), self.small_index2size(idx));
-            if head == ptr {
+            if core::ptr::eq(head, ptr) {
                 self.clear_smallmap(idx);
             } else {
                 (*ptr).next = head;
@@ -1142,10 +1142,10 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             let f = (*chunk).prev;
             let b = (*chunk).next;
             let idx = self.small_index(size);
-            debug_assert!(chunk != b);
-            debug_assert!(chunk != f);
+            debug_assert!(!core::ptr::eq(chunk, b));
+            debug_assert!(!core::ptr::eq(chunk, f));
             debug_assert_eq!(Chunk::size(chunk), self.small_index2size(idx));
-            if b == f {
+            if core::ptr::eq(b, f) {
                 self.clear_smallmap(idx);
             } else {
                 (*f).next = b;
@@ -1158,7 +1158,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
         unsafe {
             let xp = (*chunk).parent;
             let mut r;
-            if TreeChunk::next(chunk) != chunk {
+            if !core::ptr::eq(TreeChunk::next(chunk), chunk) {
                 let f = TreeChunk::prev(chunk);
                 r = TreeChunk::next(chunk);
                 (*f).chunk.next = TreeChunk::chunk(r);
@@ -1190,12 +1190,12 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             }
 
             let h = self.treebin_at((*chunk).index);
-            if chunk == *h {
+            if core::ptr::eq(chunk, *h) {
                 *h = r;
                 if r.is_null() {
                     self.clear_treemap((*chunk).index);
                 }
-            } else if (*xp).child[0] == chunk {
+            } else if core::ptr::eq((*xp).child[0], chunk) {
                 (*xp).child[0] = r;
             } else {
                 (*xp).child[1] = r;
@@ -1241,7 +1241,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 let prev = Chunk::minus_offset(p, prevsize);
                 psize += prevsize;
                 p = prev;
-                if p != self.dv {
+                if !core::ptr::eq(p, self.dv) {
                     self.unlink_chunk(p, prevsize);
                 } else if (*next).head & INUSE == INUSE {
                     self.dvsize = psize;
@@ -1252,12 +1252,12 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
 
             // Consolidate forward if we can
             if !Chunk::cinuse(next) {
-                if next == self.top {
+                if core::ptr::eq(next, self.top) {
                     self.topsize += psize;
                     let tsize = self.topsize;
                     self.top = p;
                     (*p).head = tsize | PINUSE;
-                    if p == self.dv {
+                    if core::ptr::eq(p, self.dv) {
                         self.dv = ptr::null_mut();
                         self.dvsize = 0;
                     }
@@ -1265,7 +1265,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                         self.sys_trim(0);
                     }
                     return;
-                } else if next == self.dv {
+                } else if core::ptr::eq(next, self.dv) {
                     self.dvsize += psize;
                     let dsize = self.dvsize;
                     self.dv = p;
@@ -1276,7 +1276,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                     psize += nsize;
                     self.unlink_chunk(next, nsize);
                     Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
-                    if p == self.dv {
+                    if core::ptr::eq(p, self.dv) {
                         self.dvsize = psize;
                         return;
                     }
@@ -1386,7 +1386,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                     if !Chunk::inuse(p) && chunk_top >= top {
                         let tp = p as *mut TreeChunk;
                         debug_assert!(Segment::holds(sp, sp as *mut u8));
-                        if p == self.dv {
+                        if core::ptr::eq(p, self.dv) {
                             self.dv = ptr::null_mut();
                             self.dvsize = 0;
                         } else {
@@ -1477,7 +1477,9 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             debug_assert!(Chunk::inuse(p));
             debug_assert!(Chunk::pinuse(Chunk::next(p)));
             debug_assert!(
-                Chunk::mmapped(p) || Chunk::pinuse(p) || Chunk::next(Chunk::prev(p)) == p
+                Chunk::mmapped(p)
+                    || Chunk::pinuse(p)
+                    || core::ptr::eq(Chunk::next(Chunk::prev(p)), p)
             );
             if Chunk::mmapped(p) {
                 self.check_mmapped_chunk(p);
@@ -1518,13 +1520,13 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             debug_assert!(!Chunk::inuse(p));
             debug_assert!(!Chunk::pinuse(Chunk::next(p)));
             debug_assert!(!Chunk::mmapped(p));
-            if p != self.dv && p != self.top {
+            if !core::ptr::eq(p, self.dv) && !core::ptr::eq(p, self.top) {
                 if sz >= self.min_chunk_size() {
                     debug_assert_eq!(align_up(sz, self.malloc_alignment()), sz);
                     debug_assert!(self.is_aligned(Chunk::to_mem(p) as usize));
                     debug_assert_eq!((*next).prev_foot, sz);
                     debug_assert!(Chunk::pinuse(p));
-                    debug_assert!(next == self.top || Chunk::inuse(next));
+                    debug_assert!(core::ptr::eq(next, self.top) || Chunk::inuse(next));
                     debug_assert_eq!((*(*p).next).prev, p);
                     debug_assert_eq!((*(*p).prev).next, p);
                 } else {
@@ -1572,15 +1574,17 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
             let b = self.smallbin_at(idx);
             let mut p = (*b).next;
             let empty = self.smallmap & (1 << idx) == 0;
-            if p == b {
+            if core::ptr::eq(p, b) {
                 debug_assert!(empty)
             }
             if !empty {
-                while p != b {
+                while !core::ptr::eq(p, b) {
                     let size = Chunk::size(p);
                     self.check_free_chunk(p);
                     debug_assert_eq!(self.small_index(size), idx);
-                    debug_assert!((*p).next == b || Chunk::size((*p).next) == Chunk::size(p));
+                    debug_assert!(
+                        core::ptr::eq((*p).next, b) || Chunk::size((*p).next) == Chunk::size(p)
+                    );
                     let q = Chunk::next(p);
                     if (*q).head != Chunk::fencepost_head() {
                         self.check_inuse_chunk(q);
@@ -1643,20 +1647,20 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 } else {
                     debug_assert!(head.is_null());
                     head = u;
-                    debug_assert!((*u).parent != u);
+                    debug_assert!(!core::ptr::eq((*u).parent, u));
                     debug_assert!(
-                        (*(*u).parent).child[0] == u
-                            || (*(*u).parent).child[1] == u
-                            || *((*u).parent as *mut *mut TreeChunk) == u
+                        core::ptr::eq((*(*u).parent).child[0], u)
+                            || core::ptr::eq((*(*u).parent).child[1], u)
+                            || core::ptr::eq(*((*u).parent as *mut *mut TreeChunk), u)
                     );
                     if !left.is_null() {
                         debug_assert_eq!((*left).parent, u);
-                        debug_assert!(left != u);
+                        debug_assert!(!core::ptr::eq(left, u));
                         self.check_tree(left);
                     }
                     if !right.is_null() {
                         debug_assert_eq!((*right).parent, u);
-                        debug_assert!(right != u);
+                        debug_assert!(!core::ptr::eq(right, u));
                         self.check_tree(right);
                     }
                     if !left.is_null() && !right.is_null() {
@@ -1668,7 +1672,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 }
 
                 u = TreeChunk::prev(u);
-                if u == t {
+                if core::ptr::eq(u, t) {
                     break;
                 }
             }
@@ -1692,11 +1696,11 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 }
                 let mut p = b;
                 loop {
-                    if p == chunk {
+                    if core::ptr::eq(p, chunk) {
                         return true;
                     }
                     p = (*p).prev;
-                    if p == b {
+                    if core::ptr::eq(p, b) {
                         return false;
                     }
                 }
@@ -1717,11 +1721,11 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 let mut u = t;
                 let chunk = chunk as *mut TreeChunk;
                 loop {
-                    if u == chunk {
+                    if core::ptr::eq(u, chunk) {
                         return true;
                     }
                     u = TreeChunk::prev(u);
-                    if u == t {
+                    if core::ptr::eq(u, t) {
                         return false;
                     }
                 }

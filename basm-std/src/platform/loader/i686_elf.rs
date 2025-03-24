@@ -90,9 +90,9 @@ pub unsafe extern "C" fn relocate(addr_image_base: u32, addr_dynamic_section: u3
         let ptr_relent = find_tag(ptr_dyn, DT_RELENT);
 
         /* do not use .is_null() since the method itself requires relocations, at least in debug mode */
-        if ptr_rel == core::ptr::null()
-            || ptr_relsz == core::ptr::null()
-            || ptr_relent == core::ptr::null()
+        if core::ptr::eq(ptr_rel, core::ptr::null())
+            || core::ptr::eq(ptr_relsz, core::ptr::null())
+            || core::ptr::eq(ptr_relent, core::ptr::null())
         {
             return;
         }
