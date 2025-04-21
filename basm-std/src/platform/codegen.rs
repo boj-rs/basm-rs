@@ -59,39 +59,37 @@ compile_error!(
 
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
 #[unsafe(no_mangle)]
-#[naked]
+#[unsafe(naked)]
 pub unsafe extern "win64" fn _basm_start() -> ! {
-    unsafe {
-        // AMD64 System V ABI requires RSP to be aligned
-        //   on the 16-byte boundary BEFORE `call` instruction.
-        // However, when called as the entrypoint by the Linux OS,
-        //   RSP will be 16-byte aligned AFTER `call` instruction.
-        naked_asm!(
-            "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-            "mov    rbx, rcx",                  // Save PLATFORM_DATA table
-            "jnc    2f",
-            "test   rbx, rbx",
-            "jz     2f",
-            "jmp    3f",
-            "2:",
-            "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
-            "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
-            "push   2",                         // env_id = 2 (ENV_ID_LINUX)
-            "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
-            "3:",
-            "push   rcx",                       // short form of "sub rsp, 8"
-            "lea    rdi, [rip + __ehdr_start]",
-            "lea    rsi, [rip + _DYNAMIC]",
-            "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
-            "call   {0}",
-            "mov    rdi, rbx",
-            "call   {1}",
-            "pop    rcx",                       // short form of "add rsp, 8"
-            "ret",
-            sym loader::amd64_elf::relocate,
-            sym _start_rust
-        );
-    }
+    // AMD64 System V ABI requires RSP to be aligned
+    //   on the 16-byte boundary BEFORE `call` instruction.
+    // However, when called as the entrypoint by the Linux OS,
+    //   RSP will be 16-byte aligned AFTER `call` instruction.
+    naked_asm!(
+        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+        "mov    rbx, rcx",                  // Save PLATFORM_DATA table
+        "jnc    2f",
+        "test   rbx, rbx",
+        "jz     2f",
+        "jmp    3f",
+        "2:",
+        "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
+        "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
+        "3:",
+        "push   rcx",                       // short form of "sub rsp, 8"
+        "lea    rdi, [rip + __ehdr_start]",
+        "lea    rsi, [rip + _DYNAMIC]",
+        "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
+        "call   {0}",
+        "mov    rdi, rbx",
+        "call   {1}",
+        "pop    rcx",                       // short form of "add rsp, 8"
+        "ret",
+        sym loader::amd64_elf::relocate,
+        sym _start_rust
+    )
 }
 
 #[cfg(target_os = "windows")]
@@ -122,73 +120,71 @@ mod chkstk_gnu {
 
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 #[unsafe(no_mangle)]
-#[naked]
+#[unsafe(naked)]
 pub unsafe extern "win64" fn _basm_start() -> ! {
-    unsafe {
-        // Microsoft x64 ABI requires RSP to be aligned
-        //   on the 16-byte boundary BEFORE `call` instruction.
-        // Also, when called as the entrypoint by the Windows OS,
-        //   RSP will be 16-byte aligned BEFORE `call` instruction.
-        // In addition, we need to provide a `shadow space` of 32 bytes.
-        naked_asm!(
-            "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-            "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
-            "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
-            "jnc    2f",
-            "test   rbx, rbx",
-            "jnz    3f",                        // jump not taken if running under shorter template
-            "push   rbx",                       // GetProcAddress = 0
-            "push   rbx",                       // handle to kernel32 = 0
-            "push   1",                         // env_flags = 1 (ENV_FLAGS_LINUX_STYLE_CHKSTK)
-            "push   2",                         // env_id = 2 (ENV_ID_LINUX)
-            "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
-            "lea    rsp, [rsp - 40]",           // extra 8 bytes for stack alignment
-            "jmp    3f",
-            "2:",
-            "call   {3}",
-            "lea    rdi, [rip+{4}]",
-            "push   rdi",                       // GetProcAddress
-            "push   rax",                       // handle to kernel32
-            "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
-            "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
-            "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
-            "lea    rsp, [rsp - 32]",
-            "jmp    4f",
-            "3:",
-            "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
-            "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
-            "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
-            "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
-            "call   {0}",
-            "4:",
-            "bt     QWORD PTR [rbx + 8], 0",
-            "jnc    5f",
-            // BEGIN Linux patch
-            // Linux ABI requires us to actually move the stack pointer
-            //   `before' accessing the yet-to-be-committed stack pages.
-            // However, it is not necessary to touch the pages in advance,
-            //    meaning it is okay to completely *disable* this mechanism.
-            // See: https://stackoverflow.com/a/46791370
-            //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
-            // 0:  c3                      ret
-            "mov    BYTE PTR [rip + {2}], 0xc3",
-            "mov    BYTE PTR [rip + {5}], 0xc3",
-            "mov    BYTE PTR [rip + {6}], 0xc3",
-            // END Linux patch
-            "5:",
-            "mov    rcx, rbx",
-            "call   {1}",
-            "leave",
-            "ret",
-            sym loader::amd64_pe::relocate,
-            sym _start_rust,
-            sym __chkstk,
-            sym get_kernel32,
-            sym GetProcAddress,
-            sym chkstk_gnu::___chkstk_ms,
-            sym chkstk_gnu::___chkstk
-        );
-    }
+    // Microsoft x64 ABI requires RSP to be aligned
+    //   on the 16-byte boundary BEFORE `call` instruction.
+    // Also, when called as the entrypoint by the Windows OS,
+    //   RSP will be 16-byte aligned BEFORE `call` instruction.
+    // In addition, we need to provide a `shadow space` of 32 bytes.
+    naked_asm!(
+        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+        "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
+        "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
+        "jnc    2f",
+        "test   rbx, rbx",
+        "jnz    3f",                        // jump not taken if running under shorter template
+        "push   rbx",                       // GetProcAddress = 0
+        "push   rbx",                       // handle to kernel32 = 0
+        "push   1",                         // env_flags = 1 (ENV_FLAGS_LINUX_STYLE_CHKSTK)
+        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+        "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
+        "lea    rsp, [rsp - 40]",           // extra 8 bytes for stack alignment
+        "jmp    3f",
+        "2:",
+        "call   {3}",
+        "lea    rdi, [rip+{4}]",
+        "push   rdi",                       // GetProcAddress
+        "push   rax",                       // handle to kernel32
+        "push   2",                         // env_flags = 2 (ENV_FLAGS_NATIVE)
+        "push   1",                         // env_id = 1 (ENV_ID_WINDOWS)
+        "mov    rbx, rsp",                  // rbx = PLATFORM_DATA table
+        "lea    rsp, [rsp - 32]",
+        "jmp    4f",
+        "3:",
+        "lea    rdi, [rip + __ImageBase]",  // In-memory ImageBase (cf. Preferred ImageBase is set to 0x0 by static-pie-pe2bin.py)
+        "mov    esi, 0x12345678",           // [replaced by static-pie-pe2bin.py] Offset of relocation table (relative to the in-memory ImageBase)
+        "mov    edx, 0x12345678",           // [replaced by static-pie-pe2bin.py] Size of relocation table (relative to the in-memory ImageBase)
+        "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
+        "call   {0}",
+        "4:",
+        "bt     QWORD PTR [rbx + 8], 0",
+        "jnc    5f",
+        // BEGIN Linux patch
+        // Linux ABI requires us to actually move the stack pointer
+        //   `before' accessing the yet-to-be-committed stack pages.
+        // However, it is not necessary to touch the pages in advance,
+        //    meaning it is okay to completely *disable* this mechanism.
+        // See: https://stackoverflow.com/a/46791370
+        //      https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog
+        // 0:  c3                      ret
+        "mov    BYTE PTR [rip + {2}], 0xc3",
+        "mov    BYTE PTR [rip + {5}], 0xc3",
+        "mov    BYTE PTR [rip + {6}], 0xc3",
+        // END Linux patch
+        "5:",
+        "mov    rcx, rbx",
+        "call   {1}",
+        "leave",
+        "ret",
+        sym loader::amd64_pe::relocate,
+        sym _start_rust,
+        sym __chkstk,
+        sym get_kernel32,
+        sym GetProcAddress,
+        sym chkstk_gnu::___chkstk_ms,
+        sym chkstk_gnu::___chkstk
+    )
 }
 
 #[cfg(target_arch = "x86")]
@@ -206,52 +202,50 @@ extern "cdecl" fn _get_dynamic_section_offset() -> usize {
 
 #[cfg(target_arch = "x86")]
 #[unsafe(no_mangle)]
-#[naked]
+#[unsafe(naked)]
 pub unsafe extern "cdecl" fn _basm_start() -> ! {
-    unsafe {
-        // i386 System V ABI requires ESP to be aligned
-        //   on the 16-byte boundary BEFORE `call` instruction
-        naked_asm!(
-            "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-            "jc     2f",
-            "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
-            "push   0",                         // zero upper dword
-            "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
-            "push   0",                         // zero upper dword
-            "push   2",                         // env_id = 2 (ENV_ID_LINUX)
-            "mov    edx, esp",                  // edx = PLATFORM_DATA table
-            "jmp    3f",
-            "2:",
-            "mov    edx, DWORD PTR [esp + 4]",  // edx = PLATFORM_DATA table
-            "push   ebp",
-            "mov    ebp, esp",
-            "and    esp, 0xFFFFFFF0",
-            "sub    esp, 12",
-            "3:",
-            "call   4f",
-            "4:",
-            "pop    ebx",                       // ebx = _basm_start + 36 (obtained by counting the opcode size in bytes)
-            "push   edx",                       // [esp + 0] = PLATFORM_DATA table, stack is aligned
-            "call   {2}",                       // eax = offset of _basm_start from the image base
-            "sub    ebx, eax",
-            "sub    ebx, 36",                   // ebx = the in-memory image base (i.e., __ehdr_start)
-            "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
-            "lea    esi, [ebx + eax]",          // esi = _DYNAMIC table
-            "sub    esp, 8",                    // For stack alignment
-            "push   esi",
-            "push   ebx",
-            "call   {0}",                       // call loader::i686_elf::relocate
-            "add    esp, 16",
-            "call   {1}",
-            "mov    esp, ebp",
-            "pop    ebp",
-            "ret",
-            sym loader::i686_elf::relocate,
-            sym _start_rust,
-            sym _get_start_offset,
-            sym _get_dynamic_section_offset
-        );
-    }
+    // i386 System V ABI requires ESP to be aligned
+    //   on the 16-byte boundary BEFORE `call` instruction
+    naked_asm!(
+        "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
+        "jc     2f",
+        "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
+        "push   0",                         // zero upper dword
+        "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
+        "push   0",                         // zero upper dword
+        "push   2",                         // env_id = 2 (ENV_ID_LINUX)
+        "mov    edx, esp",                  // edx = PLATFORM_DATA table
+        "jmp    3f",
+        "2:",
+        "mov    edx, DWORD PTR [esp + 4]",  // edx = PLATFORM_DATA table
+        "push   ebp",
+        "mov    ebp, esp",
+        "and    esp, 0xFFFFFFF0",
+        "sub    esp, 12",
+        "3:",
+        "call   4f",
+        "4:",
+        "pop    ebx",                       // ebx = _basm_start + 36 (obtained by counting the opcode size in bytes)
+        "push   edx",                       // [esp + 0] = PLATFORM_DATA table, stack is aligned
+        "call   {2}",                       // eax = offset of _basm_start from the image base
+        "sub    ebx, eax",
+        "sub    ebx, 36",                   // ebx = the in-memory image base (i.e., __ehdr_start)
+        "call   {3}",                       // eax = offset of _DYNAMIC table from the image base
+        "lea    esi, [ebx + eax]",          // esi = _DYNAMIC table
+        "sub    esp, 8",                    // For stack alignment
+        "push   esi",
+        "push   ebx",
+        "call   {0}",                       // call loader::i686_elf::relocate
+        "add    esp, 16",
+        "call   {1}",
+        "mov    esp, ebp",
+        "pop    ebp",
+        "ret",
+        sym loader::i686_elf::relocate,
+        sym _start_rust,
+        sym _get_start_offset,
+        sym _get_dynamic_section_offset
+    )
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -266,45 +260,41 @@ pub extern "C" fn _basm_start() {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[unsafe(no_mangle)]
-#[naked]
+#[unsafe(naked)]
 #[repr(align(8))]
 pub unsafe extern "C" fn _basm_start() -> ! {
-    unsafe {
-        naked_asm!(
-            "sub    sp, sp, #96",
-            "mov    x0, #4",    // 4 = ENV_ID_MACOS
-            "str    x0, [sp, #(8 * 0)]",
-            "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
-            "str    x0, [sp, #(8 * 1)]",
-            "mov    x0, sp",
-            "bl     {0}",
-            sym _start_rust
-        )
-    }
+    naked_asm!(
+        "sub    sp, sp, #96",
+        "mov    x0, #4",    // 4 = ENV_ID_MACOS
+        "str    x0, [sp, #(8 * 0)]",
+        "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
+        "str    x0, [sp, #(8 * 1)]",
+        "mov    x0, sp",
+        "bl     {0}",
+        sym _start_rust
+    )
 }
 
 #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
 #[unsafe(no_mangle)]
-#[naked]
+#[unsafe(naked)]
 pub unsafe extern "C" fn _basm_start() -> ! {
-    unsafe {
-        naked_asm!(
-            "adrp   x0, __ehdr_start",
-            "add    x0, x0, #:lo12:__ehdr_start",
-            "adrp   x1, _DYNAMIC",
-            "add    x1, x1, #:lo12:_DYNAMIC",
-            "bl     {0}",
-            "sub    sp, sp, #96",
-            "mov    x0, #2",    // 2 = ENV_ID_LINUX
-            "str    x0, [sp, #(8 * 0)]",
-            "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
-            "str    x0, [sp, #(8 * 1)]",
-            "mov    x0, sp",
-            "bl     {1}",
-            sym loader::aarch64_elf::relocate,
-            sym _start_rust
-        )
-    }
+    naked_asm!(
+        "adrp   x0, __ehdr_start",
+        "add    x0, x0, #:lo12:__ehdr_start",
+        "adrp   x1, _DYNAMIC",
+        "add    x1, x1, #:lo12:_DYNAMIC",
+        "bl     {0}",
+        "sub    sp, sp, #96",
+        "mov    x0, #2",    // 2 = ENV_ID_LINUX
+        "str    x0, [sp, #(8 * 0)]",
+        "mov    x0, #2",    // 2 = ENV_FLAGS_NATIVE
+        "str    x0, [sp, #(8 * 1)]",
+        "mov    x0, sp",
+        "bl     {1}",
+        sym loader::aarch64_elf::relocate,
+        sym _start_rust
+    )
 }
 
 /* We prevent inlining solution::main, since if the user allocates
@@ -327,31 +317,29 @@ fn _start_rust(platform_data: usize) -> i32 {
 }
 
 #[unsafe(no_mangle)]
-#[naked]
+#[unsafe(naked)]
 #[repr(align(4))]
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 pub unsafe extern "win64" fn __chkstk() -> ! {
-    unsafe {
-        naked_asm!(
-            "push   rcx",
-            "push   rax",
-            "cmp    rax, 4096",
-            "lea    rcx, QWORD PTR [rsp + 24]",
-            "jb     2f",
-            "3:",
-            "sub    rcx, 4096",
-            "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
-            "sub    rax, 4096",
-            "cmp    rax, 4096",
-            "ja     3b",
-            "2:",
-            "sub    rcx, rax",
-            "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
-            "pop    rax",
-            "pop    rcx",
-            "ret"
-        );
-    }
+    naked_asm!(
+        "push   rcx",
+        "push   rax",
+        "cmp    rax, 4096",
+        "lea    rcx, QWORD PTR [rsp + 24]",
+        "jb     2f",
+        "3:",
+        "sub    rcx, 4096",
+        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
+        "sub    rax, 4096",
+        "cmp    rax, 4096",
+        "ja     3b",
+        "2:",
+        "sub    rcx, rax",
+        "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
+        "pop    rax",
+        "pop    rcx",
+        "ret"
+    )
 }
 
 pub unsafe fn print_panicinfo_and_exit(_pi: &core::panic::PanicInfo) -> ! {

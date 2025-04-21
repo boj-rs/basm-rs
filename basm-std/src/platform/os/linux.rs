@@ -133,7 +133,7 @@ pub mod syscall {
         }
     }
     #[cfg(target_arch = "x86")]
-    #[naked]
+    #[unsafe(naked)]
     unsafe extern "cdecl" fn syscall(
         call_id: usize,
         arg0: usize,
@@ -143,27 +143,25 @@ pub mod syscall {
         arg4: usize,
         arg5: usize,
     ) -> usize {
-        unsafe {
-            naked_asm!(
-                "push ebp",
-                "push ebx",
-                "push esi",
-                "push edi",
-                "mov eax, DWORD PTR [esp + 20]",
-                "mov ebx, DWORD PTR [esp + 24]",
-                "mov ecx, DWORD PTR [esp + 28]",
-                "mov edx, DWORD PTR [esp + 32]",
-                "mov esi, DWORD PTR [esp + 36]",
-                "mov edi, DWORD PTR [esp + 40]",
-                "mov ebp, DWORD PTR [esp + 44]",
-                "int 0x80",
-                "pop edi",
-                "pop esi",
-                "pop ebx",
-                "pop ebp",
-                "ret"
-            );
-        }
+        naked_asm!(
+            "push ebp",
+            "push ebx",
+            "push esi",
+            "push edi",
+            "mov eax, DWORD PTR [esp + 20]",
+            "mov ebx, DWORD PTR [esp + 24]",
+            "mov ecx, DWORD PTR [esp + 28]",
+            "mov edx, DWORD PTR [esp + 32]",
+            "mov esi, DWORD PTR [esp + 36]",
+            "mov edi, DWORD PTR [esp + 40]",
+            "mov ebp, DWORD PTR [esp + 44]",
+            "int 0x80",
+            "pop edi",
+            "pop esi",
+            "pop ebx",
+            "pop ebp",
+            "ret"
+        )
     }
     #[cfg(target_arch = "aarch64")]
     pub unsafe fn syscall(
