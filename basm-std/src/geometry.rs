@@ -1,19 +1,19 @@
 
 use crate::utils::f64;
-use crate::utils::ToF64;
+use crate::utils::ToI128;
 pub mod point;
 use crate::geometry::point::Point;
 
-pub fn ccw<T>(a: Point<T>, b: Point<T>, c: Point<T>) -> f64
+pub fn ccw<T>(a: Point<T>, b: Point<T>, c: Point<T>) -> i128
 where
-    T: ToF64 + Copy,
+    T: ToI128 + Copy,
 {
-    let a_x = a.x.to_f64();
-    let a_y = a.y.to_f64();
-    let b_x = b.x.to_f64();
-    let b_y = b.y.to_f64();
-    let c_x = c.x.to_f64();
-    let c_y = c.y.to_f64();
+    let a_x = a.x.to_i128();
+    let a_y = a.y.to_i128();
+    let b_x = b.x.to_i128();
+    let b_y = b.y.to_i128();
+    let c_x = c.x.to_i128();
+    let c_y = c.y.to_i128();
 
     (b_x - a_x) * (c_y - a_y) - (b_y - a_y) * (c_x - a_x)
 }

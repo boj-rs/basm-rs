@@ -1,4 +1,4 @@
-use crate::utils::ToF64;
+use crate::utils::ToI128;
 use crate::utils::F64Ops;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -13,11 +13,11 @@ impl<T> Point<T> {
     }
 }
 
-impl<T: ToF64 + Copy> Point<T> {
-    pub fn dist(self, other: Point<T>) -> f64 {
-        let dx = self.x.to_f64() - other.x.to_f64();
-        let dy = self.y.to_f64() - other.y.to_f64();
-        (dx * dx + dy * dy).sqrt()
+impl<T: ToI128 + Copy> Point<T> {
+    pub fn dist(self, other: Point<T>) -> i128 {
+        let dx = self.x.to_i128() - other.x.to_i128();
+        let dy = self.y.to_i128() - other.y.to_i128();
+        dx*dx + dy*dy
     }
 }
 

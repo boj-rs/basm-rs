@@ -1,67 +1,47 @@
 pub mod f64;
 pub use f64::*;
 
-pub trait ToF64 {
-    fn to_f64(self) -> f64;
+pub trait ToI128 {
+    fn to_i128(self) -> i128;
 }
 
-impl ToF64 for f64 {
-    fn to_f64(self) -> f64 {
-        self
+impl ToI128 for i128 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
-
-impl ToF64 for i128 {
-    fn to_f64(self) -> f64 {
-        self as f64
+impl ToI128 for usize {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
-
-impl ToF64 for i64 {
-    fn to_f64(self) -> f64 {
-        self as f64
+impl ToI128 for f32 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
-
-impl ToF64 for i32 {
-    fn to_f64(self) -> f64 {
-        self as f64
+impl ToI128 for f64 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
-
-impl ToF64 for u64 {
-    fn to_f64(self) -> f64 {
-        self as f64
+impl ToI128 for i32 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
-
-impl ToF64 for usize {
-    fn to_f64(self) -> f64 {
-        self as f64
+impl ToI128 for i64 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_to_f64_from_f64() {
-        let x: f64 = 3.1415;
-        assert!((x.to_f64() - 3.1415).abs() < 1e-10);
+impl ToI128 for i16 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
-
-    #[test]
-    fn test_to_f64_from_i128() {
-        let x: i128 = 42;
-        assert!((x.to_f64() - 42.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn test_to_f64_large_i128() {
-        let x: i128 = 1_000_000_000_000_000_000;
-        let y = x.to_f64();
-        assert!((y - 1e18).abs() < 1e3);
+}
+impl ToI128 for i8 {
+    fn to_i128(self) -> i128 {
+        return self as i128;
     }
 }
