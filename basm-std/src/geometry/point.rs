@@ -1,6 +1,7 @@
 use core::{any, mem};
 use core::ops::{Add, Sub, Mul, Div, Rem};
 use core::cmp::PartialOrd;
+use crate::utils::f64::F64Ops;
 
 /// A trait defining common mathematical operations for types used in geometric points.
 ///
