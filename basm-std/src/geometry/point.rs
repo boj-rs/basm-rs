@@ -1,5 +1,7 @@
+use core::{any, mem};
 use core::ops::{Add, Sub, Mul, Div, Rem};
 use core::cmp::PartialOrd;
+use crate::utils::f64::F64Ops;
 
 /// A trait defining common mathematical operations for types used in geometric points.
 ///
@@ -23,9 +25,6 @@ pub trait PointOP: Copy {
 
     /// Remainder (modulo) operation.
     fn rem(self, other: Self) -> Self;
-
-    /// Returns the square root of the value as `f64`.
-    fn sqrt(self) -> f64;
 }
 
 macro_rules! impl_arithmetic_ops {
@@ -42,8 +41,7 @@ macro_rules! impl_arithmetic_ops {
             fn div(self, other: Self) -> Self { self / other }
 
             fn rem(self, other: Self) -> Self { self % other }
-
-            fn sqrt(self) -> f64 { (self as f64).sqrt() }
+            
         }
     };
 }
@@ -121,10 +119,34 @@ where
     }
 
     /// Returns the Euclidean distance between `self` and `other`.
-    pub fn dist(self, other: Point<T>) -> f64 {
-        self.dist_squared(other).sqrt()
+    pub fn dist(self, other: Point<T>) -> f64
+    where
+        T: PointOP + 'static, 
+    {
+        let dx = PointOP::sub(self.x, other.x);
+        let dy = PointOP::sub(self.y, other.y);
+        let squared = PointOP::mul(dx, dx) + PointOP::mul(dy, dy);
+        
+        #[allow(unreachable_patterns)]
+        let squared_f64 = match squared {
+            _ if any::TypeId::of::<T>() == any::TypeId::of::<f64>() => 
+                unsafe { mem::transmute_copy::<_, f64>(&squared) },
+            _ if any::TypeId::of::<T>() == any::TypeId::of::<f32>() => 
+                unsafe { mem::transmute_copy::<_, f32>(&squared) as f64 },
+            _ if any::TypeId::of::<T>() == any::TypeId::of::<i32>() => 
+                unsafe { mem::transmute_copy::<_, i32>(&squared) as f64 },
+            _ if any::TypeId::of::<T>() == any::TypeId::of::<i64>() => 
+                unsafe { mem::transmute_copy::<_, i64>(&squared) as f64 },
+            _ if any::TypeId::of::<T>() == any::TypeId::of::<i128>() => 
+                unsafe { mem::transmute_copy::<_, i128>(&squared) as f64 },
+            _ => panic!("Unsupported type for distance calculation"),
+        };
+        
+        squared_f64.sqrt()
     }
+
 }
+
 
 #[cfg(test)]
 mod tests {

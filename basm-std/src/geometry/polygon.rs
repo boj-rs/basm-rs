@@ -1,10 +1,5 @@
-use core::ops::{Add, Div, Mul, Rem, Sub};
-
 use crate::alloc::vec::Vec;
 use crate::geometry::point::Point;
-use crate::utils::F64Ops;
-
-use super::point::PointOP;
 
 /// A 2D polygon represented as a vector of points.
 ///
@@ -72,24 +67,7 @@ impl_polygon_ops!(i64, i128);
 impl_polygon_ops!(float f32);
 impl_polygon_ops!(float f64);
 
-impl<T> Polygon<T>
-where
-    T: PointOP + PartialOrd + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T> + Rem<Output = T>,
-{
-    /// Computes the perimeter (total edge length) of the polygon.
-    ///
-    /// Returns `0.0` if there are fewer than 2 points.
-    pub fn perimeter(&self) -> f64 {
-        let n = self.verticles.len();
-        let mut perimeter = 0.0;
-        for i in 0..n {
-            let p1 = self.verticles[i];
-            let p2 = self.verticles[(i + 1) % n];
-            perimeter += p1.dist(p2);
-        }
-        perimeter
-    }
-}
+// Create separate implementations for each numeric type to avoid macro
 
 macro_rules! impl_signed_area {
     ($t:ty) => {
