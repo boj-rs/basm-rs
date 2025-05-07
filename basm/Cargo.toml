@@ -24,7 +24,7 @@ path = "src/bin/basm-submit.rs"
 required-features = ["submit"]
 
 [dependencies]
-libm = "0.2.7"
+libm = "0.2.15"
 ryu = "1.0"
 basm-macro = { path = "../basm-macro" }
 basm-std = { path = "../basm-std", features = ["codegen"] }
