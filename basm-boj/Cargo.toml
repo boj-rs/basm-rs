@@ -1,0 +1,21 @@
+[package]
+name = "cargo-boj"          # "cargo boj" 서브커맨드로 인식시키기 위함
+version = "0.1.0"
+edition = "2021"
+publish = false             # crates.io에 퍼블리시하지 않음
+
+[dependencies]
+# CLI 파싱
+gen = "0.1" # typo, correct: clap
+clap = { version = "4", features = ["derive"] }
+# 비동기 런타임
+tokio = { version = "1", features = ["full"] }
+# HTTP 클라이언트
+reqwest = { version = "0.11", features = ["gzip"] }
+# HTML 파싱
+scraper = "0.13"
+# Markdown 변환: html2md-rs (PIC 문제가 없습니다)
+html2md-rs = "0.10.2"
+# 에러 핸들링
+anyhow = "1"
+regex = "1"

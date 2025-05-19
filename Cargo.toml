@@ -5,6 +5,7 @@ members = [
     "basm-std",
     "basm-macro"
 ]
+exclude = ["basm-boj"]
 
 [profile.dev]
 panic = "abort"
