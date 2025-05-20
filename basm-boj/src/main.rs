@@ -21,12 +21,12 @@ async fn main() -> Result<()> {
     let pid = args.problem;
     let problem_str = pid.to_string();
     let url = format!("https://www.acmicpc.net/problem/{}", problem_str);
-    println!("Debug: Fetching URL: {}", url);
+    // println!("Debug: Fetching URL: {}", url);
 
     // 2. HTTP 클라이언트 설정 (User-Agent)
     let mut headers = HeaderMap::new();
     let ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36";
-    println!("Debug: Using User-Agent: {}", ua);
+    // println!("Debug: Using User-Agent: {}", ua);
     headers.insert(
         HeaderName::from_static("user-agent"),
         HeaderValue::from_static(ua),
@@ -37,9 +37,9 @@ async fn main() -> Result<()> {
 
     // 3. 페이지 요청 및 HTML 파싱
     let response = client.get(&url).send().await?;
-    println!("Debug: HTTP status: {}", response.status());
+    // println!("Debug: HTTP status: {}", response.status());
     let body = response.text().await?;
-    println!("Debug: Fetched {} bytes", body.len());
+    // println!("Debug: Fetched {} bytes", body.len());
     let document = Html::parse_document(&body);
 
     // 4. problem-body 아래 모든 <pre> 요소 중 샘플 입출력만 필터링
@@ -60,11 +60,11 @@ async fn main() -> Result<()> {
             false
         })
         .collect();
-    println!("Debug: Found {} matching <pre> elements", pres.len());
+    // println!("Debug: Found {} matching <pre> elements", pres.len());
     for el in &pres {
-        let id = el.value().attr("id").unwrap_or("");
-        let class = el.value().attr("class").unwrap_or("");
-        println!("  Element id='{}', class='{}'", id, class);
+        let _id = el.value().attr("id").unwrap_or("");
+        let _class = el.value().attr("class").unwrap_or("");
+        // println!("  Element id='{}', class='{}'", _id, _class);
     }
     if pres.len() < 2 {
         eprintln!("Error: 샘플 데이터(pre)가 충분하지 않습니다. found={} pre tags", pres.len());
@@ -91,9 +91,9 @@ async fn main() -> Result<()> {
             .to_string();
         examples.push((input_text, output_text));
     }
-    println!("Debug: Extracted {} example pairs", examples.len());
+    // println!("Debug: Extracted {} example pairs", examples.len());
     for (i, (input, output)) in examples.iter().enumerate() {
-        println!("Example {} input:\n{}\n---\noutput:\n{}", i+1, input, output);
+        println!("Example {} input:\n{}\n---\noutput:\n{}\n===", i+1, input, output);
     }
 
     if examples.is_empty() {
@@ -103,11 +103,13 @@ async fn main() -> Result<()> {
 
     // 6. basm/<problem>/ 폴더 생성 및 파일 저장
     let root = env::current_dir()?;
-    let tc_dir = root.join("basm").join(&problem_str);
-    fs::create_dir_all(&tc_dir)?;
+    let tc_input_dir = root.join("basm").join(&problem_str).join("input");
+    let tc_output_dir = root.join("basm").join(&problem_str).join("output");
+    fs::create_dir_all(&tc_input_dir)?;
+    fs::create_dir_all(&tc_output_dir)?;
     for (i, (input, output)) in examples.iter().enumerate() {
-        let in_path = tc_dir.join(format!("input{}.txt", i + 1));
-        let out_path = tc_dir.join(format!("output{}.txt", i + 1));
+        let in_path = tc_input_dir.join(format!("{}.txt", i + 1));
+        let out_path = tc_output_dir.join(format!("{}.txt", i + 1));
         fs::write(&in_path, input)?;
         fs::write(&out_path, output)?;
         println!("Wrote {} and {}", in_path.display(), out_path.display());
