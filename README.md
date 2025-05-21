@@ -164,6 +164,20 @@ macOS (AArch64) 환경에서 빌드하는 방법입니다.
 
 * VS Code의 `build-release-wasm32-submit` Task를 실행하면 릴리즈 모드 빌드 후 제출 가능한 JavaScript (wasm32) 코드가 VS Code 편집기에서 열립니다.
 
+## basm-boj
+
+BOJ의 예제 입력과 출력을 자동으로 가져와서, 테스트를 도와주는 서브 프로젝트 입니다. `bash` script를 사용하기 때문에, `Linux` 환경에서만 지원됩니다.
+
+* 아래 명령어는 문제 번호의 TC를 가져옵니다.
+```bash
+./boj get {문제 번호}
+```
+
+* 아래 명령어는 가져온 TC로 `basm/src/solution.rs` 에 작성하신 코드를 테스트 합니다.
+```bash
+./boj test {문제 번호}
+```
+
 ## 디버깅
 
 > Windows 11 64비트, Windows Subsystems for Linux 2 (WSL2)에서 테스트되었습니다. 다른 환경에서 작동에 문제가 있을 시 이슈를 남겨주세요.
