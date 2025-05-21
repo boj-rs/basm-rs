@@ -3,7 +3,7 @@ pub use miller_rabin::*;
 mod sieve;
 pub use sieve::LinearSieve;
 mod pollard_rho;
-pub use pollard_rho::factorize;
+pub use pollard_rho::{divisors, factorize, factorize_dedup};
 mod reeds_sloane;
 pub use reeds_sloane::{linear_fit, reeds_sloane};
 
