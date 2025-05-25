@@ -487,7 +487,11 @@ where
         start = start.saturating_sub(1); // we consider [start, end)
         let mut out = None;
         let rstart = if lt_unbounded { start } else { start + 1 };
-        let rend = if rt_unbounded { end } else { end - 1 };
+        let rend = if rt_unbounded {
+            end
+        } else {
+            end.saturating_sub(1)
+        };
         for i in rstart..rend {
             let v = unsafe { self.values[i].assume_init_ref() };
             out = F::binary_op_option(out.as_ref(), Some(v));
@@ -1067,6 +1071,38 @@ mod test {
         v.dedup();
         for (i, &x) in v.iter().enumerate() {
             assert_eq!(i, b.get_range(..=x).unwrap() - 1);
+        }
+    }
+    #[test]
+    fn check_btree_get_insert_reverse() {
+        struct F;
+        impl LazyOp<i32, ()> for F {
+            fn binary_op(t1: &i32, t2: &i32) -> i32 {
+                t1 + t2
+            }
+            fn apply(_u: &(), t: &i32) -> i32 {
+                *t
+            }
+            fn compose(_u1: &(), _u2: &()) {}
+            fn id_op() {}
+        }
+
+        let mut bptm = BPTreeMap::<i32, i32, (), F>::new();
+        let n = 100;
+        let mut v = vec![0; n + 1];
+        for i in (1..=n).rev() {
+            v[i] = 487 - (i as i32 % 50);
+            bptm.get(&(i as i32));
+            bptm.insert(i as i32, v[i]);
+        }
+
+        for i in 1..=n {
+            for j in i..=n {
+                assert_eq!(
+                    Some(v[i..=j].iter().sum::<i32>()),
+                    bptm.get_range(i as i32..=j as i32)
+                );
+            }
         }
     }
 }
