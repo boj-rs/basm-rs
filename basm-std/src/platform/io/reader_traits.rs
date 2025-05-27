@@ -39,6 +39,7 @@ impl Deref for Line {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Nonwhite(pub u8);
 
 impl Readable for Nonwhite {

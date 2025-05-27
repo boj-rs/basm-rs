@@ -1,3 +1,4 @@
+use super::Nonwhite;
 use crate::platform::services;
 use alloc::string::{String, ToString};
 use core::fmt::Arguments;
@@ -478,6 +479,28 @@ impl<const N: usize> Writer<N> {
 pub trait Print<T> {
     fn print(&mut self, x: T);
     fn println(&mut self, x: T);
+}
+
+/// Writes a single `Nonwhite` to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
+impl<const N: usize> Print<Nonwhite> for Writer<N> {
+    fn print(&mut self, x: Nonwhite) {
+        self.print(*x as char);
+    }
+
+    fn println(&mut self, x: Nonwhite) {
+        self.println(*x as char);
+    }
+}
+
+/// Writes a single `&Nonwhite` to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
+impl<const N: usize> Print<&Nonwhite> for Writer<N> {
+    fn print(&mut self, x: &Nonwhite) {
+        self.print(*x);
+    }
+
+    fn println(&mut self, x: &Nonwhite) {
+        self.println(*x);
+    }
 }
 
 /// Writes a single `&[u8]` using [`Writer::bytes()`] to standard output. Note that `print()` doesn't add a newline at the end of the output. If a newline is needed, use `println()`.
