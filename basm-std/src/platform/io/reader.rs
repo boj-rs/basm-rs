@@ -101,14 +101,13 @@ mod position {
 
 impl<const N: usize> Reader<N> {
     const BUF_LEN: usize = N - 8;
-    const _DUMMY: usize = {
-        assert!(
-            N >= super::MIN_BUF_SIZE,
-            "Buffer size for Reader must be at least MIN_BUF_SIZE"
-        );
-        0
-    };
+    const DUMMY: () = assert!(
+        N >= super::MIN_BUF_SIZE,
+        "Buffer size for Reader must be at least MIN_BUF_SIZE"
+    );
     pub fn new() -> Self {
+        #[allow(clippy::let_unit_value)]
+        let _ = Self::DUMMY;
         Self {
             buf: [const { MaybeUninit::uninit() }; N],
             len: 0,

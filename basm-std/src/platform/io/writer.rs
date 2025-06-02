@@ -98,13 +98,10 @@ unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
 }
 
 impl<const N: usize> Writer<N> {
-    const _DUMMY: usize = {
-        assert!(
-            N >= super::MIN_BUF_SIZE,
-            "Buffer size for Writer must be at least MIN_BUF_SIZE"
-        );
-        0
-    };
+    const DUMMY: () = assert!(
+        N >= super::MIN_BUF_SIZE,
+        "Buffer size for Writer must be at least MIN_BUF_SIZE"
+    );
     /// Constructs a new `Writer` with buffer size `N`, specified as a const generic parameter.
     /// Note: For convenience, use `Default::default()`.
     /// ```no_run
@@ -113,6 +110,8 @@ impl<const N: usize> Writer<N> {
     /// let mut writer: Writer = Default::default();
     /// ```
     pub fn new() -> Self {
+        #[allow(clippy::let_unit_value)]
+        let _ = Self::DUMMY;
         Self {
             buf: [const { MaybeUninit::uninit() }; N],
             off: 0,
