@@ -568,6 +568,52 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
     }
 }
 
+#[allow(dead_code)]
+pub struct MmapReader {
+    buf: *const u8,
+    len: usize,
+    off: usize,
+}
+
+#[cfg(all(target_arch = "x86_64", not(test)))]
+impl Default for MmapReader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(all(target_arch = "x86_64", not(test)))]
+impl MmapReader {
+    pub fn new() -> Self {
+        let st = [0u32; 100];
+        unsafe {
+            crate::platform::os::linux::syscall::syscall3(5, 0, st.as_ptr() as usize, 0);
+        }
+        let st_size = st[12] as usize;
+        let buf = unsafe {
+            crate::platform::os::linux::syscall::mmap(core::ptr::null(), st_size, 1, 1, 0, 0)
+        };
+        Self {
+            buf,
+            len: st_size,
+            off: 0,
+        }
+    }
+}
+
+#[cfg(all(target_arch = "x86_64", not(test)))]
+impl ReaderBufferTrait for MmapReader {
+    fn try_refill_internal(&mut self, _readahead: usize) -> usize {
+        self.len - self.off
+    }
+    fn remain_internal(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(self.buf.wrapping_add(self.off), self.len - self.off) }
+    }
+    fn advance(&mut self, bytes: usize) {
+        self.off += bytes;
+    }
+}
+
 /*
 #[cfg(test)]
 mod test {

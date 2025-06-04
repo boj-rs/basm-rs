@@ -1,3 +1,5 @@
+#[cfg(all(target_arch = "x86_64", not(test)))]
+pub use reader::MmapReader;
 mod reader;
 pub use reader::{Readable, Reader, ReaderTrait};
 mod writer;
