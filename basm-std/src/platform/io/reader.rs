@@ -125,6 +125,7 @@ pub trait ReaderTrait: Sized {
     fn discard(&mut self, until: u8) -> usize;
     fn word_buf(&mut self, buf: &mut [u8]) -> usize;
     fn word_to_string(&mut self, buf: &mut String);
+    fn line_buf(&mut self, buf: &mut [u8]) -> usize;
     fn line_to_string(&mut self, buf: &mut String);
     fn is_eof(&mut self) -> bool;
     fn is_eof_skip_whitespace(&mut self) -> bool;
@@ -306,6 +307,38 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
                 self.try_refill(1);
             }
         }
+    }
+    fn line_buf(&mut self, buf: &mut [u8]) -> usize {
+        self.skip_whitespace();
+        let mut total = 0;
+        while total < buf.len() {
+            let range = self.remain();
+            let len = range.len();
+            if len == 0 {
+                // no more data available
+                break;
+            }
+
+            let rem = core::cmp::min(len, buf.len() - total);
+            let data = &range[..rem];
+            if let Some(pos) = unsafe { position::newline(data) } {
+                let pos_out = if pos > 0 && data[pos - 1] == b'\r' {
+                    pos - 1
+                } else {
+                    pos
+                };
+                buf[total..total + pos_out].copy_from_slice(&data[..pos_out]);
+                total += pos_out;
+                self.advance(pos);
+                break;
+            } else {
+                buf[total..total + rem].copy_from_slice(data);
+                total += rem;
+                self.advance(rem);
+                self.try_refill(1);
+            }
+        }
+        total
     }
     fn line_to_string(&mut self, buf: &mut String) {
         self.try_refill(1);
