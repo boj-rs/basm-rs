@@ -9,6 +9,7 @@ pub mod syscall {
 
     pub const PROT_READ: i32 = 0x01;
     pub const PROT_WRITE: i32 = 0x02;
+    pub const MAP_SHARED: i32 = 0x01;
     pub const MAP_PRIVATE: i32 = 0x02;
     pub const MAP_ANON: i32 = 0x20;
     pub const MREMAP_MAYMOVE: i32 = 0x01;
@@ -19,6 +20,7 @@ pub mod syscall {
     mod id_list {
         pub const READ: usize = 0;
         pub const WRITE: usize = 1;
+        pub const FSTAT: usize = 5;
         pub const MMAP: usize = 9;
         pub const MREMAP: usize = 25;
         pub const MUNMAP: usize = 11;
@@ -30,6 +32,7 @@ pub mod syscall {
     mod id_list {
         pub const READ: usize = 3;
         pub const WRITE: usize = 4;
+        //pub const FSTAT: usize = 108;
         pub const MMAP: usize = 90;
         pub const MREMAP: usize = 163;
         pub const MUNMAP: usize = 91;
@@ -41,6 +44,7 @@ pub mod syscall {
     mod id_list {
         pub const READ: usize = 63;
         pub const WRITE: usize = 64;
+        //pub const FSTAT: usize = 80;
         pub const MMAP: usize = 222;
         pub const MREMAP: usize = 216;
         pub const MUNMAP: usize = 215;
@@ -54,6 +58,30 @@ pub mod syscall {
     pub struct RLimit {
         pub rlim_cur: usize,
         pub rlim_max: usize,
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[derive(Default)]
+    #[repr(C, packed)]
+    pub struct Stat {
+        pub st_dev: u64,
+        pub st_ino: u64,
+        pub st_nlink: u64,
+        pub st_mode: u32,
+        pub st_uid: u32,
+        pub st_gid: u32,
+        pad1: u32,
+        pub st_rdev: u64,
+        pub st_size: u64,
+        pub st_blksize: u64,
+        pub st_blocks: u64,
+        pub st_atime: u64,
+        pad2: u64,
+        pub st_mtime: u64,
+        pad3: u64,
+        pub st_ctime: u64,
+        pad4: u64,
+        pad5: [u8; 32],
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -329,6 +357,10 @@ pub mod syscall {
                 0,
             )
         }
+    }
+    #[cfg(target_arch = "x86_64")]
+    pub unsafe fn fstat(fd: usize, st: &mut Stat) -> usize {
+        unsafe { syscall3(id_list::FSTAT, fd, st as *mut Stat as usize, 0) }
     }
 }
 

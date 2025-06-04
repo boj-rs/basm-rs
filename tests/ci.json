@@ -20,6 +20,23 @@
         "output": "./tests/boj_2751.out.zip"
     },
     {
+        "solution": "./tests/boj_2751_mmapreader.rs",
+        "input": "./tests/boj_2751.in.zip",
+        "output": "./tests/boj_2751.out.zip",
+        "target_platforms": [
+            {
+                "os": "Linux",
+                "language": "C",
+                "bits": "64"
+            },
+            {
+                "os": "Linux",
+                "language": "Rust",
+                "bits": "64"
+            }
+        ]
+    },
+    {
         "solution": "./tests/boj_3745.rs",
         "input": "./tests/boj_3745.in",
         "output": "./tests/boj_3745.out"
