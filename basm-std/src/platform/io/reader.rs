@@ -626,6 +626,15 @@ impl Default for MmapReader {
 #[cfg(all(target_arch = "x86_64", not(test)))]
 impl MmapReader {
     pub fn new() -> Self {
+        #[cfg(not(feature = "submit"))]
+        {
+            let pd = crate::platform::services::platform_data();
+            assert!(
+                pd.env_id == crate::platform::services::ENV_ID_LINUX,
+                "MmapReader is only supported on Linux x64"
+            );
+        }
+
         let mut st = [0u32; 100];
         unsafe {
             crate::platform::os::linux::syscall::syscall3(5, 0, st.as_mut_ptr() as usize, 0);
