@@ -49,6 +49,7 @@ if __name__ == '__main__':
     os.makedirs(tmp_dir, exist_ok=True)
     src_path = os.path.abspath(os.path.join(tmp_dir, "output.{0}".format(src_ext)))
     bin_path = os.path.abspath(os.path.join(tmp_dir, "loader.exe" if platform.system() == "Windows" else "loader"))
+    sol_backup_path = os.path.abspath(os.path.join(tmp_dir, "solution_old.rs"))
     try_remove(src_path)
     try_remove(bin_path)
 
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 
     # Replace the solution
     shutil.copyfile(sol_path, "basm/src/solution_new.rs")
-    os.rename("basm/src/solution.rs", "basm/src/solution_old.rs")
+    os.rename("basm/src/solution.rs", sol_backup_path)
     os.rename("basm/src/solution_new.rs", "basm/src/solution.rs")
 
     # Build the project to generate the source code
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     finally:
         # Restore the original solution
         try_remove("basm/src/solution.rs")
-        os.rename("basm/src/solution_old.rs", "basm/src/solution.rs")
+        os.rename(sol_backup_path, "basm/src/solution.rs")
 
     # Compile the source code
     run_cmd = [bin_path]
