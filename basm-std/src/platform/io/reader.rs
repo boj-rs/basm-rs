@@ -273,12 +273,12 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
             let rem = core::cmp::min(len, buf.len() - total);
             let data = &range[..rem];
             if let Some(pos) = unsafe { position::white(data) } {
-                buf[len..len + pos].copy_from_slice(&data[..pos]);
+                buf[total..total + pos].copy_from_slice(&data[..pos]);
                 total += pos;
                 self.advance(pos);
                 break;
             } else {
-                buf[len..len + rem].copy_from_slice(data);
+                buf[total..total + rem].copy_from_slice(data);
                 total += rem;
                 self.advance(rem);
                 self.try_refill(1);
