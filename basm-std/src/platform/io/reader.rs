@@ -585,13 +585,13 @@ impl Default for MmapReader {
 #[cfg(all(target_arch = "x86_64", not(test)))]
 impl MmapReader {
     pub fn new() -> Self {
-        let st = [0u32; 100];
-        unsafe {
-            crate::platform::os::linux::syscall::syscall3(5, 0, st.as_ptr() as usize, 0);
-        }
+        let mut st = [0u32; 100];
+        unsafe { crate::platform::os::linux::syscall::syscall3(5, 0, st.as_mut_ptr() as usize, 0); }
         let st_size = st[12] as usize;
         let buf = unsafe {
-            crate::platform::os::linux::syscall::mmap(core::ptr::null(), st_size, 1, 1, 0, 0)
+            // the +8 is for providing extra buffer that is safe to read for noskip_u64 and other functions
+            // (which enables accelerated parsing)
+            crate::platform::os::linux::syscall::mmap(core::ptr::null(), st_size + 8, 1, 1, 0, 0)
         };
         Self {
             buf,
