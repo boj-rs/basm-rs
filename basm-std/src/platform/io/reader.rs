@@ -378,7 +378,11 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
     fn i64(&mut self) -> i64 {
         self.skip_whitespace();
         self.try_refill(25);
-        let sign = self.remain()[0] == b'-';
+        let sign = unsafe {
+            self.remain_internal()
+                .as_ptr()
+                .read_unaligned()
+        } == b'-';
         (if sign {
             self.advance(1);
             self.noskip_u64().wrapping_neg()
