@@ -635,19 +635,26 @@ impl MmapReader {
             );
         }
 
-        let mut st = [0u32; 100];
+        use crate::platform::os::linux::syscall;
+        let mut st = syscall::Stat::default();
         unsafe {
-            crate::platform::os::linux::syscall::syscall3(5, 0, st.as_mut_ptr() as usize, 0);
+            syscall::fstat(0, &mut st);
         }
-        let st_size = st[12] as usize;
         let buf = unsafe {
             // the +8 is for providing extra buffer that is safe to read for noskip_u64 and other functions
             // (which enables accelerated parsing)
-            crate::platform::os::linux::syscall::mmap(core::ptr::null(), st_size + 8, 1, 1, 0, 0)
+            crate::platform::os::linux::syscall::mmap(
+                core::ptr::null(),
+                st.st_size as usize + 8,
+                syscall::PROT_READ,
+                syscall::MAP_SHARED,
+                0,
+                0,
+            )
         };
         Self {
             buf,
-            len: st_size,
+            len: st.st_size as usize,
             off: 0,
         }
     }
