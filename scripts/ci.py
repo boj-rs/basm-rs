@@ -9,6 +9,7 @@ Example:
 
 import json
 import os
+import platform
 import subprocess
 import sys
 
@@ -35,10 +36,25 @@ if __name__ == "__main__":
             "    python scripts/ci.py tmp/test release-64bit-windows-rs.cmd Rust 64 tests/ci.json"
         ]))
 
+    skipped_count = 0
     for job in ci_jobs:
         sol_path = job["solution"]
         indata_path = job["input"]
         outdata_path = job["output"]
+        if "target_platforms" in job:
+            matched = False
+            for d in job["target_platforms"]:
+                if "os" in d and d["os"] != platform.system():
+                    continue
+                if "language" in d and d["language"] != language:
+                    continue
+                if "bits" in d and d["bits"] != bits:
+                    continue
+                matched = True
+                break
+            if not matched:
+                skipped_count += 1
+                continue
         completed_process = subprocess.run(" ".join([
             "python" if os.name == 'nt' else "python3",
             "./scripts/build-and-judge.py",
@@ -54,4 +70,5 @@ if __name__ == "__main__":
             raise Exception("Test script terminated with a non-zero exit code {}.".format(completed_process.returncode))
 
     print("--------")
-    print("Successfully completed {} job{} for [{} {} {}] (tmp dir: {}).".format(len(ci_jobs), "s" if len(ci_jobs) > 1 else "", build_cmd, language, bits, tmp_dir))
+    jobs = "jobs" if len(ci_jobs) > 1 else "job"
+    print(f"Successfully completed {len(ci_jobs)} {jobs} for [{build_cmd} {language} {bits}] (tmp dir: {tmp_dir}, skipped: {skipped_count})")
