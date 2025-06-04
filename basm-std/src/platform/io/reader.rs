@@ -576,7 +576,7 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(all(target_arch = "x86_64", not(test)))]
 pub struct MmapReader {
     buf: *const u8,
     len: usize,
