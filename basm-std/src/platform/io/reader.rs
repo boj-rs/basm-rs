@@ -378,11 +378,7 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
     fn i64(&mut self) -> i64 {
         self.skip_whitespace();
         self.try_refill(25);
-        let sign = unsafe {
-            self.remain_internal()
-                .as_ptr()
-                .read_unaligned()
-        } == b'-';
+        let sign = unsafe { self.remain_internal().as_ptr().read_unaligned() } == b'-';
         (if sign {
             self.advance(1);
             self.noskip_u64().wrapping_neg()
@@ -590,7 +586,9 @@ impl Default for MmapReader {
 impl MmapReader {
     pub fn new() -> Self {
         let mut st = [0u32; 100];
-        unsafe { crate::platform::os::linux::syscall::syscall3(5, 0, st.as_mut_ptr() as usize, 0); }
+        unsafe {
+            crate::platform::os::linux::syscall::syscall3(5, 0, st.as_mut_ptr() as usize, 0);
+        }
         let st_size = st[12] as usize;
         let buf = unsafe {
             // the +8 is for providing extra buffer that is safe to read for noskip_u64 and other functions
