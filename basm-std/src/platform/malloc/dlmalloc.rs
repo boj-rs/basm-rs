@@ -515,7 +515,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                     self.dvsize = 0;
                     self.dv = ptr::null_mut();
                 }
-                return p;
+                p
             } else if !Chunk::cinuse(next) {
                 // extend into the next free chunk
                 let nextsize = Chunk::size(next);
