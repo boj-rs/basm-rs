@@ -77,6 +77,10 @@ trait ReaderBufferTrait: Sized {
         let mut n = 0;
         'outer: loop {
             let data = self.remain();
+            if data.is_empty() {
+                // no more data available
+                break n;
+            }
             for i in 0..data.len() {
                 let b = data[i];
                 if b > 32 {
@@ -94,6 +98,10 @@ trait ReaderBufferTrait: Sized {
         let mut n = 0;
         'outer: loop {
             let data = self.remain();
+            if data.is_empty() {
+                // no more data available
+                break n;
+            }
             for (i, &b) in data.iter().enumerate() {
                 if b > 32 {
                     n *= 10;
