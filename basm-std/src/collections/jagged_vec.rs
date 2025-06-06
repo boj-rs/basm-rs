@@ -46,7 +46,7 @@ impl<T> JaggedVec<T> {
         self.link.push((prev, data));
     }
 
-    pub fn row_iter(&self, row: usize) -> RowIter<T> {
+    pub fn row_iter(&self, row: usize) -> RowIter<'_, T> {
         RowIter {
             vec: self,
             idx: self.head[row],
