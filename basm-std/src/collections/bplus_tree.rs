@@ -135,6 +135,10 @@ where
         self.op = F::compose(u, &self.op);
         self.value = F::apply(u, &self.value);
     }
+    /// Excises the current range from the underlying BPTreeMap.
+    pub fn remove(self) {
+        todo!()
+    }
 }
 
 impl<K, V, U, F> Drop for PeekMutRange<'_, K, V, U, F>
@@ -784,8 +788,11 @@ where
             out
         }
     }
-    pub fn remove(&mut self, _key: &K) -> Option<V> {
-        None
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        self.remove_range(key..=key)
+    }
+    pub fn remove_range<R: RangeBounds<K>>(&mut self, _range: R) -> Option<V> {
+        todo!()
     }
     pub fn get(&self, key: &K) -> Option<V> {
         self.get_range(key..=key)
@@ -1104,5 +1111,33 @@ mod test {
                 );
             }
         }
+    }
+    #[test]
+    #[ignore]
+    fn check_btree_remove() {
+        struct F;
+        impl LazyOp<(i64, usize), i64> for F {
+            fn binary_op(t1: &(i64, usize), t2: &(i64, usize)) -> (i64, usize) {
+                (t1.0 + t2.0, t1.1 + t2.1)
+            }
+            fn apply(u: &i64, t: &(i64, usize)) -> (i64, usize) {
+                (t.0 + u * t.1 as i64, t.1)
+            }
+            fn compose(u1: &i64, u2: &i64) -> i64 {
+                u1 + u2
+            }
+            fn id_op() -> i64 {
+                0
+            }
+        }
+        let mut bptm = BPTreeMap::<usize, (i64, usize), i64, F>::new();
+        let n = 10;
+        for i in 1..=n {
+            bptm.insert(i, (i as i64, 1));
+        }
+        assert_eq!(Some((5, 1)), bptm.remove(&5));
+        assert_eq!(Some((13, 3)), bptm.get_range(3..=6));
+        assert_eq!(Some((3, 1)), bptm.remove(&3));
+        assert_eq!(Some((10, 2)), bptm.get_range(3..=6));
     }
 }
