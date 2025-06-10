@@ -123,12 +123,7 @@ pub mod syscall {
         }
     }
     #[cfg(not(target_arch = "x86_64"))]
-    unsafe extern "cdecl" fn syscall3(
-        call_id: usize,
-        arg0: usize,
-        arg1: usize,
-        arg2: usize,
-    ) -> usize {
+    unsafe extern "C" fn syscall3(call_id: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
         unsafe { syscall(call_id, arg0, arg1, arg2, 0, 0, 0) }
     }
     #[cfg(target_arch = "x86_64")]
