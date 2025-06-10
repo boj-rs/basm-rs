@@ -50,7 +50,22 @@ trait ReaderBufferTrait: Sized {
             10_000_000,
             100_000_000,
         ];
-        let mut out = 0;
+        // For speed optimization, we explicitly unroll the first step of the integer parsing.
+        // By avoiding multiplication by POW10 in the first step, we gain speed.
+        let mut c = unsafe {
+            self.remain_internal()
+                .as_ptr()
+                .cast::<u64>()
+                .read_unaligned()
+        };
+        let m = !c & 0x1010101010101010;
+        let len = m.trailing_zeros() >> 3;
+        self.advance(len as usize);
+        c &= 0x0F0F0F0F0F0F0F0F;
+        c <<= (8 - len) << 3;
+        c = c.wrapping_mul(2561) >> 8;
+        c = (c & 0x00FF00FF00FF00FF).wrapping_mul(6553601) >> 16;
+        let mut out = (c & 0xFFFF) * 10000 + (c >> 32);
         loop {
             let mut c = unsafe {
                 self.remain_internal()
