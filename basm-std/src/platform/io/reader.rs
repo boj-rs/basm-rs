@@ -58,18 +58,19 @@ trait ReaderBufferTrait: Sized {
                     .cast::<u64>()
                     .read_unaligned()
             };
-            let m = !c & 0x1010101010101010;
-            let len = m.trailing_zeros() >> 3;
-            if len == 0 {
+            if c & 0x10 == 0 {
+                /* len == 0 */
                 break out;
             }
+            let m = !c & 0x1010101010101010;
+            let len = m.trailing_zeros() >> 3;
             self.advance(len as usize);
             out *= POW10[len as usize] as u64;
+            c &= 0x0F0F0F0F0F0F0F0F;
             c <<= (8 - len) << 3;
-            c = (c & 0x0F0F0F0F0F0F0F0F).wrapping_mul(2561) >> 8;
+            c = c.wrapping_mul(2561) >> 8;
             c = (c & 0x00FF00FF00FF00FF).wrapping_mul(6553601) >> 16;
-            c = (c & 0x0000FFFF0000FFFF).wrapping_mul(42949672960001) >> 32;
-            out += c;
+            out += (c & 0xFFFF) * 10000 + (c >> 32);
         }
     }
     #[cfg(all(feature = "short", not(feature = "fastio")))]
@@ -710,10 +711,11 @@ mod test {
 
     #[test]
     fn read_numbers() {
-        let mut reader = MockReader::new(b"1234 -56\n-9999.9999\n");
+        let mut reader = MockReader::new(b"1234 -56 1234567890\n-9999.9999\n");
 
         assert_eq!(reader.usize(), 1234);
         assert_eq!(reader.i32(), -56);
+        assert_eq!(reader.u64(), 1234567890);
         assert_eq!(reader.f64(), -9999.9999);
     }
 
