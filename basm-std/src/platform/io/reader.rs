@@ -612,8 +612,7 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
 #[cfg(all(target_arch = "x86_64", not(test)))]
 pub struct MmapReader {
     buf: *const u8,
-    len: usize,
-    off: usize,
+    end: *const u8,
 }
 
 #[cfg(all(target_arch = "x86_64", not(test)))]
@@ -654,8 +653,7 @@ impl MmapReader {
         };
         Self {
             buf,
-            len: st.st_size as usize,
-            off: 0,
+            end: buf.wrapping_add(st.st_size as usize),
         }
     }
 }
@@ -663,13 +661,13 @@ impl MmapReader {
 #[cfg(all(target_arch = "x86_64", not(test)))]
 impl ReaderBufferTrait for MmapReader {
     fn try_refill_internal(&mut self, _readahead: usize) -> usize {
-        self.len - self.off
+        unsafe { self.end.offset_from_unsigned(self.buf) }
     }
     fn remain_internal(&self) -> &[u8] {
-        unsafe { core::slice::from_raw_parts(self.buf.wrapping_add(self.off), self.len - self.off) }
+        unsafe { core::slice::from_raw_parts(self.buf, self.end.offset_from_unsigned(self.buf)) }
     }
     fn advance(&mut self, bytes: usize) {
-        self.off += bytes;
+        self.buf = self.buf.wrapping_add(bytes);
     }
 }
 
