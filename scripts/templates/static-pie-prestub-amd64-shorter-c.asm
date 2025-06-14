@@ -4,7 +4,7 @@
 ; (prestub: the code that runs before the stub and sets the stage)
 ;
 ; build: nasm -f bin -O9 static-pie-prestub-amd64-shorter-c.asm -o static-pie-prestub-amd64-shorter-c.bin
-; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter-c.bin --c --no-asciz
+; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter-c.bin --c --signed --no-asciz
 ;       to obtain the form that can be embedded in C.
 
 BITS 64

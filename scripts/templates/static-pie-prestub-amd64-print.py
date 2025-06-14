@@ -65,6 +65,10 @@ for i in range(0, len(prestub), CHUNK_SIZE):
         return out
     qword1 = to_hex_short(x)
     qword2 = str(x)
+    if "--signed" in sys.argv and x >= 1 << (CHUNK_SIZE * 8 - 1):
+        z = (1 << (CHUNK_SIZE * 8)) - x
+        qword1 = "-" + to_hex_short(z)
+        qword2 = "-" + str(z)
     if len(qword1) <= len(qword2):
         out.append(qword1)
     else:
