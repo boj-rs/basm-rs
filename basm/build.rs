@@ -63,7 +63,9 @@ fn main() {
             link_args_basm.push("-fno-unwind-tables");
             link_args_basm.push("-fno-stack-protector");
             link_args_basm.push("-fno-plt");
-            link_args_basm.push("-Wl,--entry=_basm_start,--build-id=none,--gc-sections,--export-dynamic,--no-eh-frame-hdr,-z,norelro");
+            link_args_basm.push("-Wl,--entry=_basm_start,--build-id=none,--gc-sections,--no-eh-frame-hdr,-z,norelro");
+            link_args_basm.push("-Wl,--export-dynamic-symbol=_basm_export*");
+            link_args_basm.push("-Wl,--export-dynamic-symbol=_basm_import*");
             link_args_basm_submit.push("-Wl,-z,max-page-size=128");
         }
         "aarch64-apple-darwin" => {

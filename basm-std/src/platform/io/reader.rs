@@ -435,13 +435,14 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
     fn i64(&mut self) -> i64 {
         self.skip_whitespace();
         self.try_refill(25);
-        let sign = unsafe { self.remain_internal().as_ptr().read_unaligned() } == b'-';
-        (if sign {
-            self.advance(1);
-            self.noskip_u64().wrapping_neg()
+        let sign = if unsafe { self.remain_internal().as_ptr().read_unaligned() } == b'-' {
+            2
         } else {
-            self.noskip_u64()
-        }) as i64
+            0
+        };
+        self.advance(sign >> 1);
+        self.noskip_u64()
+            .wrapping_mul(1u64.wrapping_sub(sign as u64)) as i64
     }
     fn u64(&mut self) -> u64 {
         self.skip_whitespace();
@@ -526,14 +527,17 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
         let mut total = 0;
         'outer: loop {
             let data = self.remain();
-            for (i, &b) in data.iter().enumerate() {
-                if b > b' ' {
-                    self.advance(i);
-                    break 'outer total;
+            unsafe {
+                let mut ptr = data.as_ptr();
+                for _ in 0..data.len() {
+                    if *ptr > b' ' {
+                        break 'outer total;
+                    }
+                    self.advance(1);
+                    total += 1;
+                    ptr = ptr.wrapping_add(1);
                 }
-                total += 1;
             }
-            self.advance(data.len());
             if self.try_refill(1) == 0 {
                 break total;
             }
@@ -577,33 +581,46 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
         unsafe {
             let mut rem = self.len - self.off;
             if rem < readahead {
-                /* Secure space by discarding the already-consumed buffer contents at front.
-                 * Note that we expect `readahead` to be small (<100 bytes), so we unconditionally
-                 * copy the contents to the front to reduce code size. When the default buffer size
-                 * is used (which is >100K), this will not happen often and hence shouldn't affect
-                 * performance by a noticeable amount. */
-                let mut white_cnt = 0u32;
-                let mut j = self.off;
-                for i in 0..rem {
-                    let c = self.buf[j].assume_init();
-                    if c <= b' ' {
-                        white_cnt += 1;
+                #[cfg(all(feature = "short", not(feature = "fastio")))]
+                {
+                    /* for short and not(fastio), we skip non-essential checks that enhance usability on console */
+                    for i in 0..rem {
+                        *self.buf[i].assume_init_mut() = self.buf[self.off + i].assume_init();
                     }
-                    *self.buf[i].assume_init_mut() = c;
-                    j += 1;
-                }
-
-                /* Although the buffer currently falls short of what has been requested,
-                 * it may still be possible that a full token (which is short)
-                 * is available within the remains. Thus, we check if we can return
-                 * without invoking read_stdio. This is crucial for cases where
-                 * the standard input is a pipe, which includes the local testing
-                 * console environment. */
-                if white_cnt == 0 {
-                    /* No whitespace has been found. We have to read.
-                     * We try to read as much as possible at once. */
                     rem += services::read_stdio(0, self.buf[rem..Self::BUF_LEN].assume_init_mut());
                 }
+                #[cfg(any(not(feature = "short"), feature = "fastio"))]
+                {
+                    /* Secure space by discarding the already-consumed buffer contents at front.
+                     * Note that we expect `readahead` to be small (<100 bytes), so we unconditionally
+                     * copy the contents to the front to reduce code size. When the default buffer size
+                     * is used (which is >100K), this will not happen often and hence shouldn't affect
+                     * performance by a noticeable amount. */
+                    let mut white_cnt = 0u32;
+                    let mut j = self.off;
+                    for i in 0..rem {
+                        let c = self.buf[j].assume_init();
+                        if c <= b' ' {
+                            white_cnt += 1;
+                        }
+                        *self.buf[i].assume_init_mut() = c;
+                        j += 1;
+                    }
+
+                    /* Although the buffer currently falls short of what has been requested,
+                     * it may still be possible that a full token (which is short)
+                     * is available within the remains. Thus, we check if we can return
+                     * without invoking read_stdio. This is crucial for cases where
+                     * the standard input is a pipe, which includes the local testing
+                     * console environment. */
+                    if white_cnt == 0 {
+                        /* No whitespace has been found. We have to read.
+                         * We try to read as much as possible at once. */
+                        rem +=
+                            services::read_stdio(0, self.buf[rem..Self::BUF_LEN].assume_init_mut());
+                    }
+                }
+
                 /* Add a null-terminator, whether or not the read was nonsaturating (for SIMD-accelerated unsafe integer read routines).
                  * This is safe since we spare 8 bytes at the end of the buffer. */
                 *self.buf[rem].assume_init_mut() = 0u8;
@@ -618,7 +635,12 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
         }
     }
     fn remain_internal(&self) -> &[u8] {
-        unsafe { self.buf[self.off..self.len].assume_init_ref() }
+        unsafe {
+            core::slice::from_raw_parts(
+                self.buf.assume_init_ref().as_ptr().wrapping_add(self.off),
+                self.len - self.off,
+            )
+        }
     }
     fn advance(&mut self, bytes: usize) {
         self.off += bytes;
@@ -726,11 +748,15 @@ mod test {
 
     #[test]
     fn read_numbers() {
-        let mut reader = MockReader::new(b"1234 -56 1234567890\n-9999.9999\n");
+        let mut reader = MockReader::new(
+            b"1234 -56 1234567890 -9223372036854775808 18446744073709551615\n-9999.9999\n",
+        );
 
         assert_eq!(reader.usize(), 1234);
         assert_eq!(reader.i32(), -56);
-        assert_eq!(reader.u64(), 1234567890);
+        assert_eq!(reader.i64(), 1234567890);
+        assert_eq!(reader.i64(), -9223372036854775808);
+        assert_eq!(reader.u64(), 18446744073709551615);
         assert_eq!(reader.f64(), -9999.9999);
     }
 

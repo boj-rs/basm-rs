@@ -57,7 +57,12 @@ pub fn try_exit() {
         if (pd.env_flags & services::ENV_FLAGS_NO_EXIT) != 0 {
             return;
         }
-        if pd.env_id == services::ENV_ID_LINUX {
+        // for `short`, we omit OS check, since it must be Linux
+        #[cfg(feature = "short")]
+        let short = true;
+        #[cfg(not(feature = "short"))]
+        let short = false;
+        if short || pd.env_id == services::ENV_ID_LINUX {
             unsafe {
                 os::linux::syscall::exit_group(services::get_exit_status() as usize);
             }
