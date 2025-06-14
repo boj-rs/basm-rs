@@ -527,14 +527,17 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
         let mut total = 0;
         'outer: loop {
             let data = self.remain();
-            for (i, &b) in data.iter().enumerate() {
-                if b > b' ' {
-                    self.advance(i);
-                    break 'outer total;
+            unsafe {
+                let mut ptr = data.as_ptr();
+                for _ in 0..data.len() {
+                    if *ptr > b' ' {
+                        break 'outer total;
+                    }
+                    self.advance(1);
+                    total += 1;
+                    ptr = ptr.wrapping_add(1);
                 }
-                total += 1;
             }
-            self.advance(data.len());
             if self.try_refill(1) == 0 {
                 break total;
             }
