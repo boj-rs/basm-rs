@@ -135,7 +135,13 @@ impl<const N: usize> Writer<N> {
     // extra space for one byte in the buffer to allow for safe use of
     // this function.
     fn byte_unchecked(&mut self, b: u8) {
-        self.buf[self.off].write(b);
+        // SAFETY: we ensure self.off < self.buf.len() before calling this function
+        unsafe {
+            self.buf
+                .as_mut_ptr()
+                .wrapping_add(self.off)
+                .write(MaybeUninit::<u8>::new(b));
+        }
         self.off += 1;
     }
     /// Writes a single byte to standard output.
