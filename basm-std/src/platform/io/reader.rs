@@ -619,7 +619,12 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
         }
     }
     fn remain_internal(&self) -> &[u8] {
-        unsafe { self.buf[self.off..self.len].assume_init_ref() }
+        unsafe {
+            core::slice::from_raw_parts(
+                self.buf.assume_init_ref().as_ptr().wrapping_add(self.off),
+                self.len - self.off,
+            )
+        }
     }
     fn advance(&mut self, bytes: usize) {
         self.off += bytes;
