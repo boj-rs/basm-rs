@@ -57,6 +57,7 @@ const DT_RELASZ: u64 = 8;
 const DT_RELAENT: u64 = 9;
 
 // Relocation types
+#[allow(dead_code)]
 const R_X86_64_NONE: u32 = 0; // none
 const R_X86_64_RELATIVE: u32 = 8; // word64   B + A
 
@@ -117,11 +118,20 @@ pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_sectio
                 let l_result: u64 = addr_image_base + l_addend;
                 let ptr_target = (addr_image_base + ul_offset) as *mut u64;
                 *ptr_target = l_result;
-            } else if ul_info as u32 == R_X86_64_NONE {
-                /* do nothing */
             } else {
-                /* not implemented */
-                panic!();
+                // for `short`, we (unsafely) assume that the only relocation types are R_X86_64_RELATIVE
+                #[cfg(feature = "short")]
+                {
+                    /* not implemented */
+                    panic!();
+                }
+                #[cfg(not(feature = "short"))]
+                if ul_info as u32 == R_X86_64_NONE {
+                    /* do nothing */
+                } else {
+                    /* not implemented */
+                    panic!();
+                }
             }
             ptr_rela += relaent.assume_init();
         }
