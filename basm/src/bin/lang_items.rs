@@ -19,12 +19,6 @@ mod runtime {
     }
 
     #[unsafe(no_mangle)]
-    #[allow(non_snake_case)]
-    fn _Unwind_Resume() {
-        unsafe { core::hint::unreachable_unchecked() }
-    }
-
-    #[unsafe(no_mangle)]
     fn rust_eh_personality() {
         unsafe { core::hint::unreachable_unchecked() }
     }
