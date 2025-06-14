@@ -676,22 +676,47 @@ impl MmapReader {
         let mut st = syscall::Stat::default();
         unsafe {
             syscall::fstat(0, &mut st);
-        }
-        let buf = unsafe {
-            // the +8 is for providing extra buffer that is safe to read for noskip_u64 and other functions
-            // (which enables accelerated parsing)
-            crate::platform::os::linux::syscall::mmap(
+            let page_boundary = st.st_size as usize & 0xfff;
+            let file_size = ((st.st_size as usize + 0xfff) >> 12) << 12;
+            let mut extra_page = 0;
+            if page_boundary > 0xff8 {
+                // Ensure we have at least 8 bytes at the end of the buffer.
+                // If (stdin file size mod 4096) > 4088, we allocate one extra page at the end of it.
+                extra_page = 0x1000;
+            }
+            // We first reserve the required address space.
+            let buf = syscall::mmap(
                 core::ptr::null(),
-                st.st_size as usize + 8,
+                file_size + extra_page,
+                syscall::PROT_NONE,
+                syscall::MAP_ANON | syscall::MAP_PRIVATE,
+                -1,
+                0,
+            );
+            // Then, we allocate the memory for stdin, ...
+            syscall::mmap(
+                buf,
+                st.st_size as usize,
                 syscall::PROT_READ,
-                syscall::MAP_SHARED,
+                syscall::MAP_SHARED | syscall::MAP_FIXED,
                 0,
                 0,
-            )
-        };
-        Self {
-            buf,
-            end: buf.wrapping_add(st.st_size as usize),
+            );
+            if extra_page > 0 {
+                // ...and the extra page at the end if needed.
+                syscall::mmap(
+                    buf.wrapping_add(file_size),
+                    extra_page,
+                    syscall::PROT_WRITE | syscall::PROT_READ,
+                    syscall::MAP_ANON | syscall::MAP_PRIVATE | syscall::MAP_FIXED,
+                    -1,
+                    0,
+                );
+            }
+            Self {
+                buf,
+                end: buf.wrapping_add(st.st_size as usize),
+            }
         }
     }
 }

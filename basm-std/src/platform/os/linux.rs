@@ -7,10 +7,12 @@ pub mod syscall {
     #[cfg(target_arch = "x86")]
     use core::arch::naked_asm;
 
+    pub const PROT_NONE: i32 = 0x00;
     pub const PROT_READ: i32 = 0x01;
     pub const PROT_WRITE: i32 = 0x02;
     pub const MAP_SHARED: i32 = 0x01;
     pub const MAP_PRIVATE: i32 = 0x02;
+    pub const MAP_FIXED: i32 = 0x10;
     pub const MAP_ANON: i32 = 0x20;
     pub const MREMAP_MAYMOVE: i32 = 0x01;
     pub const MAP_FAILED: *mut u8 = usize::MAX as *mut u8;
