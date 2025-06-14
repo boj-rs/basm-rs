@@ -435,13 +435,14 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
     fn i64(&mut self) -> i64 {
         self.skip_whitespace();
         self.try_refill(25);
-        let sign = unsafe { self.remain_internal().as_ptr().read_unaligned() } == b'-';
-        (if sign {
-            self.advance(1);
-            self.noskip_u64().wrapping_neg()
+        let sign = if unsafe { self.remain_internal().as_ptr().read_unaligned() } == b'-' {
+            2
         } else {
-            self.noskip_u64()
-        }) as i64
+            0
+        };
+        self.advance(sign >> 1);
+        self.noskip_u64()
+            .wrapping_mul(1u64.wrapping_sub(sign as u64)) as i64
     }
     fn u64(&mut self) -> u64 {
         self.skip_whitespace();
@@ -726,11 +727,15 @@ mod test {
 
     #[test]
     fn read_numbers() {
-        let mut reader = MockReader::new(b"1234 -56 1234567890\n-9999.9999\n");
+        let mut reader = MockReader::new(
+            b"1234 -56 1234567890 -9223372036854775808 18446744073709551615\n-9999.9999\n",
+        );
 
         assert_eq!(reader.usize(), 1234);
         assert_eq!(reader.i32(), -56);
-        assert_eq!(reader.u64(), 1234567890);
+        assert_eq!(reader.i64(), 1234567890);
+        assert_eq!(reader.i64(), -9223372036854775808);
+        assert_eq!(reader.u64(), 18446744073709551615);
         assert_eq!(reader.f64(), -9999.9999);
     }
 
