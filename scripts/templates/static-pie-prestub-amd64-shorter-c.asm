@@ -12,6 +12,7 @@ ORG 0
 section .text
 
 ; Reserve space on stack
+    nop
     and     rsp, 0xffffffffffffff80 ; ensures at least 128 bytes
 
 ; mprotect: make stack executable
