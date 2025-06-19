@@ -97,8 +97,7 @@ _decode_zeros:
 _jump_to_entrypoint:
     sub     rdi, qword [rdi-8]
     xor     ecx, ecx
-    push    rcx
-    call    rdi
+    jmp     rdi
 
     align 8, db 0x0                 ; zero padding
 _end:
