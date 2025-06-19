@@ -6,18 +6,20 @@
 ; build: nasm -f bin -O9 static-pie-prestub-amd64-shorter-c.asm -o static-pie-prestub-amd64-shorter-c.bin
 ; note: after building with the above command, run static-pie-prestub-amd64-print.py static-pie-prestub-amd64-shorter-c.bin --c --signed --no-asciz
 ;       to obtain the form that can be embedded in C.
+; note: mmap, mprotect, munmap applies to the pages in [addr, addr+len-1], possibly except for huge pages
 
 BITS 64
 ORG 0
 section .text
 
 ; Reserve space on stack
-    nop
     and     rsp, 0xffffffffffffff80 ; ensures at least 128 bytes
 
 ; mprotect: make stack executable
-    mov     eax, 10                 ; mprotect
-    mov     esi, 0x1000             ; len
+    push    10                      ; mprotect
+    pop     rax
+    push    127                     ; len (does not need to be page-aligned)
+    pop     rsi
     push    rdi                     ; Save binary_raw_base91
     lea     rdi, [rsp + 8]          ; addr
     push    7                       ; protect (RWX)
@@ -29,31 +31,30 @@ section .text
     lea     rsi, [rel _start]
     lea     rdi, [rsp + 8]
     push    rdi                     ; _start of relocated stub
-    mov     ecx, _end - _start
-    add     ecx, 8                  ; binary size in bytes
+    mov     ecx, _end - _start + 8  ; binary size in bytes
     rep     movsb
 
 ; Jump to stack
-    pop     rax                     ; _start of relocated stub
-    call    rax
+    pop     rcx                     ; _start of relocated stub
+    call    rcx
 
 _start:
 
 ; Free the .text section
     pop     rdi                     ; Get RIP saved on stack by call instruction
     and     rdi, 0xfffffffffffff000
-    mov     esi, 0x1000
-    mov     eax, 11
+    push    127                     ; len (does not need to be page-aligned)
+    pop     rsi
+    mov     al, 11                  ; prev call already zeroed upper 32bit of rax
     syscall
 
 ; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
-    push    9
-    pop     rax                     ; syscall id of x64 mmap
+    mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
     cdq                             ; rdx=0
     xor     r9d, r9d                ; offset
     xor     edi, edi                ; rdi=0
-    mov     rsi, qword [rel _end]   ; size in bytes
+    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
     push    0x22
     pop     r10                     ; flags
