@@ -529,7 +529,8 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
             let data = self.remain();
             unsafe {
                 let mut ptr = data.as_ptr();
-                for _ in 0..data.len() {
+                let end = ptr.wrapping_add(data.len());
+                while ptr < end {
                     if *ptr > b' ' {
                         break 'outer total;
                     }
