@@ -55,10 +55,10 @@ _start:
 
 ; Free the .text section
     pop     rdi                     ; Get RIP saved on stack by call instruction
-    and     rdi, 0xfffffffffffff000 
     mov     al, 11                  ; prev syscall already zeroed rax, assuming it succeeded
     push    rax                     ; len (does not need to be page-aligned)
     pop     rsi
+    and     rdi, 0xfffffffffffff000
     syscall
 
 ; svc_alloc_rwx for Linux
@@ -109,8 +109,8 @@ _decode_zeros:
 
 ; Jump to entrypoint
 _jump_to_entrypoint:
+    xor     ecx, ecx                ; RCX=0 marks we do not supply PLATFORM_DATA even though we are running with loader
     sub     rdi, qword [rdi-8]
-    xor     ecx, ecx
     jmp     rdi
 
     align 8, db 0x0                 ; zero padding
