@@ -12,6 +12,18 @@ BITS 64
 ORG 0
 section .text
 
+; Function: __libc_start_main
+; Parameters:
+; * RDI (main): In our case, the address of binary_raw_base91.
+; * RSI (argc): Always 1 when run from BOJ
+; * RDX (ubp_av): a.k.a the argv pointer
+; * RCX (init): May or may not be NULL
+; * R8  (fini): May or may not be NULL
+; * R9  (rtld_fini): May or may not be NULL
+;
+; See also: https://refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/baselib---libc-start-main-.html
+__libc_start_main:
+
 ; Reserve space on stack
     and     rsp, 0xffffffffffffff80 ; ensures at least 128 bytes
 
