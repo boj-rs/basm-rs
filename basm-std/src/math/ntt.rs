@@ -115,4 +115,15 @@ mod test {
             )
         )
     }
+    #[test]
+    fn check_polydiv_polymod_u64() {
+        assert_eq!(
+            Some(vec![0u64.wrapping_sub(7), 0u64.wrapping_sub(1), 4]),
+            polydiv_u64(&[1, 2, 0, 3, 4], &[2, 1, 1], 0)
+        );
+        assert_eq!(
+            Some(vec![15, 11]),
+            polymod_u64(&[1, 2, 0, 3, 4], &[2, 1, 1], 0)
+        );
+    }
 }

@@ -1,5 +1,5 @@
 use super::{polymul::polymul_ex_u64, polymul_u64};
-use crate::math::{modadd, modinv, modmul};
+use crate::math::{modadd, modinv, modmul, modsub};
 use alloc::{vec, vec::Vec};
 use core::cmp::min;
 
@@ -25,7 +25,7 @@ fn sanitize_u64(x: &[u64]) -> &[u64] {
 pub fn polyneginv_u64(h: &[u64], n: usize, modulo: u64) -> Option<Vec<u64>> {
     let h0_inv = modinv(h[0], modulo)?;
     let mut a = vec![0; n];
-    a[0] = modulo - h0_inv;
+    a[0] = modsub(0, h0_inv, modulo);
     let mut d = vec![n];
     while *d.last().unwrap() > 1 {
         d.push(d.last().unwrap().div_ceil(2));
