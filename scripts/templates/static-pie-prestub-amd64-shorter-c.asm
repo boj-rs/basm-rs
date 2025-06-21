@@ -32,8 +32,10 @@ __libc_start_main:
     pop     rax
     push    127                     ; len (does not need to be page-aligned)
     pop     rsi
-    push    rdi                     ; Save binary_raw_base91
-    lea     rdi, [rsp + 8]          ; addr
+    push    rdi                     ; Save binary_raw_base91 to rbx
+    pop     rbx
+    push    rsp                     ; addr
+    pop     rdi
     push    7                       ; protect (RWX)
     pop     rdx
     and     rdi, 0xfffffffffffff000 ; align to page boundary (4K)
@@ -41,23 +43,22 @@ __libc_start_main:
 
 ; Relocate to stack
     lea     rsi, [rel _start]
-    lea     rdi, [rsp + 8]
-    push    rdi                     ; _start of relocated stub
+    push    rsp
+    pop     rdi
     mov     ecx, _end - _start + 8  ; binary size in bytes
     rep     movsb
 
 ; Jump to stack
-    pop     rcx                     ; _start of relocated stub
-    call    rcx
+    call    rsp                     ; _start of relocated stub
 
 _start:
 
 ; Free the .text section
     pop     rdi                     ; Get RIP saved on stack by call instruction
-    and     rdi, 0xfffffffffffff000
-    push    127                     ; len (does not need to be page-aligned)
+    and     rdi, 0xfffffffffffff000 
+    mov     al, 11                  ; prev syscall already zeroed rax, assuming it succeeded
+    push    rax                     ; len (does not need to be page-aligned)
     pop     rsi
-    mov     al, 11                  ; prev call already zeroed upper 32bit of rax
     syscall
 
 ; svc_alloc_rwx for Linux
@@ -73,6 +74,7 @@ _svc_alloc_rwx:
     push    -1
     pop     r8                      ; fd
     syscall
+    push    rbx
     pop     rsi                     ; restore rsi
 
 ; Current state: rax = new buffer
