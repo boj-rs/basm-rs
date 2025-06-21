@@ -37,7 +37,7 @@ __libc_start_main:
     push    rsp                     ; addr
     pop     rdi
     push    7                       ; protect (RWX)
-    pop     rdx
+    pop     rdx                     ; (*) reused below for mmap
     and     rdi, 0xfffffffffffff000 ; align to page boundary (4K)
     syscall
 
@@ -64,11 +64,10 @@ _start:
 ; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
     mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
-    cdq                             ; rdx=0
     xor     r9d, r9d                ; offset
     xor     edi, edi                ; rdi=0
     mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
-    mov     dl, 7                   ; protect (safe since we have ensured rdx=0)
+    ;mov     dl, 7                  ; protect; we reuse RDX from above (*)
     push    0x22
     pop     r10                     ; flags
     push    -1
