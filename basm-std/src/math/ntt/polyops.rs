@@ -37,17 +37,15 @@ pub fn polyneginv_u64(h: &[u64], n: usize, modulo: u64) -> Option<Vec<u64>> {
         let e = min(h.len(), target_len);
         let t = min(l + e - 1, target_len);
         polymul_ex_u64(&mut h1a_c, &a[..l], &h[..e], l, t, modulo);
-        unsafe {
-            let a_prefix = &*core::ptr::slice_from_raw_parts(a.as_ptr(), l);
-            polymul_ex_u64(
-                &mut a[l..],
-                a_prefix,
-                &h1a_c[..t - l],
-                0,
-                target_len - l,
-                modulo,
-            );
-        }
+        let (a_prefix, a_suffix) = a.split_at_mut(l);
+        polymul_ex_u64(
+            a_suffix,
+            a_prefix,
+            &h1a_c[..t - l],
+            0,
+            target_len - l,
+            modulo,
+        );
         l = target_len;
     }
     Some(a)
