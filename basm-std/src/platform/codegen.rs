@@ -72,8 +72,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         "test   rcx, rcx",
         "jnz    3f",
         "2:",
-        "enter  72, 0",                     // approximately equivalent to "sub rsp, 80" with more zeros (possibly smaller code).
-                                            //   8 + 80 + 16 + 8 = 112 = 16*7 -> stack alignment preserved
+        "sub    rsp, 80",                   // 8 + 80 + 16 + 8 = 112 = 16*7 -> stack alignment preserved
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
         "push   rsp",                       // rcx = PLATFORM_DATA table (short form of "lea rcx, [rsp]")
