@@ -752,23 +752,22 @@ mod test {
 
     impl MockReader {
         fn new(data: &[u8]) -> Self {
-            Self {
-                buf: data.to_vec(),
-                off: 0,
-            }
+            let mut buf = data.to_vec();
+            buf.extend_from_slice(&[0u8; 8]); // ensure padding for unsafe I/O acceleration
+            Self { buf, off: 0 }
         }
     }
 
     impl ReaderBufferTrait for MockReader {
         fn try_refill_internal(&mut self, _readahead: usize) -> usize {
-            self.buf.len() - self.off
+            self.buf.len() - 8 - self.off
         }
         fn remain_internal(&self) -> &[u8] {
-            &self.buf[self.off..]
+            &self.buf[self.off..self.buf.len() - 8]
         }
         fn advance(&mut self, bytes: usize) {
             self.off += bytes;
-            assert!(self.off <= self.buf.len());
+            assert!(self.off <= self.buf.len() - 8);
         }
     }
 
