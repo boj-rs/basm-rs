@@ -67,23 +67,25 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
     //   RSP will be 16-byte aligned AFTER `call` instruction.
     naked_asm!(
         "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
-        "mov    rbx, rcx",                  // Save PLATFORM_DATA table
+        "push   rcx",                       // Save PLATFORM_DATA table (short form of "mov rbx, rcx")
+        "pop    rbx",
         "jnc    2f",
         "test   rbx, rbx",
-        "jz     2f",
-        "jmp    3f",
+        "jnz    3f",
         "2:",
         "sub    rsp, 72",                   // 16 + 72 + 8 = 96 = 16*6 -> stack alignment preserved
         "push   3",                         // env_flags = 3 (ENV_FLAGS_LINUX_STYLE_CHKSTK | ENV_FLAGS_NATIVE)
         "push   2",                         // env_id = 2 (ENV_ID_LINUX)
-        "lea    rbx, [rsp]",                // rbx = PLATFORM_DATA table
+        "push   rsp",                       // rbx = PLATFORM_DATA table (short form of "lea rbx, [rsp]")
+        "pop    rbx",
         "3:",
         "push   rcx",                       // short form of "sub rsp, 8"
         "lea    rdi, [rip + __ehdr_start]",
         "lea    rsi, [rip + _DYNAMIC]",
         "mov    QWORD PTR [rbx + 32], rdi", // overwrite ptr_alloc_rwx with in-memory ImageBase
         "call   {0}",
-        "mov    rdi, rbx",
+        "push   rbx",                       // short form of "mov rdi, rbx"
+        "pop    rdi",
         "call   {1}",
         "pop    rcx",                       // short form of "add rsp, 8"
         "ret",
