@@ -84,10 +84,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         "call   {0}",
         "pop    rdi",                       // rdi = PLATFORM_DATA table
         "mov    QWORD PTR [rdi + 32], rbx", // overwrite ptr_alloc_rwx with in-memory ImageBase
-        "push   rcx",                       // short form of "sub rsp, 8"
-        "call   {1}",
-        "pop    rcx",                       // short form of "add rsp, 8"
-        "ret",
+        "jmp    {1}",                       // _start_rust will inherit the initial call stack of this function
         sym loader::amd64_elf::relocate,
         sym _start_rust
     )
