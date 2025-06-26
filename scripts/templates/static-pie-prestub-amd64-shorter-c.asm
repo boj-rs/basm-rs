@@ -42,9 +42,9 @@ __libc_start_main:
     rep     movsb
 
     mov     esi, eax                ; len (does not need to be page-aligned)
+    mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
     push    7                       ; protect (RWX)
     pop     rdx                     ; (*) reused below for mmap
-    mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
     and     rdi, r15                ; align to page boundary (4K)
     syscall
 
@@ -56,9 +56,9 @@ _start:
 ; Free the .text section
     pop     rdi                     ; Get RIP saved on stack by call instruction
     mov     al, 11                  ; prev syscall already zeroed rax, assuming it succeeded
+    and     rdi, r15
     push    rax                     ; len (does not need to be page-aligned)
     pop     rsi
-    and     rdi, r15
     syscall
 
 ; svc_alloc_rwx for Linux
