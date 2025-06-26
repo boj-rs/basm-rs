@@ -30,22 +30,23 @@ __libc_start_main:
 ; mprotect: make stack executable
     push    10                      ; mprotect
     pop     rax
-    push    127                     ; len (does not need to be page-aligned)
-    pop     rsi
+    mov     esi, eax                ; len (does not need to be page-aligned)
+    mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
     push    rdi                     ; Save binary_raw_base91 to rbx
     pop     rbx
     push    rsp                     ; addr
     pop     rdi
     push    7                       ; protect (RWX)
     pop     rdx                     ; (*) reused below for mmap
-    and     rdi, 0xfffffffffffff000 ; align to page boundary (4K)
+    and     rdi, r15                ; align to page boundary (4K)
     syscall
 
 ; Relocate to stack
-    lea     rsi, [rel _start]
     push    rsp
     pop     rdi
-    mov     ecx, _end - _start + 8  ; binary size in bytes
+    push    _end - _start + 8        ; binary size in bytes
+    pop     rcx
+    lea     rsi, [rel _start]
     rep     movsb
 
 ; Jump to stack
@@ -58,7 +59,7 @@ _start:
     mov     al, 11                  ; prev syscall already zeroed rax, assuming it succeeded
     push    rax                     ; len (does not need to be page-aligned)
     pop     rsi
-    and     rdi, 0xfffffffffffff000
+    and     rdi, r15
     syscall
 
 ; svc_alloc_rwx for Linux
@@ -66,11 +67,11 @@ _svc_alloc_rwx:
     mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
     xor     r9d, r9d                ; offset
     xor     edi, edi                ; rdi=0
-    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     ;mov     dl, 7                  ; protect; we reuse RDX from above (*)
     push    0x22
     pop     r10                     ; flags
     push    -1
+    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     pop     r8                      ; fd
     syscall
     push    rbx
