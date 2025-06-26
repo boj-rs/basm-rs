@@ -108,7 +108,8 @@ _decode_zeros:
 
 ; Jump to entrypoint
 _jump_to_entrypoint:
-    xor     ecx, ecx                ; RCX=0 marks we do not supply PLATFORM_DATA even though we are running with loader
+    ;xor     ecx, ecx               ; RCX=0 marks we do not supply PLATFORM_DATA even though we are running with loader
+                                    ; Also, RCX=0 is ensured by the above `rep stosb`, which decrements `cl` to zero.
     sub     rdi, qword [rdi-8]
     jmp     rdi
 
