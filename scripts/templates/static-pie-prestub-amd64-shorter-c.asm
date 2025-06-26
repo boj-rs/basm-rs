@@ -41,7 +41,7 @@ __libc_start_main:
     pop     rcx
     rep     movsb
 
-    mov     esi, eax                ; len (does not need to be page-aligned)
+    mov     esi, eax                ; (**) len (does not need to be page-aligned)
     mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
     push    7                       ; protect (RWX)
     pop     rdx                     ; (*) reused below for mmap
@@ -57,19 +57,19 @@ _start:
     pop     rdi                     ; Get RIP saved on stack by call instruction
     mov     al, 11                  ; prev syscall already zeroed rax, assuming it succeeded
     and     rdi, r15
-    push    rax                     ; len (does not need to be page-aligned)
-    pop     rsi
+    ;push    rax                    ; len (does not need to be page-aligned); we reuse above (**)
+    ;pop     rsi
     syscall
 
 ; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
     mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
+    push    0x22
     xor     edi, edi                ; rdi=0
     ;mov     dl, 7                  ; protect; we reuse RDX from above (*)
-    push    0x22
+    pop     r10                     ; flags
     mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     xor     r9d, r9d                ; offset
-    pop     r10                     ; flags
     push    -1
     pop     r8                      ; fd
     syscall
