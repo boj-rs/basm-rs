@@ -30,24 +30,23 @@ __libc_start_main:
 ; mprotect: make stack executable
     push    10                      ; mprotect
     pop     rax
-    mov     esi, eax                ; len (does not need to be page-aligned)
-    mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
     push    rdi                     ; Save binary_raw_base91 to rbx
     pop     rbx
+    lea     rsi, [rel _start]
     push    rsp                     ; addr
     pop     rdi
-    push    7                       ; protect (RWX)
-    pop     rdx                     ; (*) reused below for mmap
-    and     rdi, r15                ; align to page boundary (4K)
-    syscall
 
 ; Relocate to stack
-    push    rsp
-    pop     rdi
     push    _end - _start + 8        ; binary size in bytes
     pop     rcx
-    lea     rsi, [rel _start]
     rep     movsb
+
+    mov     esi, eax                ; len (does not need to be page-aligned)
+    push    7                       ; protect (RWX)
+    pop     rdx                     ; (*) reused below for mmap
+    mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
+    and     rdi, r15                ; align to page boundary (4K)
+    syscall
 
 ; Jump to stack
     call    rsp                     ; _start of relocated stub
@@ -65,13 +64,13 @@ _start:
 ; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
     mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
-    xor     r9d, r9d                ; offset
     xor     edi, edi                ; rdi=0
     ;mov     dl, 7                  ; protect; we reuse RDX from above (*)
     push    0x22
+    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
+    xor     r9d, r9d                ; offset
     pop     r10                     ; flags
     push    -1
-    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     pop     r8                      ; fd
     syscall
     push    rbx

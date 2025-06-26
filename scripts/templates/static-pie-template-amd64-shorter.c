@@ -4,4 +4,4 @@
 $$$$solution_src$$$$
 // SOLUTION END
 char t[]=$$$$binary_raw_base91$$$$;
-asm(".text\n__libc_start_main:\n.globl __libc_start_main\n.quad -0x76a7f5957f1b7cb8,-0xfff3838b63a,0x4c5a076a5f545b57,0x646a5f54050fff21,0x4358d4859,0x500bb05fd4ffa4f3,0x9b0050fff214c5e,0x41226aff31c93145,0x3f358bff6a5a,0x485e53050f584100,0x31ac0de0c11fb097,-0x6e3701e989dcd337,-0x37fea43f94dbd354,0x7510c4f608e8c1aa,-0x550c00b0791f1409,-0x780d4b736ce238c,59391,$$$$code_raw_len$$$$\n.globl main\nmain=t");
+asm(".text\n__libc_start_main:\n.globl __libc_start_main\n.quad 0x57580a6a80e48348,0x1a358d485b,-0x765b0ca6a195a0ac,0xc7c7495a076ac6,0x50fff214cfffff0,0x4c5e500bb05fd4ff,-0xcef64ffaf000df,0x40358b226a,0x41ff6a5a41c93145,-0x4f68b7a1acfaf0a8,0x2cc931ac0de0c11f,0x2cac91c8fe167623,-0x3e5537fea43f94dc,-0x14088aef3b09f718,-0x238b550c00b07920,-0x18000780d4b736cf,$$$$code_raw_len$$$$\n.globl main\nmain=t");
