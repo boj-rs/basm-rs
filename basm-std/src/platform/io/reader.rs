@@ -735,42 +735,42 @@ impl ReaderBufferTrait for MmapReader {
     }
 }
 
-pub struct MockReader {
-    buf: alloc::vec::Vec<u8>,
-    off: usize,
-}
-
-impl Default for MockReader {
-    fn default() -> Self {
-        Self::new(&[])
-    }
-}
-
-impl MockReader {
-    fn new(data: &[u8]) -> Self {
-        Self {
-            buf: data.to_vec(),
-            off: 0,
-        }
-    }
-}
-
-impl ReaderBufferTrait for MockReader {
-    fn try_refill_internal(&mut self, _readahead: usize) -> usize {
-        self.buf.len() - self.off
-    }
-    fn remain_internal(&self) -> &[u8] {
-        &self.buf[self.off..]
-    }
-    fn advance(&mut self, bytes: usize) {
-        self.off += bytes;
-        assert!(self.off <= self.buf.len());
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+
+    pub struct MockReader {
+        buf: alloc::vec::Vec<u8>,
+        off: usize,
+    }
+
+    impl Default for MockReader {
+        fn default() -> Self {
+            Self::new(&[])
+        }
+    }
+
+    impl MockReader {
+        fn new(data: &[u8]) -> Self {
+            Self {
+                buf: data.to_vec(),
+                off: 0,
+            }
+        }
+    }
+
+    impl ReaderBufferTrait for MockReader {
+        fn try_refill_internal(&mut self, _readahead: usize) -> usize {
+            self.buf.len() - self.off
+        }
+        fn remain_internal(&self) -> &[u8] {
+            &self.buf[self.off..]
+        }
+        fn advance(&mut self, bytes: usize) {
+            self.off += bytes;
+            assert!(self.off <= self.buf.len());
+        }
+    }
 
     #[test]
     fn read_numbers() {
