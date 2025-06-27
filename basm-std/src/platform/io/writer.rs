@@ -288,12 +288,37 @@ impl<const N: usize> Writer<N> {
     /// let mut writer: Writer = Default::default();
     /// writer.i64(i64::MIN); // -9223372036854775808
     /// ```
+    #[cfg(any(not(feature = "short"), feature = "fastio"))]
     pub fn i64(&mut self, n: i64) {
         if n < 0 {
             self.byte(b'-');
             self.u64((n as u64).wrapping_neg());
         } else {
             self.u64(n as u64);
+        }
+    }
+    #[cfg(all(feature = "short", not(feature = "fastio")))]
+    pub fn i64(&mut self, n: i64) {
+        self.try_flush(22);
+        let mut n = if n < 0 {
+            self.byte_unchecked(b'-');
+            (n as u64).wrapping_neg()
+        } else {
+            n as u64
+        };
+        let mut buf = [MaybeUninit::<u8>::uninit(); 21];
+        let mut i = 0;
+        loop {
+            buf[i].write(b'0' + (n % 10) as u8);
+            n /= 10;
+            i += 1;
+            if n == 0 {
+                break;
+            }
+        }
+        for j in (0..i).rev() {
+            self.buf[self.off].write(unsafe { buf[j].assume_init() });
+            self.off += 1;
         }
     }
     /// Writes a single `u64` to standard output.
