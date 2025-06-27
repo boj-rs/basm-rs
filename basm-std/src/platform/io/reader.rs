@@ -575,7 +575,20 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
             if rem < readahead {
                 #[cfg(all(feature = "short", not(feature = "fastio")))]
                 {
-                    /* for short and not(fastio), we skip non-essential checks that enhance usability on console */
+                    /* 1) For short and not(fastio), we skip non-essential checks that enhance usability on console.
+                     * 2) We explicitly use `rep movsb` on x64 to ensure generation of short code.
+                     */
+                    #[cfg(target_arch = "x86_64")]
+                    core::arch::asm!(
+                        "rep movsb",
+                        in("rsi") self.buf.as_ptr().wrapping_add(self.off),
+                        in("rdi") self.buf.as_mut_ptr(),
+                        in("rcx") rem,
+                        lateout("rsi") _,
+                        lateout("rdi") _,
+                        lateout("rcx") _,
+                    );
+                    #[cfg(not(target_arch = "x86_64"))]
                     for i in 0..rem {
                         *self.buf[i].assume_init_mut() = self.buf[self.off + i].assume_init();
                     }
