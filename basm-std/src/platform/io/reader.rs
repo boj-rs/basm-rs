@@ -91,23 +91,16 @@ trait ReaderBufferTrait: Sized {
     #[cfg(all(feature = "short", not(feature = "fastio")))]
     fn noskip_u64(&mut self) -> u64 {
         let mut n = 0;
-        'outer: loop {
+        loop {
             let data = self.remain();
-            if data.is_empty() {
-                // no more data available
+            if data.is_empty() || data[0] <= b' ' {
+                // no more data available, or whitespace (delimiter) reached
                 break n;
+            } else {
+                n *= 10;
+                n += data[0] as u64 & 0x0F;
+                self.advance(1);
             }
-            for i in 0..data.len() {
-                let b = data[i];
-                if b > 32 {
-                    n *= 10;
-                    n += b as u64 & 0x0F;
-                } else {
-                    self.advance(i);
-                    break 'outer n;
-                }
-            }
-            self.advance(data.len());
         }
     }
     fn noskip_u128(&mut self) -> u128 {
@@ -436,11 +429,11 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
         self.skip_whitespace();
         self.try_refill(25);
         let sign = if unsafe { self.remain_internal().as_ptr().read_unaligned() } == b'-' {
+            self.advance(1);
             2
         } else {
             0
         };
-        self.advance(sign >> 1);
         self.noskip_u64()
             .wrapping_mul(1u64.wrapping_sub(sign as u64)) as i64
     }
