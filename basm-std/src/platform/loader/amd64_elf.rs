@@ -80,6 +80,7 @@ pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_sectio
         let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
         let mut ptr_table = [MaybeUninit::<u64>::uninit(); 10];
         ptr_table[DT_RELA as usize].write(0);
+        ptr_table[DT_RELASZ as usize].write(0);
         loop {
             // d_tag will typically reside within u32 range.
             // (ref: https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-42444/index.html)
@@ -97,12 +98,10 @@ pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_sectio
          * 2) When DT_RELA is present, the other entries DT_RELASZ and DT_RELAENT must exist.
          *    Source: https://docs.oracle.com/cd/E19683-01/817-3677/chapter6-42444/index.html
          *    ("This element requires the DT_RELASZ and DT_RELAENT elements also be present.")
+         * 3) If DT_RELA is not found, then DT_RELASZ will not be found either,
+         *      thus ptr_rela == relasz at the beginning of the loop; the loop will not run, as desired.
          */
-        let mut ptr_rela = ptr_table[DT_RELA as usize].assume_init();
-        if ptr_rela == 0 {
-            return;
-        }
-        ptr_rela += addr_image_base;
+        let mut ptr_rela = addr_image_base + ptr_table[DT_RELA as usize].assume_init();
         let relasz = ptr_rela + ptr_table[DT_RELASZ as usize].assume_init();
 
         while ptr_rela < relasz {
