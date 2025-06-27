@@ -81,7 +81,10 @@ pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_sectio
         let mut ptr_table = [MaybeUninit::<u64>::uninit(); 10];
         ptr_table[DT_RELA as usize].write(0);
         loop {
-            let d_tag = (*ptr_dyn).d_tag as usize;
+            // d_tag will typically reside within u32 range.
+            // (ref: https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-42444/index.html)
+            // Also, the packager ensures the possible values of d_tag will remain within u32 range.
+            let d_tag = (*ptr_dyn).d_tag as u32 as usize;
             if d_tag == 0 {
                 break;
             } else if d_tag < ptr_table.len() {
