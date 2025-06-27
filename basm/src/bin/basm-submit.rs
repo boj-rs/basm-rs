@@ -1,3 +1,4 @@
+#![feature(fn_align)]
 #![cfg_attr(not(test), no_builtins)]
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
