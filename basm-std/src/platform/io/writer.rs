@@ -351,23 +351,19 @@ impl<const N: usize> Writer<N> {
     #[cfg(all(feature = "short", not(feature = "fastio")))]
     pub fn u64(&mut self, mut n: u64) {
         self.try_flush(21);
-        let mut i = self.off;
+        let mut buf = [MaybeUninit::<u8>::uninit(); 21];
+        let mut i = 0;
         loop {
-            self.buf[i].write(b'0' + (n % 10) as u8);
+            buf[i].write(b'0' + (n % 10) as u8);
             n /= 10;
             i += 1;
             if n == 0 {
                 break;
             }
         }
-        let mut j = self.off;
-        self.off = i;
-        while j < i {
-            i -= 1;
-            unsafe {
-                self.buf.assume_init_mut().swap(j, i);
-            }
-            j += 1;
+        for j in (0..i).rev() {
+            self.buf[self.off].write(unsafe { buf[j].assume_init() });
+            self.off += 1;
         }
     }
     /// Writes a single `i128` to standard output.
