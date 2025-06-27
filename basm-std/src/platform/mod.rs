@@ -1,6 +1,6 @@
 #[cfg(not(test))]
 pub mod allocator;
-#[cfg(all(not(test), feature = "codegen"))]
+#[cfg(not(test))]
 pub mod codegen;
 pub mod io;
 #[cfg(not(test))]

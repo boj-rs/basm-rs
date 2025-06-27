@@ -27,7 +27,7 @@ required-features = ["submit"]
 libm = "0.2.15"
 ryu = "1.0"
 basm-macro = { path = "../basm-macro" }
-basm-std = { path = "../basm-std", features = ["codegen"] }
+basm-std = { path = "../basm-std" }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 compiler_builtins = { version = "0.1.149", features = ["mem"] }

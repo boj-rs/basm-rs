@@ -30,9 +30,6 @@ compiler_builtins = { version = "0.1.158", features = ["mem"] }
 compiler_builtins = { version = "0.1.158", features = ["mem"] }
 
 [features]
-# Enables codegen routines.
-# When this feature is enabled, the external implementations should provide an `extern "C" fn _basm_main()`.
-codegen = []
 # Favors short routines for code golf.
 short = []
 # Use this feature to enable fast I/O routines under short. When short is not on, fast I/O is always on regardless of this feature.
