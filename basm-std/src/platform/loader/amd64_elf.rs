@@ -76,6 +76,64 @@ struct Elf64Rela {
 
 pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_section: u64) {
     unsafe {
+        // We avoid using the match statement to reduce code size (since match generates a jump table)
+        let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
+        let mut ptr_table = [MaybeUninit::<u64>::uninit(); 10];
+        ptr_table[DT_RELA as usize].write(0);
+        loop {
+            let d_tag = (*ptr_dyn).d_tag as usize;
+            if d_tag == 0 {
+                break;
+            } else if d_tag < ptr_table.len() {
+                ptr_table[d_tag].write((*ptr_dyn).d_val_or_ptr);
+            }
+            ptr_dyn = ptr_dyn.add(1);
+        }
+
+        /* 1) Do not use .is_null() since the method itself requires relocations, at least in debug mode.
+         * 2) When DT_RELA is present, the other entries DT_RELASZ and DT_RELAENT must exist.
+         *    Source: https://docs.oracle.com/cd/E19683-01/817-3677/chapter6-42444/index.html
+         *    ("This element requires the DT_RELASZ and DT_RELAENT elements also be present.")
+         */
+        let mut ptr_rela = ptr_table[DT_RELA as usize].assume_init();
+        if ptr_rela == 0 {
+            return;
+        }
+        ptr_rela += addr_image_base;
+        let relasz = ptr_rela + ptr_table[DT_RELASZ as usize].assume_init();
+
+        while ptr_rela < relasz {
+            let pst_rela = ptr_rela as *mut Elf64Rela;
+            let ul_offset = (*pst_rela).r_offset;
+            let ul_info = (*pst_rela).r_info;
+            let l_addend = (*pst_rela).r_addend;
+            if ul_info as u32 == R_X86_64_RELATIVE {
+                let l_result: u64 = addr_image_base + l_addend;
+                let ptr_target = (addr_image_base + ul_offset) as *mut u64;
+                *ptr_target = l_result;
+            } else {
+                // for `short`, we (unsafely) assume that the only relocation types are R_X86_64_RELATIVE
+                #[cfg(feature = "short")]
+                {
+                    /* not implemented */
+                    core::hint::unreachable_unchecked()
+                }
+                #[cfg(not(feature = "short"))]
+                if ul_info as u32 == R_X86_64_NONE {
+                    /* do nothing */
+                } else {
+                    /* not implemented */
+                    panic!();
+                }
+            }
+            ptr_rela += ptr_table[DT_RELAENT as usize].assume_init();
+        }
+    }
+}
+
+/*
+pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_section: u64) {
+    unsafe {
         let mut ptr_dyn: *const Elf64Dyn = addr_dynamic_section as *const Elf64Dyn;
         let mut ptr_rela = 0;
         let mut relasz = MaybeUninit::<u64>::uninit();
@@ -137,3 +195,4 @@ pub unsafe extern "sysv64" fn relocate(addr_image_base: u64, addr_dynamic_sectio
         }
     }
 }
+*/
