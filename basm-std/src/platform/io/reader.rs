@@ -526,17 +526,15 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
     fn skip_whitespace(&mut self) -> usize {
         let mut total = 0;
         'outer: loop {
-            let data = self.remain();
-            unsafe {
-                let mut ptr = data.as_ptr();
-                let end = ptr.wrapping_add(data.len());
-                while ptr < end {
-                    if *ptr > b' ' {
-                        break 'outer total;
-                    }
-                    self.advance(1);
+            loop {
+                let data = self.remain();
+                if data.is_empty() {
+                    break;
+                } else if data[0] > b' ' {
+                    break 'outer total;
+                } else {
                     total += 1;
-                    ptr = ptr.wrapping_add(1);
+                    self.advance(1);
                 }
             }
             if self.try_refill(1) == 0 {
