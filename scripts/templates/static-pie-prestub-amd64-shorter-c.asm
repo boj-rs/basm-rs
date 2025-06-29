@@ -41,37 +41,35 @@ __libc_start_main:
     pop     rcx
     rep     movsb
 
-    mov     esi, eax                ; (**) len (does not need to be page-aligned)
-    mov     r15, 0xfffffffffffff000 ; AND mask for aligning to 4K page boundary
     push    7                       ; protect (RWX)
     pop     rdx                     ; (*) reused below for mmap
-    and     rdi, r15                ; align to page boundary (4K)
-    syscall
-
-; Jump to stack
-    call    rsp                     ; _start of relocated stub
+    jmp     _syscall_4k
 
 _start:
-
 ; Free the .text section
     pop     rdi                     ; Get RIP saved on stack by call instruction
     mov     al, 11                  ; prev syscall already zeroed rax, assuming it succeeded
-    and     rdi, r15
-    ;push    rax                    ; len (does not need to be page-aligned); we reuse above (**)
-    ;pop     rsi
+_syscall_4k:
+    mov     esi, eax                ; len (does not need to be page-aligned)
+    and     rdi, 0xfffffffffffff000 ; align to page boundary (4K)
     syscall
+    shr     esi, 1                  ; prevent infinite loop
+    jc      _svc_alloc_rwx          ; taken if esi has lowest bit set; jump not taken when esi=10, taken when esi=11
+
+; Jump to stack
+    call    rsp                     ; _start of relocated stub
 
 ; svc_alloc_rwx for Linux
 _svc_alloc_rwx:
     mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
     push    0x22
-    xor     edi, edi                ; rdi=0
     ;mov     dl, 7                  ; protect; we reuse RDX from above (*)
+    xor     edi, edi                ; rdi=0
     pop     r10                     ; flags
-    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
-    xor     r9d, r9d                ; offset
     push    -1
+    mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     pop     r8                      ; fd
+    xor     r9d, r9d                ; offset
     syscall
     push    rbx
     pop     rsi                     ; restore rsi
