@@ -64,8 +64,8 @@ _svc_alloc_rwx:
     mov     al, 9                   ; syscall id of x64 mmap / prev call already zeroed upper 32bit of rax
     push    0x22
     ;mov     dl, 7                  ; protect; we reuse RDX from above (*)
-    xor     edi, edi                ; rdi=0
     pop     r10                     ; flags
+    xor     edi, edi                ; rdi=0
     push    -1
     mov     esi, dword [rel _end]   ; size in bytes (we assume the code size will be <4GiB)
     pop     r8                      ; fd
