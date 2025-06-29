@@ -85,7 +85,7 @@ pub fn factorize(mut n: u64) -> Vec<u64> {
 
     let mut v = Vec::new();
     for p in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37] {
-        while n % p == 0 {
+        while n.is_multiple_of(p) {
             v.push(p);
             n /= p;
         }
@@ -108,7 +108,7 @@ pub fn factorize(mut n: u64) -> Vec<u64> {
             let a = pollard_rho(t);
             debug_assert!(a > 1);
             debug_assert!(a < t);
-            debug_assert!(t % a == 0);
+            debug_assert!(t.is_multiple_of(a));
             q.push((a, num));
             q.push((t / a, num));
         }

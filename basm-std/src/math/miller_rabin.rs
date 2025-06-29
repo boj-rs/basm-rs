@@ -124,7 +124,7 @@ mod details {
     }
 
     pub fn miller_rabin(k: u64) -> bool {
-        if k % 2 == 0 {
+        if k.is_multiple_of(2) {
             return k == 2;
         }
         let mut s = 0;
@@ -155,12 +155,12 @@ pub fn is_prime_u64(x: u64) -> bool {
         if x < 2 {
             return false;
         }
-        if x % 2 == 0 {
+        if x.is_multiple_of(2) {
             return x == 2;
         }
         let mut q = 3;
         while q * q <= x {
-            if x % q == 0 {
+            if x.is_multiple_of(q) {
                 return false;
             }
             q += 2;

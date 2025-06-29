@@ -110,7 +110,7 @@ impl LinearSieve {
         while x > 1 {
             let lp = self.smallest_prime_factor(x);
             let mut lp_cnt = 0;
-            while x % lp == 0 {
+            while x.is_multiple_of(lp) {
                 x /= lp;
                 lp_cnt += 1;
             }
@@ -127,7 +127,7 @@ impl LinearSieve {
         while x > 1 {
             let lp = self.smallest_prime_factor(x);
             let mut lp_mul = 1;
-            while x % lp == 0 {
+            while x.is_multiple_of(lp) {
                 x /= lp;
                 lp_mul = lp_mul * lp + 1;
             }
@@ -144,7 +144,7 @@ impl LinearSieve {
         } else {
             let lp = self.smallest_prime_factor(x);
             let mut lp_cnt = 0;
-            while x % lp == 0 {
+            while x.is_multiple_of(lp) {
                 x /= lp;
                 lp_cnt += 1;
             }

@@ -172,7 +172,7 @@ fn mac3_u64(acc: &mut [u64], b: &[u64], c: &[u64]) {
     let (b, c) = if b.len() < c.len() { (b, c) } else { (c, b) };
     let naive_cost = NttPlan::build::<P1>(b.len() + c.len()).cost;
     let split_cost = NttPlan::build::<P1>(b.len() + b.len()).cost * (c.len() / b.len())
-        + if c.len() % b.len() > 0 {
+        + if !c.len().is_multiple_of(b.len()) {
             NttPlan::build::<P1>(b.len() + (c.len() % b.len())).cost
         } else {
             0

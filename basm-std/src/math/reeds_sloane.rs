@@ -33,7 +33,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
                     hi = mid - 1;
                 }
             } else {
-                if x % ppow[mid] == 0 {
+                if x.is_multiple_of(ppow[mid]) {
                     lo = mid;
                 } else {
                     hi = mid - 1;

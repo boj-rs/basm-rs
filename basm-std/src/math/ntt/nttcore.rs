@@ -50,7 +50,7 @@ impl<const P: u64> Arith<P> {
         2u64.pow(Self::factors(2)) * 3u64.pow(Self::factors(3)) * 5u64.pow(Self::factors(5));
     pub const ROOTR: u64 = {
         // ROOT * R mod P (ROOT: MAX_NTT_LEN divides MultiplicativeOrder[ROOT, P])
-        assert!(Self::MAX_NTT_LEN % 4050 == 0);
+        assert!(Self::MAX_NTT_LEN.is_multiple_of(4050));
         let mut p = Self::R;
         loop {
             if Self::mpowmod(p, P / 2) != Self::R
@@ -65,7 +65,7 @@ impl<const P: u64> Arith<P> {
     // Counts the number of `divisor` factors in P-1.
     pub const fn factors(divisor: u64) -> u32 {
         let (mut tmp, mut ans) = (P - 1, 0);
-        while tmp % divisor == 0 {
+        while tmp.is_multiple_of(divisor) {
             tmp /= divisor;
             ans += 1;
         }
@@ -107,7 +107,7 @@ impl<const P: u64> Arith<P> {
     pub const fn mpowmod(mut base: u64, mut exponent: u64) -> u64 {
         let mut cur = Self::R;
         while exponent > 0 {
-            if exponent % 2 > 0 {
+            if !exponent.is_multiple_of(2) {
                 cur = Self::mmulmod(cur, base);
             }
             exponent /= 2;
@@ -189,9 +189,9 @@ impl NttPlan {
                     if len >= min_len && len < len_max_cost {
                         let (mut tmp, mut cost) = (len, 0);
                         let mut g_new = 1;
-                        if len % 7 == 0 {
+                        if len.is_multiple_of(7) {
                             (g_new, tmp, cost) = (7, tmp / 7, cost + len * 115 / 100);
-                        } else if len % 5 == 0 {
+                        } else if len.is_multiple_of(5) {
                             (g_new, tmp, cost) = (5, tmp / 5, cost + len * 89 / 100);
                         } else if m3 >= m2 + 2 {
                             (g_new, tmp, cost) = (9, tmp / 9, cost + len * 180 / 100);
@@ -203,24 +203,24 @@ impl NttPlan {
                             (g_new, tmp, cost) = (3, tmp / 3, cost + len * 86 / 100);
                         } else if m3 == 0 && m2 >= 1 {
                             (g_new, tmp, cost) = (2, tmp / 2, cost + len * 86 / 100);
-                        } else if len % 6 == 0 {
+                        } else if len.is_multiple_of(6) {
                             (g_new, tmp, cost) = (6, tmp / 6, cost + len * 91 / 100);
                         }
                         let (mut b6, mut b2) = (false, false);
-                        while tmp % 6 == 0 {
+                        while tmp.is_multiple_of(6) {
                             (tmp, cost) = (tmp / 6, cost + len * 106 / 100);
                             b6 = true;
                         }
-                        while tmp % 5 == 0 {
+                        while tmp.is_multiple_of(5) {
                             (tmp, cost) = (tmp / 5, cost + len * 131 / 100);
                         }
-                        while tmp % 4 == 0 {
+                        while tmp.is_multiple_of(4) {
                             (tmp, cost) = (tmp / 4, cost + len);
                         }
-                        while tmp % 3 == 0 {
+                        while tmp.is_multiple_of(3) {
                             (tmp, cost) = (tmp / 3, cost + len);
                         }
-                        while tmp % 2 == 0 {
+                        while tmp.is_multiple_of(2) {
                             (tmp, cost) = (tmp / 2, cost + len);
                             b2 = true;
                         }
@@ -236,23 +236,23 @@ impl NttPlan {
         }
         let (mut cnt6, mut cnt5, mut cnt4, mut cnt3, mut cnt2) = (0, 0, 0, 0, 0);
         let mut tmp = len_max / g;
-        while tmp % 6 == 0 {
+        while tmp.is_multiple_of(6) {
             tmp /= 6;
             cnt6 += 1;
         }
-        while tmp % 5 == 0 {
+        while tmp.is_multiple_of(5) {
             tmp /= 5;
             cnt5 += 1;
         }
-        while tmp % 4 == 0 {
+        while tmp.is_multiple_of(4) {
             tmp /= 4;
             cnt4 += 1;
         }
-        while tmp % 3 == 0 {
+        while tmp.is_multiple_of(3) {
             tmp /= 3;
             cnt3 += 1;
         }
-        while tmp % 2 == 0 {
+        while tmp.is_multiple_of(2) {
             tmp /= 2;
             cnt2 += 1;
         }
