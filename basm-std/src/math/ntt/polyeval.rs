@@ -46,22 +46,20 @@ pub fn polyeval_u64(poly: &[u64], query_points: &[u64], modulo: u64) -> Vec<u64>
         pos += 2;
     }
     for i in (1..n).rev() {
-        unsafe {
-            tree1_pos[i] = pos;
-            let tree1_ref = &*core::ptr::slice_from_raw_parts(tree1.as_ptr(), pos);
-            let (ls, le) = (tree1_pos[i << 1], tree1_pos[(i << 1) - 1]);
-            let (rs, re) = (tree1_pos[(i << 1) | 1], tree1_pos[i << 1]);
-            let l = (le - ls) + (re - rs) - 1;
-            polymul_ex_u64(
-                &mut tree1[pos..],
-                &tree1_ref[ls..le],
-                &tree1_ref[rs..re],
-                0,
-                l,
-                modulo,
-            );
-            pos += l;
-        }
+        tree1_pos[i] = pos;
+        let (tree1_ref, tree1_out) = tree1.split_at_mut(pos);
+        let (ls, le) = (tree1_pos[i << 1], tree1_pos[(i << 1) - 1]);
+        let (rs, re) = (tree1_pos[(i << 1) | 1], tree1_pos[i << 1]);
+        let l = (le - ls) + (re - rs) - 1;
+        polymul_ex_u64(
+            tree1_out,
+            &tree1_ref[ls..le],
+            &tree1_ref[rs..re],
+            0,
+            l,
+            modulo,
+        );
+        pos += l;
     }
     tree1_pos[0] = pos;
 
