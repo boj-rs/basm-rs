@@ -94,17 +94,33 @@ pub fn main() {
 
 - 이미 구현된 자료구조와 알고리즘을 쉽게 가져다 쓸 수 있습니다.
 
-  - Jagged Array (인접 리스트에 사용할 수 있습니다)
+  - 자료구조
+
+    - Jagged Array (인접 리스트에 사용할 수 있습니다)
   
-  - Union-Find (by rank / rem algorithm)
+    - Union-Find (by rank / rem algorithm)
 
-  - DFS (매크로)
+    - Fenwick Tree
 
-  - KMP (Iterator)
+    - Segment Tree
 
-  - Fenwick Tree
+  - 알고리즘
 
-  - Segment Tree
+    - DFS (매크로)
+
+    - KMP (Iterator)
+
+    - 최대공약수 계산(유클리드 알고리즘), 모듈로 사칙연산, 거듭제곱, 역원(확장 유클리드 알고리즘)
+
+    - 소수 판정(Miller-Rabin 알고리즘) 및 소인수분해(Pollard Rho 알고리즘)
+
+    - 선형 체
+
+    - `O(N lg N)` 다항식 곱셈, 나눗셈(몫과 나머지), 역원, `O(N lg^2 N)` Multipoint Evaluation
+
+    - 선형점화식: 계수 추정(Berlekamp-Massey의 임의 모듈로 버전인 Reeds-Sloane), 로그 시간 일반항 계산(Kitamasa 알고리즘)
+
+    - Push-relabel Maximum Flow
 
 ## 사용법
 
