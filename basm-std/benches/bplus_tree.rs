@@ -13,7 +13,9 @@ fn test_bplus_tree(query_1: usize, query_2: usize, n: usize, q: usize) {
     use rand::Rng;
     let mut rng = rand::rngs::SmallRng::seed_from_u64(123);
 
+    #[derive(Clone)]
     struct V([u32; 10], u32); // (values, power_of_10)
+    #[derive(Clone)]
     struct U([u8; 10]); // lazy; .0[from] = to
     struct F;
     impl LazyOp<V, U> for F {

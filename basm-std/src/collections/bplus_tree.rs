@@ -15,7 +15,11 @@ use core::ops::RangeBounds;
 const T: usize = 4;
 const MAX_STACK_DEPTH: usize = 32;
 
-pub trait LazyOp<V, U> {
+pub trait LazyOp<V, U>
+where
+    V: Clone,
+    U: Clone,
+{
     fn binary_op(t1: &V, t2: &V) -> V;
     fn apply(u: &U, t: &V) -> V;
     fn compose(u1: &U, u2: &U) -> U;
@@ -24,20 +28,20 @@ pub trait LazyOp<V, U> {
         t.map(|v| Self::apply(u, v))
     }
     fn clone_value(v: &V) -> V {
-        Self::apply(&Self::id_op(), v)
+        v.clone()
     }
     fn clone_op(u: &U) -> U {
-        Self::compose(&Self::id_op(), u)
+        u.clone()
     }
     fn binary_op_option(t1: Option<&V>, t2: Option<&V>) -> Option<V> {
         if let Some(x) = t1 {
             if let Some(y) = t2 {
                 Some(Self::binary_op(x, y))
             } else {
-                t1.map(|y| Self::apply(&Self::id_op(), y))
+                t1.cloned()
             }
         } else {
-            t2.map(|y| Self::apply(&Self::id_op(), y))
+            t2.cloned()
         }
     }
 }
@@ -45,6 +49,8 @@ pub trait LazyOp<V, U> {
 pub struct BPTreeMap<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     root: ChildPtr<K, V, U, F>,
@@ -61,6 +67,8 @@ where
 struct InternalNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     count: usize,
@@ -79,6 +87,8 @@ where
 struct LeafNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     count: usize,
@@ -92,6 +102,8 @@ type ManuallyDropOptionBox<T> = ManuallyDrop<Option<Box<T>>>;
 union ChildPtr<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     internal_node: ManuallyDropOptionBox<InternalNode<K, V, U, F>>,
@@ -110,6 +122,8 @@ where
 pub struct PeekMutRange<'a, K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     tree: &'a mut BPTreeMap<K, V, U, F>,
@@ -126,6 +140,8 @@ where
 impl<K, V, U, F> PeekMutRange<'_, K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     pub fn value(&self) -> &V {
@@ -144,6 +160,8 @@ where
 impl<K, V, U, F> Drop for PeekMutRange<'_, K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
@@ -228,6 +246,8 @@ where
 impl<K, V, U, F: LazyOp<V, U>> Default for BPTreeMap<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -237,6 +257,8 @@ where
 impl<K, V, U, F> Default for ChildPtr<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn default() -> Self {
@@ -249,6 +271,8 @@ where
 impl<K, V, U, F> Default for InternalNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn default() -> Self {
@@ -267,6 +291,8 @@ where
 impl<K, V, U, F> Default for LeafNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn default() -> Self {
@@ -283,6 +309,8 @@ where
 impl<K, V, U, F> Drop for LeafNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
@@ -298,6 +326,8 @@ where
 impl<K, V, U, F> ChildPtr<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     unsafe fn drop_by_depth(&mut self, depth: usize) {
@@ -367,6 +397,8 @@ where
 impl<K, V, U, F> InternalNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn split_if_full(&mut self, level: usize) -> Option<ChildPtr<K, V, U, F>> {
@@ -499,6 +531,8 @@ where
 impl<K, V, U, F> LeafNode<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn split_if_full(&mut self) -> Option<ChildPtr<K, V, U, F>> {
@@ -599,6 +633,8 @@ where
 impl<K, V, U, F> Drop for BPTreeMap<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
@@ -609,6 +645,8 @@ where
 impl<K, V, U, F> BPTreeMap<K, V, U, F>
 where
     K: Ord + Clone,
+    V: Clone,
+    U: Clone,
     F: LazyOp<V, U>,
 {
     pub fn new() -> Self {
