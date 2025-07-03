@@ -53,7 +53,11 @@ fn test_bplus_tree(query_1: usize, query_2: usize, n: usize, q: usize) {
         tree.insert(i, V(p, 10));
     }
     for _ in 0..q {
-        let kind = if rng.random_range(0..query_1+query_2) < query_1 { 1 } else { 2 };
+        let kind = if rng.random_range(0..query_1 + query_2) < query_1 {
+            1
+        } else {
+            2
+        };
         match kind {
             1 => {
                 let (l, r) = {

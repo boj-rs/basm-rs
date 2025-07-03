@@ -376,11 +376,12 @@ where
     }
     fn least_key(&self, level: usize) -> K {
         unsafe {
-            if level > 0 {
-                self.as_internal_node_ref().keys[0].assume_init_ref().clone()
+            let key_ref = if level > 0 {
+                &self.as_internal_node_ref().keys[0]
             } else {
-                self.as_leaf_node_ref().keys[0].assume_init_ref().clone()
-            }
+                &self.as_leaf_node_ref().keys[0]
+            };
+            key_ref.assume_init_ref().clone()
         }
     }
     fn aggregate(&self, level: usize) -> V {
@@ -452,8 +453,7 @@ where
             for i in 0..self.count {
                 self.lazies[i] =
                     MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
-                self.values[i] =
-                    MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
+                self.values[i] = MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
             }
         }
     }
@@ -495,8 +495,12 @@ where
         let mut start = 0;
         while start < self.count
             && match range.start_bound() {
-                Included(k) => k.cmp(unsafe { self.keys[start].assume_init_ref() }) == Ordering::Greater,
-                Excluded(k) => k.cmp(unsafe { self.keys[start].assume_init_ref() }) != Ordering::Less,
+                Included(k) => {
+                    k.cmp(unsafe { self.keys[start].assume_init_ref() }) == Ordering::Greater
+                }
+                Excluded(k) => {
+                    k.cmp(unsafe { self.keys[start].assume_init_ref() }) != Ordering::Less
+                }
                 Unbounded => false,
             }
         {
@@ -506,7 +510,9 @@ where
         while end < self.count
             && match range.end_bound() {
                 Included(k) => k.cmp(unsafe { self.keys[end].assume_init_ref() }) != Ordering::Less,
-                Excluded(k) => k.cmp(unsafe { self.keys[end].assume_init_ref() }) == Ordering::Greater,
+                Excluded(k) => {
+                    k.cmp(unsafe { self.keys[end].assume_init_ref() }) == Ordering::Greater
+                }
                 Unbounded => true,
             }
         {
