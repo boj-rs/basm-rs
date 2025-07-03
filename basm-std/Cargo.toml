@@ -13,6 +13,14 @@ path = "src/lib.rs"
 [dependencies]
 libm = "0.2.15"
 ryu = "1.0"
+rand = { version = "0.9.1", default-features = false, features = ["alloc", "small_rng"] }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "bplus_tree"
+harness = false
 
 [target.x86_64-pc-windows-msvc.dependencies]
 compiler_builtins = { version = "0.1.158", features = ["mem"] }

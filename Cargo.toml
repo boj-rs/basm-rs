@@ -12,7 +12,7 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
-opt-level = "z"
+opt-level = 3
 lto = true
 overflow-checks = false
 codegen-units = 1

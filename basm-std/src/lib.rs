@@ -1,5 +1,6 @@
 #![feature(maybe_uninit_slice)]
 #![feature(maybe_uninit_array_assume_init)]
+#![feature(test)]
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(rustfmt, rustfmt_skip)] // temporary fix to keep compiler_builtins at the top to avoid linker errors
 
@@ -8,6 +9,8 @@
 #[cfg(not(target_vendor = "nintendo"))]
 extern crate compiler_builtins;
 extern crate alloc;
+#[cfg(test)]
+extern crate test;
 
 pub mod collections;
 pub mod graph;
