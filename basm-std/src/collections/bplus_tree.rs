@@ -24,14 +24,29 @@ where
     fn apply(u: &U, t: &V) -> V;
     fn compose(u1: &U, u2: &U) -> U;
     fn id_op() -> U;
-    fn apply_option(u: &U, t: Option<&V>) -> Option<V> {
-        t.map(|v| Self::apply(u, v))
+    fn apply_option(u: &Option<U>, t: &Option<V>) -> Option<V> {
+        if let Some(u_op) = u {
+            t.as_ref().map(|v| Self::apply(u_op, v))
+        } else {
+            t.clone()
+        }
     }
     fn clone_value(v: &V) -> V {
         v.clone()
     }
     fn clone_op(u: &U) -> U {
         u.clone()
+    }
+    fn compose_option(u1: &Option<U>, u2: &Option<U>) -> Option<U> {
+        if let Some(x) = u1 {
+            if let Some(y) = u2 {
+                Some(Self::compose(x, y))
+            } else {
+                u1.clone()
+            }
+        } else {
+            u2.clone()
+        }
     }
     fn binary_op_option(t1: Option<&V>, t2: Option<&V>) -> Option<V> {
         if let Some(x) = t1 {
@@ -60,7 +75,7 @@ where
     // When 2, root points to an InternalNode whose children consist of LeafNodes.
     depth: usize,
     value: Option<V>,
-    lazy: U,
+    lazy: Option<U>,
     _f: PhantomData<F>,
 }
 
@@ -468,18 +483,21 @@ where
         self.lazy_mask =
             (self.lazy_mask & ((1 << i) - 1)) | ((self.lazy_mask & !((1 << i) - 1)) << 1);
     }
-    fn push(&mut self, u: &U) {
-        unsafe {
-            for i in 0..self.count {
-                if self.lazy_mask & (1 << i) != 0 {
-                    self.lazies[i] =
-                        MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
-                } else {
-                    self.lazies[i] = MaybeUninit::new(u.clone());
+    fn push(&mut self, u: &Option<U>) {
+        if let Some(u) = u {
+            unsafe {
+                for i in 0..self.count {
+                    if self.lazy_mask & (1 << i) != 0 {
+                        self.lazies[i] =
+                            MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
+                    } else {
+                        self.lazies[i] = MaybeUninit::new(u.clone());
+                    }
+                    self.values[i] =
+                        MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
                 }
-                self.values[i] = MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
+                self.lazy_mask = (1 << self.count) - 1; // every node gets a lazy
             }
-            self.lazy_mask = (1 << self.count) - 1; // every node gets a lazy
         }
     }
     /// Pulls key and value from `self.children[i]`.
@@ -561,6 +579,23 @@ where
         }
         (start, end.saturating_sub(1), out)
     }
+    /// Reads a lazy op at position `i` if it exists.
+    fn read_lazy(&self, i: usize) -> Option<U> {
+        if self.lazy_mask & (1 << i) != 0 {
+            Some(unsafe { self.lazies[i].assume_init_ref().clone() })
+        } else {
+            None
+        }
+    }
+    /// Pops a lazy op at position `i` if it exists.
+    fn pop_lazy(&mut self, i: usize) -> Option<U> {
+        if self.lazy_mask & (1 << i) != 0 {
+            self.lazy_mask &= !(1 << i);
+            Some(unsafe { self.lazies[i].assume_init_read() })
+        } else {
+            None
+        }
+    }
 }
 
 impl<K, V, U, F> LeafNode<K, V, U, F>
@@ -623,10 +658,12 @@ where
         self.count += 1;
         None
     }
-    fn push(&mut self, u: &U) {
-        for i in 0..self.count {
-            self.values[i] =
-                MaybeUninit::new(F::apply(u, unsafe { self.values[i].assume_init_ref() }));
+    fn push(&mut self, u: &Option<U>) {
+        if let Some(u) = u {
+            for i in 0..self.count {
+                self.values[i] =
+                    MaybeUninit::new(F::apply(u, unsafe { self.values[i].assume_init_ref() }));
+            }
         }
     }
     fn aggregate(&self) -> V {
@@ -689,7 +726,7 @@ where
             root: Default::default(),
             depth: 0,
             value: None,
-            lazy: F::id_op(),
+            lazy: None,
             _f: Default::default(),
         }
     }
@@ -701,7 +738,7 @@ where
             self.depth = 0;
             self.root = Default::default();
             self.value = None;
-            self.lazy = F::id_op();
+            self.lazy = None;
         }
     }
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -727,17 +764,15 @@ where
                 //   3) cur_ptr is not full
                 let mut cur_ptr = &mut self.root;
                 let mut cur_level = self.depth - 1;
-                let mut u = Some(self.lazy.clone());
-                self.lazy = F::id_op();
+                let mut u = None;
+                core::mem::swap(&mut u, &mut self.lazy);
                 while cur_level > 0 {
                     let y = cur_ptr.internal_node.as_mut().unwrap().as_mut()
                         as *mut InternalNode<K, V, U, F>;
 
                     // Push-down the lazy op
                     let x = cur_ptr.as_internal_node_mut();
-                    if let Some(u_op) = u {
-                        x.push(&u_op);
-                    }
+                    x.push(&u);
 
                     // Find which child to traverse
                     let mut i = 0;
@@ -775,9 +810,7 @@ where
                 }
 
                 // Apply lazy op to the leaf node
-                if let Some(u_op) = u {
-                    cur_ptr.as_leaf_node_mut().push(&u_op);
-                }
+                cur_ptr.as_leaf_node_mut().push(&u);
 
                 // Phase 2:
                 //   Find the duplicate key if it exists,
@@ -877,68 +910,44 @@ where
             let mut out = None;
             let mut l = &self.root;
             let mut r = &ChildPtr::<K, V, U, F>::default();
-            let mut u_l = F::clone_op(&self.lazy);
-            let mut u_r = F::id_op();
+            let mut u_l = self.lazy.clone();
+            let mut u_r = None;
             for _ in 0..self.depth - 1 {
                 if unsafe { r.internal_node.is_some() } {
-                    let (s, _, mut partial_sum) =
-                        unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
-                    partial_sum = F::apply_option(&u_l, partial_sum.as_ref());
+                    let ll = unsafe { l.as_internal_node_ref() };
+                    let (s, _, mut partial_sum) = ll.aggregate_range(&range, false, true);
+                    partial_sum = F::apply_option(&u_l, &partial_sum);
                     out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
-                    if unsafe { l.as_internal_node_ref().lazy_mask } & (1 << s) != 0 {
-                        u_l = F::compose(&u_l, unsafe {
-                            l.as_internal_node_ref().lazies[s].assume_init_ref()
-                        });
-                    }
-                    l = unsafe { &l.as_internal_node_ref().children[s] };
-                    let (_, e, mut partial_sum) =
-                        unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
-                    partial_sum = F::apply_option(&u_r, partial_sum.as_ref());
+                    u_l = F::compose_option(&u_l, &ll.read_lazy(s));
+                    l = &ll.children[s];
+                    let rr = unsafe { r.as_internal_node_ref() };
+                    let (_, e, mut partial_sum) = rr.aggregate_range(&range, true, false);
+                    partial_sum = F::apply_option(&u_r, &partial_sum);
                     out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
-                    if unsafe { r.as_internal_node_ref().lazy_mask } & (1 << e) != 0 {
-                        u_r = F::compose(&u_r, unsafe {
-                            r.as_internal_node_ref().lazies[e].assume_init_ref()
-                        });
-                    }
-                    r = unsafe { &r.as_internal_node_ref().children[e] };
+                    u_r = F::compose_option(&u_r, &rr.read_lazy(e));
+                    r = &rr.children[e];
                 } else {
-                    let (s, e, mut partial_sum) =
-                        unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
-                    partial_sum = F::apply_option(&u_l, partial_sum.as_ref());
+                    let ll = unsafe { l.as_internal_node_ref() };
+                    let (s, e, mut partial_sum) = ll.aggregate_range(&range, false, false);
+                    partial_sum = F::apply_option(&u_l, &partial_sum);
                     if e > s {
-                        if unsafe { l.as_internal_node_ref().lazy_mask } & (1 << e) != 0 {
-                            u_r = F::compose(&u_l, unsafe {
-                                l.as_internal_node_ref().lazies[e].assume_init_ref()
-                            });
-                        } else {
-                            u_r = u_l.clone();
-                        }
-                        r = unsafe { &l.as_internal_node_ref().children[e] };
+                        u_r = F::compose_option(&u_l, &ll.read_lazy(e));
+                        r = &ll.children[e];
                     }
-                    if unsafe { l.as_internal_node_ref().lazy_mask } & (1 << s) != 0 {
-                        u_l = F::compose(&u_l, unsafe {
-                            l.as_internal_node_ref().lazies[s].assume_init_ref()
-                        });
-                    }
-                    l = unsafe { &l.as_internal_node_ref().children[s] };
+                    u_l = F::compose_option(&u_l, &ll.read_lazy(s));
+                    l = &ll.children[s];
                     out = partial_sum;
                 }
             }
             let partial_sum = F::apply_option(
                 &u_l,
-                unsafe { l.as_leaf_node_ref() }
-                    .aggregate_range(&range)
-                    .2
-                    .as_ref(),
+                &unsafe { l.as_leaf_node_ref() }.aggregate_range(&range).2,
             );
             out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
             if unsafe { r.leaf_node.is_some() } {
                 let partial_sum = F::apply_option(
                     &u_r,
-                    unsafe { r.as_leaf_node_ref() }
-                        .aggregate_range(&range)
-                        .2
-                        .as_ref(),
+                    &unsafe { r.as_leaf_node_ref() }.aggregate_range(&range).2,
                 );
                 out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
             }
@@ -957,24 +966,22 @@ where
             let mut out = None;
             let mut l = &mut self.root;
             let mut r = &mut ChildPtr::<K, V, U, F>::default();
-            let mut u_l = F::clone_op(&self.lazy);
-            let mut u_r = F::id_op();
-            self.lazy = F::id_op();
+            let mut u_l = None;
+            let mut u_r = None;
+            core::mem::swap(&mut u_l, &mut self.lazy);
             for i in 0..self.depth - 1 {
                 if unsafe { r.internal_node.is_some() } {
                     unsafe { l.as_internal_node_mut() }.push(&u_l);
                     let (ls, le, partial_sum) =
                         unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
                     out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
-                    u_l = unsafe { l.as_internal_node_ref().lazies[ls].assume_init_read() };
-                    unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << ls);
+                    u_l = unsafe { l.as_internal_node_mut() }.pop_lazy(ls);
 
                     unsafe { r.as_internal_node_mut() }.push(&u_r);
                     let (rs, re, partial_sum) =
                         unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
                     out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
-                    u_r = unsafe { r.as_internal_node_ref().lazies[re].assume_init_read() };
-                    unsafe { r.as_internal_node_mut() }.lazy_mask &= !(1 << re);
+                    u_r = unsafe { r.as_internal_node_mut() }.pop_lazy(re);
 
                     unsafe {
                         stack[i] = MaybeUninit::new([
@@ -994,10 +1001,9 @@ where
                     let (s, e, partial_sum) =
                         unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
                     if e > s {
-                        u_r = unsafe { l.as_internal_node_ref().lazies[e].assume_init_read() };
-                        unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << e);
+                        u_r = unsafe { l.as_internal_node_mut() }.pop_lazy(e);
                     }
-                    u_l = unsafe { l.as_internal_node_ref().lazies[s].assume_init_read() };
+                    u_l = unsafe { l.as_internal_node_mut() }.pop_lazy(s);
                     unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << s);
                     unsafe {
                         stack[i] = MaybeUninit::new([
