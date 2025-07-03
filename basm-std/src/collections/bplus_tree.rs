@@ -459,7 +459,9 @@ where
             // Move values
             right_node.values[..T].swap_with_slice(&mut self.values[T..]);
             // Move lazies
-            right_node.lazies[..T].swap_with_slice(&mut self.lazies[T..]);
+            if right_node.lazy_mask != 0 {
+                right_node.lazies[..T].swap_with_slice(&mut self.lazies[T..]);
+            }
 
             Some(ChildPtr {
                 internal_node: ManuallyDrop::new(Some(right_node)),
@@ -793,12 +795,7 @@ where
                     }
 
                     // Save lazy op for the node right below the current level
-                    if x.lazy_mask & (1 << i) != 0 {
-                        u = Some(x.lazies[i].assume_init_read());
-                        x.lazy_mask &= !(1 << i);
-                    } else {
-                        u = None;
-                    }
+                    u = x.pop_lazy(i);
 
                     // Save cur_ptr on stack
                     stack[stack_size] = MaybeUninit::new((y, i));
@@ -886,7 +883,7 @@ where
             }
 
             // Update global value
-            // Note: self.lazy has been already set to F::id_op()
+            // Note: self.lazy has been already set to None
             self.value = Some(self.root.aggregate(self.depth - 1));
 
             out
