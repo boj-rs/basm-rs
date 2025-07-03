@@ -517,16 +517,17 @@ where
     }
     /// Returns the aggregate value of the current node.
     fn aggregate(&self) -> V {
-        unsafe {
-            let out = self.values[0].assume_init_ref();
-            let mut out2 = None;
-            for i in 1..self.count {
-                out2 = Some(F::binary_op(
-                    if i == 1 { out } else { out2.as_ref().unwrap() },
-                    self.values[i].assume_init_ref(),
-                ));
+        let values = unsafe { self.values.assume_init_ref() };
+        if self.count == 0 {
+            unreachable!()
+        } else if self.count == 1 {
+            values[0].clone()
+        } else {
+            let mut out = F::binary_op(&values[0], &values[1]);
+            for i in 2..self.count {
+                out = F::binary_op(&out, &values[i]);
             }
-            out2.unwrap_or(F::clone_value(out))
+            out
         }
     }
     /// \[start, end\] only potentially has overlap; outside it, no overlap is guaranteed.
@@ -667,16 +668,17 @@ where
         }
     }
     fn aggregate(&self) -> V {
-        unsafe {
-            let out = self.values[0].assume_init_ref();
-            let mut out2 = None;
-            for i in 1..self.count {
-                out2 = Some(F::binary_op(
-                    if i == 1 { out } else { out2.as_ref().unwrap() },
-                    self.values[i].assume_init_ref(),
-                ));
+        let values = unsafe { self.values.assume_init_ref() };
+        if self.count == 0 {
+            unreachable!()
+        } else if self.count == 1 {
+            values[0].clone()
+        } else {
+            let mut out = F::binary_op(&values[0], &values[1]);
+            for i in 2..self.count {
+                out = F::binary_op(&out, &values[i]);
             }
-            out2.unwrap_or(F::clone_value(out))
+            out
         }
     }
     /// Returns sum of all values whose keys fall in `range`.
