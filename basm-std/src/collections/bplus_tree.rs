@@ -72,6 +72,7 @@ where
     F: LazyOp<V, U>,
 {
     count: usize,
+    lazy_mask: usize,
     // Filled from the beginning.
     children: [ChildPtr<K, V, U, F>; 2 * T],
     // keys[i] stores the least key in the subtree children[i]
@@ -193,10 +194,15 @@ where
                 if x[3] == 0 {
                     let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
                     for i in x[1] + 1..x[2] {
-                        ptr.lazies[i] = MaybeUninit::new(F::compose(
-                            &self.op,
-                            &ptr.lazies[i].assume_init_read(),
-                        ));
+                        if ptr.lazy_mask & (1 << i) != 0 {
+                            ptr.lazies[i] = MaybeUninit::new(F::compose(
+                                &self.op,
+                                &ptr.lazies[i].assume_init_read(),
+                            ));
+                        } else {
+                            ptr.lazies[i] = MaybeUninit::new(self.op.clone());
+                            ptr.lazy_mask |= 1 << i;
+                        }
                         ptr.values[i] =
                             MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
                     }
@@ -212,10 +218,15 @@ where
                     // left
                     let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
                     for i in x[1] + 1..=x[2] {
-                        ptr.lazies[i] = MaybeUninit::new(F::compose(
-                            &self.op,
-                            &ptr.lazies[i].assume_init_read(),
-                        ));
+                        if ptr.lazy_mask & (1 << i) != 0 {
+                            ptr.lazies[i] = MaybeUninit::new(F::compose(
+                                &self.op,
+                                &ptr.lazies[i].assume_init_read(),
+                            ));
+                        } else {
+                            ptr.lazies[i] = MaybeUninit::new(self.op.clone());
+                            ptr.lazy_mask |= 1 << i;
+                        }
                         ptr.values[i] =
                             MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
                     }
@@ -225,10 +236,15 @@ where
                     // right
                     let ptr = &mut *(x[3] as *mut InternalNode<K, V, U, F>);
                     for i in x[4]..x[5] {
-                        ptr.lazies[i] = MaybeUninit::new(F::compose(
-                            &self.op,
-                            &ptr.lazies[i].assume_init_read(),
-                        ));
+                        if ptr.lazy_mask & (1 << i) != 0 {
+                            ptr.lazies[i] = MaybeUninit::new(F::compose(
+                                &self.op,
+                                &ptr.lazies[i].assume_init_read(),
+                            ));
+                        } else {
+                            ptr.lazies[i] = MaybeUninit::new(self.op.clone());
+                            ptr.lazy_mask |= 1 << i;
+                        }
                         ptr.values[i] =
                             MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
                     }
@@ -278,6 +294,7 @@ where
     fn default() -> Self {
         Self {
             count: 0,
+            lazy_mask: 0,
             children: Default::default(),
             keys: [const { MaybeUninit::uninit() }; 2 * T],
             values: [const { MaybeUninit::uninit() }; 2 * T],
@@ -409,6 +426,7 @@ where
         } else {
             let mut right_node = Box::new(Self {
                 count: T,
+                lazy_mask: self.lazy_mask >> T,
                 children: Default::default(),
                 keys: [const { MaybeUninit::uninit() }; 2 * T],
                 values: [const { MaybeUninit::uninit() }; 2 * T],
@@ -417,6 +435,7 @@ where
                 _f: PhantomData,
             });
             self.count = T;
+            self.lazy_mask &= (1 << T) - 1;
 
             // Move keys
             right_node.keys[..T].swap_with_slice(&mut self.keys[T..]);
@@ -444,17 +463,23 @@ where
         }
         self.keys[i] = MaybeUninit::new(child_ptr.least_key(level - 1));
         self.values[i] = MaybeUninit::new(child_ptr.aggregate(level - 1));
-        self.lazies[i] = MaybeUninit::new(F::id_op());
         self.children[i] = child_ptr;
         self.count += 1;
+        self.lazy_mask =
+            (self.lazy_mask & ((1 << i) - 1)) | ((self.lazy_mask & !((1 << i) - 1)) << 1);
     }
     fn push(&mut self, u: &U) {
         unsafe {
             for i in 0..self.count {
-                self.lazies[i] =
-                    MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
+                if self.lazy_mask & (1 << i) != 0 {
+                    self.lazies[i] =
+                        MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
+                } else {
+                    self.lazies[i] = MaybeUninit::new(u.clone());
+                }
                 self.values[i] = MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
             }
+            self.lazy_mask = (1 << self.count) - 1; // every node gets a lazy
         }
     }
     /// Pulls key and value from `self.children[i]`.
@@ -465,7 +490,11 @@ where
             self.keys[i].assume_init_drop();
             self.keys[i] = MaybeUninit::new(self.children[i].least_key(level - 1));
             self.values[i].assume_init_drop();
-            self.values[i] = MaybeUninit::new(F::apply(self.lazies[i].assume_init_ref(), &v));
+            if self.lazy_mask & (1 << i) == 0 {
+                self.values[i] = MaybeUninit::new(v);
+            } else {
+                self.values[i] = MaybeUninit::new(F::apply(self.lazies[i].assume_init_ref(), &v));
+            }
         }
     }
     /// Returns the aggregate value of the current node.
@@ -698,15 +727,17 @@ where
                 //   3) cur_ptr is not full
                 let mut cur_ptr = &mut self.root;
                 let mut cur_level = self.depth - 1;
-                let mut u = F::id_op();
-                core::mem::swap(&mut u, &mut self.lazy);
+                let mut u = Some(self.lazy.clone());
+                self.lazy = F::id_op();
                 while cur_level > 0 {
                     let y = cur_ptr.internal_node.as_mut().unwrap().as_mut()
                         as *mut InternalNode<K, V, U, F>;
 
                     // Push-down the lazy op
                     let x = cur_ptr.as_internal_node_mut();
-                    x.push(&u);
+                    if let Some(u_op) = u {
+                        x.push(&u_op);
+                    }
 
                     // Find which child to traverse
                     let mut i = 0;
@@ -725,8 +756,12 @@ where
                     }
 
                     // Save lazy op for the node right below the current level
-                    u = x.lazies[i].assume_init_read();
-                    x.lazies[i] = MaybeUninit::new(F::id_op());
+                    if x.lazy_mask & (1 << i) != 0 {
+                        u = Some(x.lazies[i].assume_init_read());
+                        x.lazy_mask &= !(1 << i);
+                    } else {
+                        u = None;
+                    }
 
                     // Save cur_ptr on stack
                     stack[stack_size] = MaybeUninit::new((y, i));
@@ -740,7 +775,9 @@ where
                 }
 
                 // Apply lazy op to the leaf node
-                cur_ptr.as_leaf_node_mut().push(&u);
+                if let Some(u_op) = u {
+                    cur_ptr.as_leaf_node_mut().push(&u_op);
+                }
 
                 // Phase 2:
                 //   Find the duplicate key if it exists,
@@ -848,31 +885,41 @@ where
                         unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
                     partial_sum = F::apply_option(&u_l, partial_sum.as_ref());
                     out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
-                    u_l = F::compose(&u_l, unsafe {
-                        l.as_internal_node_ref().lazies[s].assume_init_ref()
-                    });
+                    if unsafe { l.as_internal_node_ref().lazy_mask } & (1 << s) != 0 {
+                        u_l = F::compose(&u_l, unsafe {
+                            l.as_internal_node_ref().lazies[s].assume_init_ref()
+                        });
+                    }
                     l = unsafe { &l.as_internal_node_ref().children[s] };
                     let (_, e, mut partial_sum) =
                         unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
                     partial_sum = F::apply_option(&u_r, partial_sum.as_ref());
                     out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
-                    u_r = F::compose(&u_r, unsafe {
-                        r.as_internal_node_ref().lazies[e].assume_init_ref()
-                    });
+                    if unsafe { r.as_internal_node_ref().lazy_mask } & (1 << e) != 0 {
+                        u_r = F::compose(&u_r, unsafe {
+                            r.as_internal_node_ref().lazies[e].assume_init_ref()
+                        });
+                    }
                     r = unsafe { &r.as_internal_node_ref().children[e] };
                 } else {
                     let (s, e, mut partial_sum) =
                         unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
                     partial_sum = F::apply_option(&u_l, partial_sum.as_ref());
                     if e > s {
-                        u_r = F::compose(&u_l, unsafe {
-                            l.as_internal_node_ref().lazies[e].assume_init_ref()
-                        });
+                        if unsafe { l.as_internal_node_ref().lazy_mask } & (1 << e) != 0 {
+                            u_r = F::compose(&u_l, unsafe {
+                                l.as_internal_node_ref().lazies[e].assume_init_ref()
+                            });
+                        } else {
+                            u_r = u_l.clone();
+                        }
                         r = unsafe { &l.as_internal_node_ref().children[e] };
                     }
-                    u_l = F::compose(&u_l, unsafe {
-                        l.as_internal_node_ref().lazies[s].assume_init_ref()
-                    });
+                    if unsafe { l.as_internal_node_ref().lazy_mask } & (1 << s) != 0 {
+                        u_l = F::compose(&u_l, unsafe {
+                            l.as_internal_node_ref().lazies[s].assume_init_ref()
+                        });
+                    }
                     l = unsafe { &l.as_internal_node_ref().children[s] };
                     out = partial_sum;
                 }
@@ -920,14 +967,14 @@ where
                         unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, true);
                     out = F::binary_op_option(partial_sum.as_ref(), out.as_ref());
                     u_l = unsafe { l.as_internal_node_ref().lazies[ls].assume_init_read() };
-                    unsafe { l.as_internal_node_mut() }.lazies[ls] = MaybeUninit::new(F::id_op());
+                    unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << ls);
 
                     unsafe { r.as_internal_node_mut() }.push(&u_r);
                     let (rs, re, partial_sum) =
                         unsafe { r.as_internal_node_ref() }.aggregate_range(&range, true, false);
                     out = F::binary_op_option(out.as_ref(), partial_sum.as_ref());
                     u_r = unsafe { r.as_internal_node_ref().lazies[re].assume_init_read() };
-                    unsafe { r.as_internal_node_mut() }.lazies[re] = MaybeUninit::new(F::id_op());
+                    unsafe { r.as_internal_node_mut() }.lazy_mask &= !(1 << re);
 
                     unsafe {
                         stack[i] = MaybeUninit::new([
@@ -948,11 +995,10 @@ where
                         unsafe { l.as_internal_node_ref() }.aggregate_range(&range, false, false);
                     if e > s {
                         u_r = unsafe { l.as_internal_node_ref().lazies[e].assume_init_read() };
-                        unsafe { l.as_internal_node_mut() }.lazies[e] =
-                            MaybeUninit::new(F::id_op());
+                        unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << e);
                     }
                     u_l = unsafe { l.as_internal_node_ref().lazies[s].assume_init_read() };
-                    unsafe { l.as_internal_node_mut() }.lazies[s] = MaybeUninit::new(F::id_op());
+                    unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << s);
                     unsafe {
                         stack[i] = MaybeUninit::new([
                             l.as_leaf_node_ref() as *const _ as usize,
@@ -1027,13 +1073,13 @@ mod test {
                 (t1.0 + t2.0, t1.1 + t2.1)
             }
             fn apply(u: &i64, t: &(i64, usize)) -> (i64, usize) {
-                (t.0 + u * t.1 as i64, t.1)
+                (t.0 + (u + 1) * t.1 as i64, t.1)
             }
             fn compose(u1: &i64, u2: &i64) -> i64 {
-                u1 + u2
+                u1 + u2 + 1
             }
             fn id_op() -> i64 {
-                0
+                -1
             }
         }
 
@@ -1048,7 +1094,7 @@ mod test {
         assert_eq!(Some((36, 8)), bptm.get_range(..9));
         assert_eq!(Some((36, 8)), bptm.get_range(..=8));
         assert_eq!(Some((52, 8)), bptm.get_range(3..));
-        bptm.get_range_mut(4..=6).unwrap().apply(&1i64);
+        bptm.get_range_mut(4..=6).unwrap().apply(&0i64);
         assert_eq!(Some((21, 4)), bptm.get_range(3..=6));
         assert_eq!(Some((21, 4)), bptm.get_range(3..7));
         assert_eq!(Some((58, 10)), bptm.get_range(..));
@@ -1073,7 +1119,7 @@ mod test {
             }
             if j < 10 {
                 let delta = j * j;
-                bptm.get_range_mut(s..=e).unwrap().apply(&delta);
+                bptm.get_range_mut(s..=e).unwrap().apply(&(delta - 1));
                 for i in s..=e {
                     v[i] += delta;
                 }
