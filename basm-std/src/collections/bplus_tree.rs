@@ -44,7 +44,7 @@ pub trait LazyOp<V, U> {
 
 pub struct BPTreeMap<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     root: ChildPtr<K, V, U, F>,
@@ -60,14 +60,14 @@ where
 
 struct InternalNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
+    count: usize,
     // Filled from the beginning.
     children: [ChildPtr<K, V, U, F>; 2 * T],
-    // keys[i] points to the least key in the subtree children[i]
-    // Indicates the occupancy for all other MaybeUninit fields and `children`.
-    keys: [*const K; 2 * T],
+    // keys[i] stores the least key in the subtree children[i]
+    keys: [MaybeUninit<K>; 2 * T],
     values: [MaybeUninit<V>; 2 * T], // values[i] denotes the aggregate value of the subtree children[i], with u[i] applied
     // The lazy op u sits above all children of the present node.
     // It is not present in LeafNode.
@@ -78,7 +78,7 @@ where
 
 struct LeafNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     count: usize,
@@ -91,7 +91,7 @@ where
 type ManuallyDropOptionBox<T> = ManuallyDrop<Option<Box<T>>>;
 union ChildPtr<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     internal_node: ManuallyDropOptionBox<InternalNode<K, V, U, F>>,
@@ -100,7 +100,7 @@ where
 
 pub struct PeekMutPoint<K, V, U>
 where
-    K: Ord,
+    K: Ord + Clone,
 {
     _k: PhantomData<K>,
     _v: PhantomData<V>,
@@ -109,7 +109,7 @@ where
 
 pub struct PeekMutRange<'a, K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     tree: &'a mut BPTreeMap<K, V, U, F>,
@@ -125,7 +125,7 @@ where
 
 impl<K, V, U, F> PeekMutRange<'_, K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     pub fn value(&self) -> &V {
@@ -143,7 +143,7 @@ where
 
 impl<K, V, U, F> Drop for PeekMutRange<'_, K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
@@ -227,7 +227,7 @@ where
 
 impl<K, V, U, F: LazyOp<V, U>> Default for BPTreeMap<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -236,7 +236,7 @@ where
 
 impl<K, V, U, F> Default for ChildPtr<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn default() -> Self {
@@ -248,13 +248,14 @@ where
 
 impl<K, V, U, F> Default for InternalNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn default() -> Self {
         Self {
+            count: 0,
             children: Default::default(),
-            keys: [core::ptr::null(); 2 * T],
+            keys: [const { MaybeUninit::uninit() }; 2 * T],
             values: [const { MaybeUninit::uninit() }; 2 * T],
             lazies: [const { MaybeUninit::uninit() }; 2 * T],
             _v: PhantomData,
@@ -265,7 +266,7 @@ where
 
 impl<K, V, U, F> Default for LeafNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn default() -> Self {
@@ -281,7 +282,7 @@ where
 
 impl<K, V, U, F> Drop for LeafNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
@@ -296,7 +297,7 @@ where
 
 impl<K, V, U, F> ChildPtr<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     unsafe fn drop_by_depth(&mut self, depth: usize) {
@@ -305,14 +306,11 @@ where
                 ManuallyDrop::drop(&mut self.leaf_node);
                 self.leaf_node = ManuallyDrop::new(None);
             } else if let Some(mut x) = Option::take(&mut self.internal_node) {
-                for i in 0..x.children.len() {
-                    if x.keys[i].is_null() {
-                        break;
-                    } else {
-                        x.children[i].drop_by_depth(depth - 1);
-                        x.values[i].assume_init_drop();
-                        x.lazies[i].assume_init_drop();
-                    }
+                for i in 0..x.count {
+                    x.children[i].drop_by_depth(depth - 1);
+                    x.keys[i].assume_init_drop();
+                    x.values[i].assume_init_drop();
+                    x.lazies[i].assume_init_drop();
                 }
                 self.internal_node = ManuallyDrop::new(None);
             }
@@ -346,12 +344,12 @@ where
             }
         }
     }
-    fn least_key(&self, level: usize) -> *const K {
+    fn least_key(&self, level: usize) -> K {
         unsafe {
             if level > 0 {
-                self.as_internal_node_ref().keys[0]
+                self.as_internal_node_ref().keys[0].assume_init_ref().clone()
             } else {
-                self.as_leaf_node_ref().keys[0].assume_init_ref() as *const K
+                self.as_leaf_node_ref().keys[0].assume_init_ref().clone()
             }
         }
     }
@@ -368,22 +366,24 @@ where
 
 impl<K, V, U, F> InternalNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn split_if_full(&mut self, level: usize) -> Option<ChildPtr<K, V, U, F>> {
         debug_assert!(level > 0);
-        if self.keys.last().unwrap().is_null() {
+        if self.count < 2 * T {
             None
         } else {
             let mut right_node = Box::new(Self {
+                count: T,
                 children: Default::default(),
-                keys: [core::ptr::null(); 2 * T],
+                keys: [const { MaybeUninit::uninit() }; 2 * T],
                 values: [const { MaybeUninit::uninit() }; 2 * T],
                 lazies: [const { MaybeUninit::uninit() }; 2 * T],
                 _v: PhantomData,
                 _f: PhantomData,
             });
+            self.count = T;
 
             // Move keys
             right_node.keys[..T].swap_with_slice(&mut self.keys[T..]);
@@ -402,29 +402,26 @@ where
     // Inserts at position i, and right-shift existing elements in i and afterwards by one.
     // If the node is already full, this function will panic.
     fn insert_at(&mut self, i: usize, child_ptr: ChildPtr<K, V, U, F>, level: usize) {
-        assert!(self.keys.last().unwrap().is_null());
-        for j in (i..self.children.len() - 1).rev() {
+        assert!(self.count < 2 * T);
+        for j in (i..self.count).rev() {
             self.children.swap(j, j + 1);
-            self.keys[j + 1] = self.keys[j];
+            self.keys.swap(j, j + 1);
             self.values.swap(j, j + 1);
             self.lazies.swap(j, j + 1);
         }
-        self.keys[i] = child_ptr.least_key(level - 1);
+        self.keys[i] = MaybeUninit::new(child_ptr.least_key(level - 1));
         self.values[i] = MaybeUninit::new(child_ptr.aggregate(level - 1));
         self.lazies[i] = MaybeUninit::new(F::id_op());
         self.children[i] = child_ptr;
+        self.count += 1;
     }
     fn push(&mut self, u: &U) {
         unsafe {
-            for i in 0..self.lazies.len() {
-                if !self.keys[i].is_null() {
-                    self.lazies[i] =
-                        MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
-                    self.values[i] =
-                        MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
-                } else {
-                    break;
-                }
+            for i in 0..self.count {
+                self.lazies[i] =
+                    MaybeUninit::new(F::compose(u, &self.lazies[i].assume_init_read()));
+                self.values[i] =
+                    MaybeUninit::new(F::apply(u, &self.values[i].assume_init_read()));
             }
         }
     }
@@ -433,7 +430,8 @@ where
         unsafe {
             debug_assert!(level >= 1);
             let v = self.children[i].aggregate(level - 1);
-            self.keys[i] = self.children[i].least_key(level - 1);
+            self.keys[i].assume_init_drop();
+            self.keys[i] = MaybeUninit::new(self.children[i].least_key(level - 1));
             self.values[i].assume_init_drop();
             self.values[i] = MaybeUninit::new(F::apply(self.lazies[i].assume_init_ref(), &v));
         }
@@ -443,17 +441,13 @@ where
         unsafe {
             let out = self.values[0].assume_init_ref();
             let mut out2 = None;
-            for i in 1..self.values.len() {
-                if !self.keys[i].is_null() {
-                    out2 = Some(F::binary_op(
-                        if i == 1 { out } else { out2.as_ref().unwrap() },
-                        self.values[i].assume_init_ref(),
-                    ));
-                } else {
-                    break;
-                }
+            for i in 1..self.count {
+                out2 = Some(F::binary_op(
+                    if i == 1 { out } else { out2.as_ref().unwrap() },
+                    self.values[i].assume_init_ref(),
+                ));
             }
-            out2.unwrap_or(F::apply(&F::id_op(), out))
+            out2.unwrap_or(F::clone_value(out))
         }
     }
     /// \[start, end\] only potentially has overlap; outside it, no overlap is guaranteed.
@@ -467,22 +461,20 @@ where
         rt_unbounded: bool,
     ) -> (usize, usize, Option<V>) {
         let mut start = 0;
-        while start < self.keys.len()
-            && !self.keys[start].is_null()
+        while start < self.count
             && match range.start_bound() {
-                Included(k) => k.cmp(unsafe { &*self.keys[start] }) == Ordering::Greater,
-                Excluded(k) => k.cmp(unsafe { &*self.keys[start] }) != Ordering::Less,
+                Included(k) => k.cmp(unsafe { self.keys[start].assume_init_ref() }) == Ordering::Greater,
+                Excluded(k) => k.cmp(unsafe { self.keys[start].assume_init_ref() }) != Ordering::Less,
                 Unbounded => false,
             }
         {
             start += 1;
         }
         let mut end = start;
-        while end < self.keys.len()
-            && !self.keys[end].is_null()
+        while end < self.count
             && match range.end_bound() {
-                Included(k) => k.cmp(unsafe { &*self.keys[end] }) != Ordering::Less,
-                Excluded(k) => k.cmp(unsafe { &*self.keys[end] }) == Ordering::Greater,
+                Included(k) => k.cmp(unsafe { self.keys[end].assume_init_ref() }) != Ordering::Less,
+                Excluded(k) => k.cmp(unsafe { self.keys[end].assume_init_ref() }) == Ordering::Greater,
                 Unbounded => true,
             }
         {
@@ -506,7 +498,7 @@ where
 
 impl<K, V, U, F> LeafNode<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn split_if_full(&mut self) -> Option<ChildPtr<K, V, U, F>> {
@@ -606,7 +598,7 @@ where
 
 impl<K, V, U, F> Drop for BPTreeMap<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     fn drop(&mut self) {
@@ -616,7 +608,7 @@ where
 
 impl<K, V, U, F> BPTreeMap<K, V, U, F>
 where
-    K: Ord,
+    K: Ord + Clone,
     F: LazyOp<V, U>,
 {
     pub fn new() -> Self {
@@ -674,20 +666,16 @@ where
 
                     // Find which child to traverse
                     let mut i = 0;
-                    while i < 2 * T - 1 {
-                        if x.keys[i + 1].is_null() {
-                            break;
-                        } else {
-                            match Ord::cmp(&*x.keys[i + 1], &key) {
-                                Less | Equal => {
-                                    i += 1;
-                                    continue;
-                                }
-                                Greater => {
-                                    // Updating x.key is needed since current key comes first.
-                                    // It will be handled during follow-up from the leaf to the root.
-                                    break;
-                                }
+                    while i + 1 < x.count {
+                        match Ord::cmp(x.keys[i + 1].assume_init_ref(), &key) {
+                            Less | Equal => {
+                                i += 1;
+                                continue;
+                            }
+                            Greater => {
+                                // Updating x.key is needed since current key comes first.
+                                // It will be handled during follow-up from the leaf to the root.
+                                break;
                             }
                         }
                     }
