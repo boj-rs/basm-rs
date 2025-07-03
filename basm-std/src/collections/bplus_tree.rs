@@ -869,7 +869,7 @@ where
     pub fn get_range_mut<R: RangeBounds<K>>(
         &mut self,
         range: R,
-    ) -> Option<PeekMutRange<K, V, U, F>> {
+    ) -> Option<PeekMutRange<'_, K, V, U, F>> {
         if self.depth == 0 {
             None
         } else {
