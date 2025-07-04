@@ -5,7 +5,7 @@ use rand::SeedableRng;
 use basm_std::collections::{BPTreeMap, LazyOp};
 use basm_std::math;
 
-fn test_bplus_tree(query_1: usize, query_2: usize, n: usize, q: usize) {
+fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize) {
     assert!(query_1 + query_2 > 0);
 
     const P: u32 = 998_244_353;
@@ -92,13 +92,13 @@ fn test_bplus_tree(query_1: usize, query_2: usize, n: usize, q: usize) {
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("boj_16124_n_1m_query_100", |b| {
-        b.iter(|| test_bplus_tree(50, 50, 1_000_000, 100))
+        b.iter(|| boj_16124(50, 50, 1_000_000, 100))
     });
     c.bench_function("boj_16124_n_1m_query_100k_1", |b| {
-        b.iter(|| test_bplus_tree(95, 5, 1_000_000, 100_000))
+        b.iter(|| boj_16124(95, 5, 1_000_000, 100_000))
     });
     c.bench_function("boj_16124_n_1m_query_100k_2", |b| {
-        b.iter(|| test_bplus_tree(5, 95, 1_000_000, 100_000))
+        b.iter(|| boj_16124(5, 95, 1_000_000, 100_000))
     });
 }
 
