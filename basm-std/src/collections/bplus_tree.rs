@@ -143,7 +143,7 @@ where
     F: LazyOp<V, U>,
 {
     tree: &'a mut BPTreeMap<K, V, U, F>,
-    op: U,
+    op: Option<U>,
     value: V,
     // [lt_ptr, lt_start, lt_end, rt_ptr, rt_start, rt_end]
     // (rt_ptr is 0 if it does not exist)
@@ -164,7 +164,11 @@ where
         &self.value
     }
     pub fn apply(&mut self, u: &U) {
-        self.op = F::compose(u, &self.op);
+        if let Some(u_op) = &self.op {
+            self.op = Some(F::compose(u, u_op));
+        } else {
+            self.op = Some(u.clone());
+        }
         self.value = F::apply(u, &self.value);
     }
     /// Excises the current range from the underlying BPTreeMap.
@@ -184,13 +188,16 @@ where
         if self.tree.depth == 0 {
             return;
         }
+        if self.op.is_none() {
+            return;
+        }
+        let op = self.op.as_ref().unwrap();
         unsafe {
             // handle leaf nodes
             let x = self.stack[self.tree.depth - 1].assume_init_ref();
             let ptr = &mut *(x[0] as *mut LeafNode<K, V, U, F>);
             for i in x[1]..x[2] {
-                ptr.values[i] =
-                    MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                ptr.values[i] = MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
             }
             let mut lval = Some(ptr.aggregate());
             let mut rval = if x[3] == 0 {
@@ -199,7 +206,7 @@ where
                 let ptr = &mut *(x[3] as *mut LeafNode<K, V, U, F>);
                 for i in x[4]..x[5] {
                     ptr.values[i] =
-                        MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                        MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
                 }
                 Some(ptr.aggregate())
             };
@@ -210,16 +217,14 @@ where
                     let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
                     for i in x[1] + 1..x[2] {
                         if ptr.lazy_mask & (1 << i) != 0 {
-                            ptr.lazies[i] = MaybeUninit::new(F::compose(
-                                &self.op,
-                                &ptr.lazies[i].assume_init_read(),
-                            ));
+                            ptr.lazies[i] =
+                                MaybeUninit::new(F::compose(op, &ptr.lazies[i].assume_init_read()));
                         } else {
-                            ptr.lazies[i] = MaybeUninit::new(self.op.clone());
+                            ptr.lazies[i] = MaybeUninit::new(op.clone());
                             ptr.lazy_mask |= 1 << i;
                         }
                         ptr.values[i] =
-                            MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                            MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
                     }
                     ptr.values[x[1]].assume_init_drop();
                     ptr.values[x[1]] = MaybeUninit::new(lval.unwrap());
@@ -234,16 +239,14 @@ where
                     let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
                     for i in x[1] + 1..=x[2] {
                         if ptr.lazy_mask & (1 << i) != 0 {
-                            ptr.lazies[i] = MaybeUninit::new(F::compose(
-                                &self.op,
-                                &ptr.lazies[i].assume_init_read(),
-                            ));
+                            ptr.lazies[i] =
+                                MaybeUninit::new(F::compose(op, &ptr.lazies[i].assume_init_read()));
                         } else {
-                            ptr.lazies[i] = MaybeUninit::new(self.op.clone());
+                            ptr.lazies[i] = MaybeUninit::new(op.clone());
                             ptr.lazy_mask |= 1 << i;
                         }
                         ptr.values[i] =
-                            MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                            MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
                     }
                     ptr.values[x[1]].assume_init_drop();
                     ptr.values[x[1]] = MaybeUninit::new(lval.unwrap());
@@ -252,16 +255,14 @@ where
                     let ptr = &mut *(x[3] as *mut InternalNode<K, V, U, F>);
                     for i in x[4]..x[5] {
                         if ptr.lazy_mask & (1 << i) != 0 {
-                            ptr.lazies[i] = MaybeUninit::new(F::compose(
-                                &self.op,
-                                &ptr.lazies[i].assume_init_read(),
-                            ));
+                            ptr.lazies[i] =
+                                MaybeUninit::new(F::compose(op, &ptr.lazies[i].assume_init_read()));
                         } else {
-                            ptr.lazies[i] = MaybeUninit::new(self.op.clone());
+                            ptr.lazies[i] = MaybeUninit::new(op.clone());
                             ptr.lazy_mask |= 1 << i;
                         }
                         ptr.values[i] =
-                            MaybeUninit::new(F::apply(&self.op, &ptr.values[i].assume_init_read()));
+                            MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
                     }
                     ptr.values[x[5]].assume_init_drop();
                     ptr.values[x[5]] = MaybeUninit::new(rval.unwrap());
@@ -692,15 +693,21 @@ where
             start += 1;
         }
         let mut end = start;
-        let mut out = None;
         while end < self.count && range.contains(unsafe { self.keys[end].assume_init_ref() }) {
-            let y = unsafe { self.values[end].assume_init_ref() };
-            out = Some(if let Some(x) = out {
-                F::binary_op(&x, y)
-            } else {
-                F::clone_value(y)
-            });
             end += 1;
+        }
+        let mut out = None;
+        if start < end {
+            let values = unsafe { self.values.assume_init_ref() };
+            if start + 1 == end {
+                out = Some(values[start].clone());
+            } else {
+                let mut v = F::binary_op(&values[start], &values[start + 1]);
+                for i in start + 2..end {
+                    v = F::binary_op(&v, &values[i]);
+                }
+                out = Some(v);
+            }
         }
         (start, end, out)
     }
@@ -1003,7 +1010,6 @@ where
                         u_r = unsafe { l.as_internal_node_mut() }.pop_lazy(e);
                     }
                     u_l = unsafe { l.as_internal_node_mut() }.pop_lazy(s);
-                    unsafe { l.as_internal_node_mut() }.lazy_mask &= !(1 << s);
                     unsafe {
                         stack[i] = MaybeUninit::new([
                             l.as_leaf_node_ref() as *const _ as usize,
@@ -1055,7 +1061,7 @@ where
             }
             out.map(|x| PeekMutRange {
                 tree: self,
-                op: F::id_op(),
+                op: None,
                 value: x,
                 stack,
                 _k: PhantomData,
