@@ -168,10 +168,17 @@ macro_rules! impl_mod_ops_signed {
                 }
             }
             fn modadd(x: $t, y: $t, modulo: $t) -> $t {
+                debug_assert!(modulo >= 0);
                 if modulo == 0 {
                     x.wrapping_add(y)
                 } else {
-                    Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+                    let mut x = if x >= -modulo && x < modulo { x } else { x % modulo };
+                    let mut y = if y >= -modulo && y < modulo { y } else { y % modulo };
+                    if x < 0 { x += modulo; }
+                    if y < 0 { y += modulo; }
+                    let y_neg = modulo.wrapping_sub(y);
+                    let out = x - y_neg;
+                    if out < 0 { out + modulo } else { out }
                 }
             }
             fn modsub(x: $t, y: $t, modulo: $t) -> $t {
@@ -179,7 +186,8 @@ macro_rules! impl_mod_ops_signed {
                 if modulo == 0 {
                     x.wrapping_sub(y)
                 } else {
-                    let (mut x, mut y) = (x % modulo, y % modulo);
+                    let mut x = if x >= -modulo && x < modulo { x } else { x % modulo };
+                    let mut y = if y >= -modulo && y < modulo { y } else { y % modulo };
                     if x < 0 { x += modulo; }
                     if y < 0 { y += modulo; }
                     let out = x - y;
@@ -222,14 +230,19 @@ macro_rules! impl_mod_ops_unsigned {
                 if modulo == 0 {
                     x.wrapping_add(y)
                 } else {
-                    Self::modsub(x, Self::modsub(0, y, modulo), modulo)
+                    let x = if x < modulo { x } else { x % modulo };
+                    let y = if y < modulo { y } else { y % modulo };
+                    let y_neg = modulo.wrapping_sub(y);
+                    let (out, overflow) = x.overflowing_sub(y_neg);
+                    if overflow { out.wrapping_add(modulo) } else { out }
                 }
             }
             fn modsub(x: $t, y: $t, modulo: $t) -> $t {
                 if modulo == 0 {
                     x.wrapping_sub(y)
                 } else {
-                    let (x, y) = (x % modulo, y % modulo);
+                    let x = if x < modulo { x } else { x % modulo };
+                    let y = if y < modulo { y } else { y % modulo };
                     let (out, overflow) = x.overflowing_sub(y);
                     if overflow { out.wrapping_add(modulo) } else { out }
                 }
