@@ -1,6 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 
 use alloc::boxed::Box;
+use core::clone::CloneToUninit;
 use core::cmp::Ordering::{self, Equal, Greater, Less};
 use core::marker::PhantomData;
 use core::mem::{ManuallyDrop, MaybeUninit};
@@ -453,15 +454,21 @@ where
             self.count = T;
             self.lazy_mask &= (1 << T) - 1;
 
-            // Move keys
-            right_node.keys[..T].swap_with_slice(&mut self.keys[T..]);
-            // Move children
-            right_node.children[..T].swap_with_slice(&mut self.children[T..]);
-            // Move values
-            right_node.values[..T].swap_with_slice(&mut self.values[T..]);
-            // Move lazies
-            if right_node.lazy_mask != 0 {
-                right_node.lazies[..T].swap_with_slice(&mut self.lazies[T..]);
+            unsafe {
+                // Move keys
+                self.keys.assume_init_ref()[T..]
+                    .clone_to_uninit(right_node.keys.assume_init_mut().as_mut_ptr() as *mut u8);
+                // Move children
+                right_node.children[..T].swap_with_slice(&mut self.children[T..]);
+                // Move values
+                self.values.assume_init_ref()[T..]
+                    .clone_to_uninit(right_node.values.assume_init_mut().as_mut_ptr() as *mut u8);
+                // Move lazies
+                if right_node.lazy_mask != 0 {
+                    self.lazies.assume_init_ref()[T..].clone_to_uninit(
+                        right_node.lazies.assume_init_mut().as_mut_ptr() as *mut u8,
+                    );
+                }
             }
 
             Some(ChildPtr {
@@ -620,10 +627,14 @@ where
                 _f: PhantomData,
             });
 
-            // Move keys
-            right_node.keys[..T].swap_with_slice(&mut self.keys[T..]);
-            // Move values
-            right_node.values[..T].swap_with_slice(&mut self.values[T..]);
+            unsafe {
+                // Move keys
+                self.keys.assume_init_ref()[T..]
+                    .clone_to_uninit(right_node.keys.assume_init_mut().as_mut_ptr() as *mut u8);
+                // Move values
+                self.values.assume_init_ref()[T..]
+                    .clone_to_uninit(right_node.values.assume_init_mut().as_mut_ptr() as *mut u8);
+            }
 
             Some(ChildPtr {
                 leaf_node: ManuallyDrop::new(Some(right_node)),
