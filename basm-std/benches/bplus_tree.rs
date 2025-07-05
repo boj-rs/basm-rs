@@ -104,18 +104,28 @@ fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize, bulk_init: bool
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("boj_16124_n_1m_query_100_bulk_init", |b| {
-        b.iter(|| boj_16124(50, 50, 1_000_000, 100, true))
-    });
-    c.bench_function("boj_16124_n_1m_query_100", |b| {
+    let mut group = c.benchmark_group("boj_16124");
+    group.bench_function("boj_16124_n_1m_query_100", |b| {
         b.iter(|| boj_16124(50, 50, 1_000_000, 100, false))
     });
-    c.bench_function("boj_16124_n_1m_query_100k_1", |b| {
+    group.bench_function("boj_16124_n_1m_query_100k_1", |b| {
         b.iter(|| boj_16124(95, 5, 1_000_000, 100_000, false))
     });
-    c.bench_function("boj_16124_n_1m_query_100k_2", |b| {
+    group.bench_function("boj_16124_n_1m_query_100k_2", |b| {
         b.iter(|| boj_16124(5, 95, 1_000_000, 100_000, false))
     });
+    group.finish();
+    let mut group = c.benchmark_group("boj_16124_bulk_init");
+    group.bench_function("boj_16124_bulk_init_n_1m_query_100", |b| {
+        b.iter(|| boj_16124(50, 50, 1_000_000, 100, true))
+    });
+    group.bench_function("boj_16124_bulk_init_n_1m_query_100k_1", |b| {
+        b.iter(|| boj_16124(95, 5, 1_000_000, 100_000, true))
+    });
+    group.bench_function("boj_16124_bulk_init_n_1m_query_100k_2", |b| {
+        b.iter(|| boj_16124(5, 95, 1_000_000, 100_000, true))
+    });
+    group.finish();
 }
 
 criterion_group!(
