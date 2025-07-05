@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, collections::VecDeque};
 use core::clone::CloneToUninit;
 use core::cmp::Ordering::{self, Equal, Greater, Less};
 use core::marker::PhantomData;
@@ -607,6 +607,23 @@ where
             None
         }
     }
+    /// Creates an `InternalNode` from the given iterator.
+    fn from_iter<I>(level: usize, n: usize, iter: I) -> Self
+    where
+        I: IntoIterator<Item = ChildPtr<K, V, U, F>>,
+    {
+        assert!(n <= 2 * T);
+        let mut out = Self::default();
+        let mut iter = iter.into_iter();
+        for i in 0..n {
+            let ptr = iter.next().unwrap();
+            out.keys[i] = MaybeUninit::new(ptr.least_key(level - 1));
+            out.values[i] = MaybeUninit::new(ptr.aggregate(level - 1));
+            out.children[i] = ptr;
+        }
+        out.count = n;
+        out
+    }
 }
 
 impl<K, V, U, F> LeafNode<K, V, U, F>
@@ -722,6 +739,21 @@ where
         }
         (start, end, out)
     }
+    /// Creates a `LeafNode` from the given iterator.
+    fn from_iter<I>(n: usize, iter: &mut <I as IntoIterator>::IntoIter) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+    {
+        assert!(n <= 2 * T);
+        let mut out = Self::default();
+        for i in 0..n {
+            let (k, v) = iter.next().unwrap();
+            out.keys[i] = MaybeUninit::new(k);
+            out.values[i] = MaybeUninit::new(v);
+        }
+        out.count = n;
+        out
+    }
 }
 
 impl<K, V, U, F> Drop for BPTreeMap<K, V, U, F>
@@ -761,6 +793,72 @@ where
             self.root = Default::default();
             self.value = None;
             self.lazy = None;
+        }
+    }
+    pub fn from_iter<I>(n: usize, iter: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+    {
+        if n == 0 {
+            // Suffices to return an empty tree
+            return Self::new();
+        }
+
+        /* Take the minimum depth possible, depending on `n`.
+         * Let L = 2*T.
+         *
+         * Tree of depth 1 -> (number of elements) <= L
+         * Tree of depth 2 -> (number of elements) <= L^2
+         * ...
+         *
+         * So, for a given n, we increment depth until we obtain n <= L^depth.
+         */
+        const L: usize = 2 * T;
+        let (mut depth, mut pow) = (1, L);
+        while n > pow {
+            depth += 1;
+            pow *= L;
+        }
+
+        let mut iter = iter.into_iter();
+
+        // Step 1: Create the leaf nodes
+        let mut nodes = VecDeque::new();
+        let (mut y, mut x) = (n, n.div_ceil(L));
+        for i in 0..x {
+            let cnt = y * (i + 1) / x - y * i / x;
+            let node = LeafNode::<K, V, U, F>::from_iter::<I>(cnt, &mut iter);
+            nodes.push_back(ChildPtr {
+                leaf_node: ManuallyDrop::new(Some(Box::new(node))),
+            });
+        }
+
+        // Step 2: Recursively build the internal nodes by merging lower level nodes
+        for level in 1..depth {
+            (y, x) = (x, x.div_ceil(L));
+            for i in 0..x {
+                let cnt = y * (i + 1) / x - y * i / x;
+                let node = InternalNode::<K, V, U, F>::from_iter(
+                    level,
+                    cnt,
+                    (0..cnt).map(|_| nodes.pop_front().unwrap()),
+                );
+                nodes.push_back(ChildPtr {
+                    internal_node: ManuallyDrop::new(Some(Box::new(node))),
+                });
+            }
+        }
+
+        // Create the BPTreeMap struct
+        let root = nodes.pop_front().unwrap();
+        assert!(nodes.is_empty());
+        let value = root.aggregate(depth - 1);
+        Self {
+            root,
+            depth,
+            value: Some(value),
+            lazy: None,
+            _f: PhantomData,
         }
     }
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -1239,5 +1337,42 @@ mod test {
         assert_eq!(Some((13, 3)), bptm.get_range(3..=6));
         assert_eq!(Some((3, 1)), bptm.remove(&3));
         assert_eq!(Some((10, 2)), bptm.get_range(3..=6));
+    }
+    #[test]
+    fn check_btree_from_iter() {
+        struct F;
+        impl LazyOp<(i64, usize), i64> for F {
+            fn binary_op(t1: &(i64, usize), t2: &(i64, usize)) -> (i64, usize) {
+                (t1.0 + t2.0, t1.1 + t2.1)
+            }
+            fn apply(u: &i64, t: &(i64, usize)) -> (i64, usize) {
+                (t.0 + u * t.1 as i64, t.1)
+            }
+            fn compose(u1: &i64, u2: &i64) -> i64 {
+                u1 + u2
+            }
+            fn id_op() -> i64 {
+                0
+            }
+        }
+        use rand::{Rng, SeedableRng};
+        let mut rng = rand::rngs::SmallRng::seed_from_u64(123);
+        for n in 1..=100 {
+            let bptm = BPTreeMap::<usize, (i64, usize), i64, F>::from_iter(
+                n,
+                (1..=n).map(|i| (i, (i as i64, 1))),
+            );
+            for _ in 0..100 {
+                let mut l = rng.random_range(1..=n);
+                let mut r = rng.random_range(1..=n);
+                if l > r {
+                    (l, r) = (r, l);
+                }
+                assert_eq!(
+                    (((l + r) * (r - l + 1) / 2) as i64, r - l + 1),
+                    bptm.get_range(l..=r).unwrap()
+                );
+            }
+        }
     }
 }

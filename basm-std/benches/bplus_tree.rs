@@ -5,7 +5,7 @@ use rand::SeedableRng;
 use basm_std::collections::{BPTreeMap, LazyOp};
 use basm_std::math;
 
-fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize) {
+fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize, bulk_init: bool) {
     assert!(query_1 + query_2 > 0);
 
     const P: u32 = 998_244_353;
@@ -45,12 +45,25 @@ fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize) {
             U([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         }
     }
-    let mut tree = BPTreeMap::<usize, V, U, F>::new();
-    for i in 1..=n {
-        let word = rng.random_range(0..10);
-        let mut p = [0; 10];
-        p[word] = 1;
-        tree.insert(i, V(p, 10));
+    let mut tree;
+    if bulk_init {
+        tree = BPTreeMap::<usize, V, U, F>::from_iter(
+            n,
+            (1..=n).map(|i| {
+                let word = rng.random_range(0..10);
+                let mut p = [0; 10];
+                p[word] = 1;
+                (i, V(p, 10))
+            }),
+        );
+    } else {
+        tree = BPTreeMap::<usize, V, U, F>::new();
+        for i in 1..=n {
+            let word = rng.random_range(0..10);
+            let mut p = [0; 10];
+            p[word] = 1;
+            tree.insert(i, V(p, 10));
+        }
     }
     for _ in 0..q {
         let kind = if rng.random_range(0..query_1 + query_2) < query_1 {
@@ -91,14 +104,17 @@ fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize) {
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
+    c.bench_function("boj_16124_n_1m_query_100_bulk_init", |b| {
+        b.iter(|| boj_16124(50, 50, 1_000_000, 100, true))
+    });
     c.bench_function("boj_16124_n_1m_query_100", |b| {
-        b.iter(|| boj_16124(50, 50, 1_000_000, 100))
+        b.iter(|| boj_16124(50, 50, 1_000_000, 100, false))
     });
     c.bench_function("boj_16124_n_1m_query_100k_1", |b| {
-        b.iter(|| boj_16124(95, 5, 1_000_000, 100_000))
+        b.iter(|| boj_16124(95, 5, 1_000_000, 100_000, false))
     });
     c.bench_function("boj_16124_n_1m_query_100k_2", |b| {
-        b.iter(|| boj_16124(5, 95, 1_000_000, 100_000))
+        b.iter(|| boj_16124(5, 95, 1_000_000, 100_000, false))
     });
 }
 
