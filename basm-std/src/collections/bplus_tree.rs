@@ -62,7 +62,7 @@ where
     }
 }
 
-pub struct BPTreeMap<K, V, U, F>
+pub struct BPTreeMapLazy<K, V, U, F>
 where
     K: Ord + Clone,
     V: Clone,
@@ -143,7 +143,7 @@ where
     U: Clone,
     F: LazyOp<V, U>,
 {
-    tree: &'a mut BPTreeMap<K, V, U, F>,
+    tree: &'a mut BPTreeMapLazy<K, V, U, F>,
     op: Option<U>,
     value: V,
     // [lt_ptr, lt_start, lt_end, rt_ptr, rt_start, rt_end]
@@ -276,7 +276,7 @@ where
     }
 }
 
-impl<K, V, U, F: LazyOp<V, U>> Default for BPTreeMap<K, V, U, F>
+impl<K, V, U, F: LazyOp<V, U>> Default for BPTreeMapLazy<K, V, U, F>
 where
     K: Ord + Clone,
     V: Clone,
@@ -756,7 +756,7 @@ where
     }
 }
 
-impl<K, V, U, F> Drop for BPTreeMap<K, V, U, F>
+impl<K, V, U, F> Drop for BPTreeMapLazy<K, V, U, F>
 where
     K: Ord + Clone,
     V: Clone,
@@ -768,7 +768,7 @@ where
     }
 }
 
-impl<K, V, U, F> BPTreeMap<K, V, U, F>
+impl<K, V, U, F> BPTreeMapLazy<K, V, U, F>
 where
     K: Ord + Clone,
     V: Clone,
@@ -1181,6 +1181,89 @@ where
     }
 }
 
+pub trait Op<V>
+where
+    V: Clone,
+{
+    fn binary_op(t1: &V, t2: &V) -> V;
+}
+
+struct Dummy<V, F>
+where
+    V: Clone,
+    F: Op<V>,
+{
+    _v: PhantomData<V>,
+    _f: PhantomData<F>,
+}
+
+impl<V, F> LazyOp<V, ()> for Dummy<V, F>
+where
+    V: Clone,
+    F: Op<V>,
+{
+    fn binary_op(t1: &V, t2: &V) -> V {
+        F::binary_op(t1, t2)
+    }
+    fn apply(_u: &(), t: &V) -> V {
+        t.clone()
+    }
+    fn compose(_u1: &(), _u2: &()) {}
+    fn id_op() {}
+}
+
+pub struct BPTreeMap<K, V, F>(BPTreeMapLazy<K, V, (), Dummy<V, F>>)
+where
+    K: Ord + Clone,
+    V: Clone,
+    F: Op<V>;
+
+impl<K, V, F> Default for BPTreeMap<K, V, F>
+where
+    K: Ord + Clone,
+    V: Clone,
+    F: Op<V>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K, V, F> BPTreeMap<K, V, F>
+where
+    K: Ord + Clone,
+    V: Clone,
+    F: Op<V>,
+{
+    pub fn new() -> Self {
+        Self(BPTreeMapLazy::<K, V, (), Dummy<V, F>>::new())
+    }
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+    pub fn from_iter<I>(n: usize, iter: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+    {
+        Self(BPTreeMapLazy::<K, V, (), Dummy<V, F>>::from_iter(n, iter))
+    }
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+        self.0.insert(key, value)
+    }
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        self.0.remove(key)
+    }
+    pub fn remove_range<R: RangeBounds<K>>(&mut self, range: R) -> Option<V> {
+        self.0.remove_range(range)
+    }
+    pub fn get(&self, key: &K) -> Option<V> {
+        self.0.get(key)
+    }
+    pub fn get_range<R: RangeBounds<K>>(&self, range: R) -> Option<V> {
+        self.0.get_range(range)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -1203,7 +1286,7 @@ mod test {
             }
         }
 
-        let mut bptm = BPTreeMap::<usize, (i64, usize), i64, F>::new();
+        let mut bptm = BPTreeMapLazy::<usize, (i64, usize), i64, F>::new();
         let n = 10;
         for i in 1..=n {
             bptm.insert(i, (i as i64, 1));
@@ -1224,7 +1307,7 @@ mod test {
         assert_eq!(Some((5, 2)), bptm.get_range(2..=3));
         assert_eq!(Some((23, 5)), bptm.get_range(2..=6));
 
-        let mut bptm = BPTreeMap::<usize, (i64, usize), i64, F>::new();
+        let mut bptm = BPTreeMapLazy::<usize, (i64, usize), i64, F>::new();
         let n = 100;
         let mut v = vec![0; n + 1];
         for i in 1..=n {
@@ -1263,7 +1346,7 @@ mod test {
             fn compose(_u1: &(), _u2: &()) {}
             fn id_op() {}
         }
-        let mut b = BPTreeMap::<i64, usize, (), F>::new();
+        let mut b = BPTreeMapLazy::<i64, usize, (), F>::new();
         let mut v = vec![];
         let n = 100;
         for i in 0..n {
@@ -1292,7 +1375,7 @@ mod test {
             fn id_op() {}
         }
 
-        let mut bptm = BPTreeMap::<i32, i32, (), F>::new();
+        let mut bptm = BPTreeMapLazy::<i32, i32, (), F>::new();
         let n = 100;
         let mut v = vec![0; n + 1];
         for i in (1..=n).rev() {
@@ -1328,7 +1411,7 @@ mod test {
                 0
             }
         }
-        let mut bptm = BPTreeMap::<usize, (i64, usize), i64, F>::new();
+        let mut bptm = BPTreeMapLazy::<usize, (i64, usize), i64, F>::new();
         let n = 10;
         for i in 1..=n {
             bptm.insert(i, (i as i64, 1));
@@ -1358,7 +1441,7 @@ mod test {
         use rand::{Rng, SeedableRng};
         let mut rng = rand::rngs::SmallRng::seed_from_u64(123);
         for n in 1..=100 {
-            let bptm = BPTreeMap::<usize, (i64, usize), i64, F>::from_iter(
+            let bptm = BPTreeMapLazy::<usize, (i64, usize), i64, F>::from_iter(
                 n,
                 (1..=n).map(|i| (i, (i as i64, 1))),
             );

@@ -2,7 +2,7 @@ use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 use rand::SeedableRng;
 
-use basm_std::collections::{BPTreeMap, LazyOp};
+use basm_std::collections::{BPTreeMapLazy, LazyOp};
 use basm_std::math;
 
 fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize, bulk_init: bool) {
@@ -47,7 +47,7 @@ fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize, bulk_init: bool
     }
     let mut tree;
     if bulk_init {
-        tree = BPTreeMap::<usize, V, U, F>::from_iter(
+        tree = BPTreeMapLazy::<usize, V, U, F>::from_iter(
             n,
             (1..=n).map(|i| {
                 let word = rng.random_range(0..10);
@@ -57,7 +57,7 @@ fn boj_16124(query_1: usize, query_2: usize, n: usize, q: usize, bulk_init: bool
             }),
         );
     } else {
-        tree = BPTreeMap::<usize, V, U, F>::new();
+        tree = BPTreeMapLazy::<usize, V, U, F>::new();
         for i in 1..=n {
             let word = rng.random_range(0..10);
             let mut p = [0; 10];
