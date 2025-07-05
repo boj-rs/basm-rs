@@ -200,7 +200,7 @@ where
             for i in x[1]..x[2] {
                 ptr.values[i] = MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
             }
-            let mut lval = Some(ptr.aggregate());
+            let mut lval = ptr.aggregate();
             let mut rval = if x[3] == 0 {
                 None
             } else {
@@ -228,17 +228,17 @@ where
                             MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
                     }
                     ptr.values[x[1]].assume_init_drop();
-                    ptr.values[x[1]] = MaybeUninit::new(lval.unwrap());
+                    ptr.values[x[1]] = MaybeUninit::new(lval);
                     if rval.is_some() {
                         ptr.values[x[2]].assume_init_drop();
                         ptr.values[x[2]] = MaybeUninit::new(rval.unwrap());
                         rval = None;
                     }
-                    lval = Some(ptr.aggregate());
+                    lval = ptr.aggregate();
                 } else {
                     // left
                     let ptr = &mut *(x[0] as *mut InternalNode<K, V, U, F>);
-                    for i in x[1] + 1..=x[2] {
+                    for i in x[1] + 1..x[2] + 1 {
                         if ptr.lazy_mask & (1 << i) != 0 {
                             ptr.lazies[i] =
                                 MaybeUninit::new(F::compose(op, &ptr.lazies[i].assume_init_read()));
@@ -250,8 +250,8 @@ where
                             MaybeUninit::new(F::apply(op, &ptr.values[i].assume_init_read()));
                     }
                     ptr.values[x[1]].assume_init_drop();
-                    ptr.values[x[1]] = MaybeUninit::new(lval.unwrap());
-                    lval = Some(ptr.aggregate());
+                    ptr.values[x[1]] = MaybeUninit::new(lval);
+                    lval = ptr.aggregate();
                     // right
                     let ptr = &mut *(x[3] as *mut InternalNode<K, V, U, F>);
                     for i in x[4]..x[5] {
@@ -271,7 +271,7 @@ where
                 }
             }
             // replace the sum for the whole tree
-            self.tree.value = lval;
+            self.tree.value = Some(lval);
         }
     }
 }
