@@ -10,3 +10,4 @@ Cargo.lock
 **/._.DS_Store
 target-bisector-*/
 rust.git/
+basm-boj/target
