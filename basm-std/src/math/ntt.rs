@@ -8,7 +8,7 @@ pub use polyeval::polyeval_u64;
 pub mod polymul;
 pub use polymul::{polymul_ex_u64, polymul_u64};
 mod polyops;
-pub use polyops::{polydiv_u64, polyinv_u64, polymod_u64};
+pub use polyops::{polyadd_u64, polydiv_u64, polyinv_u64, polymod_u64, polysub_u64};
 
 #[cfg(test)]
 mod test {
@@ -124,6 +124,19 @@ mod test {
         assert_eq!(
             Some(vec![15, 11]),
             polymod_u64(&[1, 2, 0, 3, 4], &[2, 1, 1], 0)
+        );
+    }
+    #[test]
+    fn check_polyadd_polysub_u64() {
+        assert_eq!(vec![0u64; 0], polyadd_u64(&[], &[], 0));
+        assert_eq!(
+            vec![3, 3, 1, 3, 4],
+            polyadd_u64(&[1, 2, 0, 3, 4], &[2, 1, 1], 0)
+        );
+        assert_eq!(vec![0u64; 0], polysub_u64(&[], &[], 0));
+        assert_eq!(
+            vec![0u64.wrapping_sub(1), 1, 0u64.wrapping_sub(1), 3, 4],
+            polysub_u64(&[1, 2, 0, 3, 4], &[2, 1, 1], 0)
         );
     }
 }

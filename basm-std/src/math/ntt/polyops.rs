@@ -193,3 +193,35 @@ pub fn polymod_u64(dividend: &[u64], divisor: &[u64], modulo: u64) -> Option<Vec
         None
     }
 }
+
+/// Computes `x + y` given two polynomials `x` and `y`.
+///
+/// The resulting Vec has length `max(x.len(), y.len())`.
+///
+/// The result is computed in modulo `modulo`.
+/// If `modulo` equals 0, it is treated as `2**64`.
+/// Note that `modulo` does not need to be a prime.
+pub fn polyadd_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
+    let (x, y) = if x.len() > y.len() { (x, y) } else { (y, x) };
+    let mut out = x.to_vec();
+    for i in 0..x.len() {
+        out[i] = modadd(out[i], if i < y.len() { y[i] } else { 0 }, modulo);
+    }
+    out
+}
+
+/// Computes `x - y` given two polynomials `x` and `y`.
+///
+/// The resulting Vec has length `max(x.len(), y.len())`.
+///
+/// The result is computed in modulo `modulo`.
+/// If `modulo` equals 0, it is treated as `2**64`.
+/// Note that `modulo` does not need to be a prime.
+pub fn polysub_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
+    let (x, y) = if x.len() > y.len() { (x, y) } else { (y, x) };
+    let mut out = x.to_vec();
+    for i in 0..x.len() {
+        out[i] = modsub(out[i], if i < y.len() { y[i] } else { 0 }, modulo);
+    }
+    out
+}
