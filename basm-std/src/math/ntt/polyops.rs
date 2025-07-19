@@ -218,10 +218,14 @@ pub fn polyadd_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
 /// If `modulo` equals 0, it is treated as `2**64`.
 /// Note that `modulo` does not need to be a prime.
 pub fn polysub_u64(x: &[u64], y: &[u64], modulo: u64) -> Vec<u64> {
-    let (x, y) = if x.len() > y.len() { (x, y) } else { (y, x) };
-    let mut out = x.to_vec();
-    for i in 0..x.len() {
-        out[i] = modsub(out[i], if i < y.len() { y[i] } else { 0 }, modulo);
+    let n = x.len().max(y.len());
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        out.push(modsub(
+            *x.get(i).unwrap_or(&0),
+            *y.get(i).unwrap_or(&0),
+            modulo,
+        ));
     }
     out
 }

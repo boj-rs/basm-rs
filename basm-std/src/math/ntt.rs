@@ -138,5 +138,15 @@ mod test {
             vec![0u64.wrapping_sub(1), 1, 0u64.wrapping_sub(1), 3, 4],
             polysub_u64(&[1, 2, 0, 3, 4], &[2, 1, 1], 0)
         );
+        assert_eq!(
+            vec![
+                1,
+                0u64.wrapping_sub(1),
+                1,
+                0u64.wrapping_sub(3),
+                0u64.wrapping_sub(4),
+            ],
+            polysub_u64(&[2, 1, 1], &[1, 2, 0, 3, 4], 0)
+        );
     }
 }
