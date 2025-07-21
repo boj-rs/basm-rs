@@ -87,7 +87,8 @@ impl MinCostFlowGraph {
         // (Dijkstra won't work on the first step because of possible negative costs)
         let mut s_dist = vec![(i64::MAX, usize::MAX); n]; // (dist, last_edge)
         s_dist[s] = (0, usize::MAX);
-        for _ in 0..n {
+        for i in 0..n + 1 {
+            let mut updated = false;
             for u in 0..n {
                 if s_dist[u].0 == i64::MAX {
                     continue;
@@ -95,9 +96,17 @@ impl MinCostFlowGraph {
                 for &eid in adj[u].iter() {
                     if e[eid].capacity - e[eid].f > 0 {
                         let v = e[eid].v;
-                        s_dist[v] = s_dist[v].min((s_dist[u].0 + e[eid].cost, eid));
+                        let new_dist = s_dist[u].0 + e[eid].cost;
+                        if new_dist < s_dist[v].0 {
+                            s_dist[v] = (new_dist, eid);
+                            updated = true;
+                        }
                     }
                 }
+            }
+            if i == n && updated {
+                // Bellman-Ford detected a negative cycle
+                return None;
             }
         }
 
@@ -188,6 +197,20 @@ mod test {
         assert_eq!(
             Some(MinCostFlowResult { flow: 13, cost: 36 }),
             g.solve(0, 4, true),
+        );
+    }
+
+    #[test]
+    fn check_mcmf_negative_cycle_detection() {
+        let mut g = MinCostFlowGraph::new();
+        g.add_edge(0, 1, 10, 5, false);
+        g.add_edge(1, 2, 10, 5, false);
+        g.add_edge(2, 3, 10, -8, false);
+        g.add_edge(3, 1, 10, 2, false);
+        assert_eq!(None, g.solve(0, 3, false));
+        assert_eq!(
+            Some(MinCostFlowResult { flow: 10, cost: 20 }),
+            g.solve(0, 3, true),
         );
     }
 }
