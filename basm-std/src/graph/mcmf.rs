@@ -83,7 +83,8 @@ impl MinCostFlowGraph {
             }
         }
 
-        // Step 1: Compute all-pair costs with Bellman-Ford
+        // Step 1: Compute cost distances from the source with Bellman-Ford
+        // (Dijkstra won't work on the first step because of possible negative costs)
         let mut s_dist = vec![(i64::MAX, usize::MAX); n]; // (dist, last_edge)
         s_dist[s] = (0, usize::MAX);
         for _ in 0..n {
