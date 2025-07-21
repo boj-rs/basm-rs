@@ -122,6 +122,8 @@ pub fn main() {
 
     - Push-relabel Maximum Flow
 
+    - Min-Cost Maximum Flow (Johnson's Algorithm 기반)
+
 ## 사용법
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
