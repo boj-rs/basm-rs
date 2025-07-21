@@ -65,6 +65,7 @@ impl MinCostFlowGraph {
         self.edge_count += 1;
     }
     /// Computes maximum flow that has the minimum cost (the maximum cost if `maximize_cost` is true).
+    /// `s` and `t` must be distinct.
     ///
     /// Returns `None` if the graph has a negative cost cycle.
     pub fn solve(&self, s: usize, t: usize, maximize_cost: bool) -> Option<MinCostFlowResult> {
@@ -85,6 +86,7 @@ impl MinCostFlowGraph {
 
         // Step 1: Compute cost distances from the source with Bellman-Ford
         // (Dijkstra won't work on the first step because of possible negative costs)
+        // * TODO: replace Bellman-Ford with SPFA for speed
         let mut s_dist = vec![(i64::MAX, usize::MAX); n]; // (dist, last_edge)
         s_dist[s] = (0, usize::MAX);
         for i in 0..n + 1 {
@@ -104,7 +106,9 @@ impl MinCostFlowGraph {
                     }
                 }
             }
-            if i == n && updated {
+            if !updated {
+                break;
+            } else if i == n {
                 // Bellman-Ford detected a negative cycle
                 return None;
             }
@@ -183,7 +187,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_mcmf() {
+    fn check_mcmf() {
         let mut g = MinCostFlowGraph::new();
         g.add_edge(0, 1, 10, 5, false);
         g.add_edge(1, 3, 10, -2, false);
