@@ -271,7 +271,6 @@ macro_rules! define_basm_start {
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             #[unsafe(no_mangle)]
             #[unsafe(naked)]
-            #[align(8)]
             pub unsafe extern "C" fn _basm_start() -> ! {
                 naked_asm!(
                     "sub    sp, sp, #96",
@@ -316,7 +315,6 @@ macro_rules! define_basm_start {
 
             #[unsafe(no_mangle)]
             #[unsafe(naked)]
-            #[align(4)]
             #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
             pub unsafe extern "win64" fn __chkstk() -> ! {
                 naked_asm!(
