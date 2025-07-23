@@ -330,41 +330,47 @@ impl<const N: usize> Writer<N> {
     #[cfg(any(not(feature = "short"), feature = "fastio"))]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21);
-        let mut hi128 = B128([0u8; 16]);
         let mut lo128 = B128([0u8; 16]);
-        let mut hioff;
         let looff;
         if n < 100_000_000 {
-            hioff = 16;
+            // For small n, we avoid the cost of zero-initializing hi128.
+            // This provides a significant gain in performance.
             looff = unsafe { cvt8(&mut lo128, n as u32) };
-        } else if n < 10_000_000_000_000_000 {
-            let hi = (n / 100_000_000) as u32;
-            let lo = (n % 100_000_000) as u32;
-            hioff = unsafe { cvt8(&mut hi128, hi) };
-            unsafe { cvt8(&mut lo128, lo) };
-            looff = 8;
         } else {
-            let mut hi = (n / 10_000_000_000_000_000) as u32;
-            let lo = n % 10_000_000_000_000_000;
-            let lohi = (lo / 100_000_000) as u32;
-            let lolo = (lo % 100_000_000) as u32;
-            unsafe { cvt8(&mut hi128, lohi) };
-            unsafe { cvt8(&mut lo128, lolo) };
-            hioff = 8;
-            looff = 8;
-            while hi > 0 {
-                hioff -= 1;
-                hi128.0[hioff] = (hi % 10) as u8 + b'0';
-                hi /= 10;
+            let mut hi128 = B128([0u8; 16]);
+            let mut hioff;
+            if n < 100_000_000 {
+                hioff = 16;
+                looff = unsafe { cvt8(&mut lo128, n as u32) };
+            } else if n < 10_000_000_000_000_000 {
+                let hi = (n / 100_000_000) as u32;
+                let lo = (n % 100_000_000) as u32;
+                hioff = unsafe { cvt8(&mut hi128, hi) };
+                unsafe { cvt8(&mut lo128, lo) };
+                looff = 8;
+            } else {
+                let mut hi = (n / 10_000_000_000_000_000) as u32;
+                let lo = n % 10_000_000_000_000_000;
+                let lohi = (lo / 100_000_000) as u32;
+                let lolo = (lo % 100_000_000) as u32;
+                unsafe { cvt8(&mut hi128, lohi) };
+                unsafe { cvt8(&mut lo128, lolo) };
+                hioff = 8;
+                looff = 8;
+                while hi > 0 {
+                    hioff -= 1;
+                    hi128.0[hioff] = (hi % 10) as u8 + b'0';
+                    hi /= 10;
+                }
             }
+            let len = 16 - hioff;
+            unsafe {
+                self.buf[self.off..self.off + len]
+                    .assume_init_mut()
+                    .copy_from_slice(&hi128.0[hioff..]);
+            }
+            self.off += len;
         }
-        let len = 16 - hioff;
-        unsafe {
-            self.buf[self.off..self.off + len]
-                .assume_init_mut()
-                .copy_from_slice(&hi128.0[hioff..]);
-        }
-        self.off += len;
         let len = 16 - looff;
         unsafe {
             self.buf[self.off..self.off + len]
