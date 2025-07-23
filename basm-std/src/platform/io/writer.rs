@@ -339,10 +339,7 @@ impl<const N: usize> Writer<N> {
         } else {
             let mut hi128 = B128([0u8; 16]);
             let mut hioff;
-            if n < 100_000_000 {
-                hioff = 16;
-                looff = unsafe { cvt8(&mut lo128, n as u32) };
-            } else if n < 10_000_000_000_000_000 {
+            if n < 10_000_000_000_000_000 {
                 let hi = (n / 100_000_000) as u32;
                 let lo = (n % 100_000_000) as u32;
                 hioff = unsafe { cvt8(&mut hi128, hi) };
