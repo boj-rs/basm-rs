@@ -22,79 +22,53 @@ impl<const N: usize> Drop for Writer<N> {
 }
 
 #[cfg(any(not(feature = "short"), feature = "fastio"))]
-#[repr(align(16))]
-struct B128([u8; 16]);
-#[cfg(any(not(feature = "short"), feature = "fastio"))]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
-unsafe fn cvt8(out: &mut B128, n: u32) -> usize {
-    unsafe {
-        #[cfg(target_arch = "x86")]
-        use core::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-        let x = _mm_cvtsi32_si128(n as i32);
-        let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
-        let mul_10000_merge = _mm_set1_epi32(55536);
-        let div_var = _mm_setr_epi16(
-            8389,
-            5243,
-            13108,
-            0x8000u16 as i16,
-            8389,
-            5243,
-            13108,
-            0x8000u16 as i16,
-        );
-        let shift_var = _mm_setr_epi16(
-            1 << 7,
-            1 << 11,
-            1 << 13,
-            (1 << 15) as i16,
-            1 << 7,
-            1 << 11,
-            1 << 13,
-            (1 << 15) as i16,
-        );
-        let mul_10 = _mm_set1_epi16(10);
-        let ascii0 = _mm_set1_epi8(48);
-        let x_div_10000 = _mm_srli_epi64::<45>(_mm_mul_epu32(x, div_10000));
-        let y = _mm_add_epi32(x, _mm_mul_epu32(x_div_10000, mul_10000_merge));
-        let t0 = _mm_slli_epi16::<2>(_mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y)));
-        let t1 = _mm_mulhi_epu16(t0, div_var);
-        let t2 = _mm_mulhi_epu16(t1, shift_var);
-        let t3 = _mm_slli_epi64::<16>(t2);
-        let t4 = _mm_mullo_epi16(t3, mul_10);
-        let t5 = _mm_sub_epi16(t2, t4);
-        let t6 = _mm_packus_epi16(_mm_setzero_si128(), t5);
-        let mask = _mm_movemask_epi8(_mm_cmpeq_epi8(t6, _mm_setzero_si128()));
-        let offset = (mask & !0x8000).trailing_ones() as usize;
-        let ascii = _mm_add_epi8(t6, ascii0);
-        _mm_store_si128(out.0.as_mut_ptr().cast(), ascii);
-        offset
-    }
-}
-#[cfg(any(not(feature = "short"), feature = "fastio"))]
-#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
-unsafe fn cvt8(out: &mut B128, mut n: u32) -> usize {
-    let mut offset = 16;
-    loop {
-        offset -= 1;
-        out.0[offset] = b'0' + (n % 10) as u8;
-        n /= 10;
-        if n == 0 {
-            /* The remaining space must be filled with b'0',
-             * as this function is also used to convert the lower part
-             * of an integer that is larger than 10^8.
-             */
-            let mut i = offset;
-            while i > 8 {
-                i -= 1;
-                out.0[i] = b'0';
-            }
-            break offset;
-        }
-    }
+unsafe fn cvt8(n: u32) -> (u64, usize) {
+    #[cfg(target_arch = "x86")]
+    use core::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use core::arch::x86_64::*;
+    let x = _mm_cvtsi32_si128(n as i32);
+    let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
+    let mul_10000_merge = _mm_set1_epi32(55536);
+    let div_var = _mm_setr_epi16(
+        8389,
+        5243,
+        13108,
+        0x8000u16 as i16,
+        8389,
+        5243,
+        13108,
+        0x8000u16 as i16,
+    );
+    let shift_var = _mm_setr_epi16(
+        1 << 7,
+        1 << 11,
+        1 << 13,
+        (1 << 15) as i16,
+        1 << 7,
+        1 << 11,
+        1 << 13,
+        (1 << 15) as i16,
+    );
+    let mul_10 = _mm_set1_epi16(10);
+    let ascii0 = _mm_set1_epi8(48);
+    let x_div_10000 = _mm_srli_epi64::<45>(_mm_mul_epu32(x, div_10000));
+    let y = _mm_add_epi32(x, _mm_mul_epu32(x_div_10000, mul_10000_merge));
+    let t0 = _mm_slli_epi16::<2>(_mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y)));
+    let t1 = _mm_mulhi_epu16(t0, div_var);
+    let t2 = _mm_mulhi_epu16(t1, shift_var);
+    let t3 = _mm_slli_epi64::<16>(t2);
+    let t4 = _mm_mullo_epi16(t3, mul_10);
+    let t5 = _mm_sub_epi16(t2, t4);
+    let t6 = _mm_packus_epi16(_mm_setzero_si128(), t5);
+    let mask = _mm_movemask_epi8(_mm_cmpgt_epi8(t6, _mm_setzero_si128()));
+    let offset = (mask | 0x8000).trailing_zeros() as usize;
+    let ascii = _mm_add_epi8(t6, ascii0);
+    let value = _mm_extract_epi64::<1>(ascii) as u64;
+    let len = 16 - offset;
+    (value, len)
 }
 
 impl<const N: usize> Writer<N> {
@@ -253,32 +227,42 @@ impl<const N: usize> Writer<N> {
     /// writer.u32(u32::MAX); // 4294967295
     /// ```
     #[cfg(any(not(feature = "short"), feature = "fastio"))]
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     pub fn u32(&mut self, n: u32) {
-        self.try_flush(11);
-        let mut b128 = B128([0u8; 16]);
-        let mut off;
+        self.try_flush(11 + 8);
+        let mut p;
         if n < 100_000_000 {
-            off = unsafe { cvt8(&mut b128, n) };
+            p = unsafe { cvt8(n) };
+            p.0 >>= (8 - p.1) << 3;
         } else {
             let mut hi = n / 100_000_000;
             let lo = n % 100_000_000;
-            unsafe { cvt8(&mut b128, lo) };
-            off = 8;
+            p = (unsafe { cvt8(lo).0 }, 8);
+            let mut len = 0;
             while hi > 0 {
-                off -= 1;
-                b128.0[off] = (hi % 10) as u8 + b'0';
+                self.buf[self.off].write((hi % 10) as u8 + b'0');
                 hi /= 10;
+                self.off += 1;
+                len += 1;
+            }
+            let mut i = 0;
+            while 2 * i + 1 < len {
+                self.buf.swap(self.off - len + i, self.off - i - 1);
+                i += 1;
             }
         }
-        let len = 16 - off;
         unsafe {
-            self.buf[self.off..self.off + len]
-                .assume_init_mut()
-                .copy_from_slice(&b128.0[off..]);
+            core::ptr::write_unaligned(
+                self.buf.as_mut_ptr().wrapping_add(self.off) as *mut u64,
+                p.0,
+            );
         }
-        self.off += len;
+        self.off += p.1;
     }
-    #[cfg(all(feature = "short", not(feature = "fastio")))]
+    #[cfg(any(
+        all(feature = "short", not(feature = "fastio")),
+        not(any(target_arch = "x86_64", target_arch = "x86"))
+    ))]
     pub fn u32(&mut self, n: u32) {
         self.u64(n as u64)
     }
@@ -328,55 +312,63 @@ impl<const N: usize> Writer<N> {
     /// writer.u64(u64::MAX); // 18446744073709551615
     /// ```
     #[cfg(any(not(feature = "short"), feature = "fastio"))]
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     pub fn u64(&mut self, n: u64) {
-        self.try_flush(21);
-        let mut lo128 = B128([0u8; 16]);
-        let looff;
+        self.try_flush(21 + 8);
+        let mut plo;
         if n < 100_000_000 {
             // For small n, we avoid the cost of zero-initializing hi128.
             // This provides a significant gain in performance.
-            looff = unsafe { cvt8(&mut lo128, n as u32) };
+            plo = unsafe { cvt8(n as u32) };
+            plo.0 >>= (8 - plo.1) << 3;
         } else {
-            let mut hi128 = B128([0u8; 16]);
-            let mut hioff;
+            let mut phi;
             if n < 10_000_000_000_000_000 {
                 let hi = (n / 100_000_000) as u32;
                 let lo = (n % 100_000_000) as u32;
-                hioff = unsafe { cvt8(&mut hi128, hi) };
-                unsafe { cvt8(&mut lo128, lo) };
-                looff = 8;
+                phi = unsafe { cvt8(hi) };
+                phi.0 >>= (8 - phi.1) << 3;
+                plo = (unsafe { cvt8(lo).0 }, 8);
             } else {
                 let mut hi = (n / 10_000_000_000_000_000) as u32;
                 let lo = n % 10_000_000_000_000_000;
                 let lohi = (lo / 100_000_000) as u32;
                 let lolo = (lo % 100_000_000) as u32;
-                unsafe { cvt8(&mut hi128, lohi) };
-                unsafe { cvt8(&mut lo128, lolo) };
-                hioff = 8;
-                looff = 8;
+                phi = (unsafe { cvt8(lohi).0 }, 8);
+                plo = (unsafe { cvt8(lolo).0 }, 8);
+                let mut len = 0;
                 while hi > 0 {
-                    hioff -= 1;
-                    hi128.0[hioff] = (hi % 10) as u8 + b'0';
+                    self.buf[self.off].write((hi % 10) as u8 + b'0');
                     hi /= 10;
+                    self.off += 1;
+                    len += 1;
+                }
+                let mut i = 0;
+                while 2 * i + 1 < len {
+                    self.buf.swap(self.off - len + i, self.off - i - 1);
+                    i += 1;
                 }
             }
-            let len = 16 - hioff;
             unsafe {
-                self.buf[self.off..self.off + len]
-                    .assume_init_mut()
-                    .copy_from_slice(&hi128.0[hioff..]);
+                core::ptr::write_unaligned(
+                    self.buf.as_mut_ptr().wrapping_add(self.off) as *mut u64,
+                    phi.0,
+                );
             }
-            self.off += len;
+            self.off += phi.1;
         }
-        let len = 16 - looff;
         unsafe {
-            self.buf[self.off..self.off + len]
-                .assume_init_mut()
-                .copy_from_slice(&lo128.0[looff..]);
+            core::ptr::write_unaligned(
+                self.buf.as_mut_ptr().wrapping_add(self.off) as *mut u64,
+                plo.0,
+            );
         }
-        self.off += len;
+        self.off += plo.1;
     }
-    #[cfg(all(feature = "short", not(feature = "fastio")))]
+    #[cfg(any(
+        all(feature = "short", not(feature = "fastio")),
+        not(any(target_arch = "x86_64", target_arch = "x86"))
+    ))]
     pub fn u64(&mut self, mut n: u64) {
         self.try_flush(21);
         let mut buf = [MaybeUninit::<u8>::uninit(); 21];
