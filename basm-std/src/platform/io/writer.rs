@@ -22,12 +22,9 @@ impl<const N: usize> Drop for Writer<N> {
 }
 
 #[cfg(any(not(feature = "short"), feature = "fastio"))]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(n: u32) -> (u64, usize) {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
     use core::arch::x86_64::*;
     let x = _mm_cvtsi32_si128(n as i32);
     let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
@@ -312,7 +309,7 @@ impl<const N: usize> Writer<N> {
     /// writer.u64(u64::MAX); // 18446744073709551615
     /// ```
     #[cfg(any(not(feature = "short"), feature = "fastio"))]
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    #[cfg(target_arch = "x86_64")]
     pub fn u64(&mut self, n: u64) {
         self.try_flush(21 + 8);
         let mut plo;
@@ -367,7 +364,7 @@ impl<const N: usize> Writer<N> {
     }
     #[cfg(any(
         all(feature = "short", not(feature = "fastio")),
-        not(any(target_arch = "x86_64", target_arch = "x86"))
+        not(target_arch = "x86_64")
     ))]
     pub fn u64(&mut self, mut n: u64) {
         self.try_flush(21);
