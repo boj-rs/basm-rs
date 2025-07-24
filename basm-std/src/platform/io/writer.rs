@@ -224,7 +224,7 @@ impl<const N: usize> Writer<N> {
     /// writer.u32(u32::MAX); // 4294967295
     /// ```
     #[cfg(any(not(feature = "short"), feature = "fastio"))]
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    #[cfg(target_arch = "x86_64")]
     pub fn u32(&mut self, n: u32) {
         self.try_flush(11 + 8);
         let mut p;
@@ -258,7 +258,7 @@ impl<const N: usize> Writer<N> {
     }
     #[cfg(any(
         all(feature = "short", not(feature = "fastio")),
-        not(any(target_arch = "x86_64", target_arch = "x86"))
+        not(target_arch = "x86_64")
     ))]
     pub fn u32(&mut self, n: u32) {
         self.u64(n as u64)
