@@ -120,6 +120,8 @@ pub fn main() {
 
     - 선형점화식: 계수 추정(Berlekamp-Massey의 임의 모듈로 버전인 Reeds-Sloane), 로그 시간 일반항 계산(Kitamasa 알고리즘)
 
+    - `O(N^3)` 특성다항식 계산(임의 모듈로 지원)
+
     - Push-relabel Maximum Flow
 
     - Min-Cost Maximum Flow (Johnson's Algorithm 기반)

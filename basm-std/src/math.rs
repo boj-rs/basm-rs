@@ -1,3 +1,5 @@
+mod charpoly;
+pub use charpoly::charpoly_u64;
 pub mod miller_rabin;
 pub use miller_rabin::*;
 mod sieve;
