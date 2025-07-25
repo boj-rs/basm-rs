@@ -47,7 +47,6 @@ unsafe fn cvt8(n: u32) -> (u64, usize) {
         (1 << 15) as i16,
     );
     let mul_10 = _mm_set1_epi16(10);
-    let ascii0 = _mm_set1_epi8(48);
     let y = _mm_cvtsi64_si128((n as i64 + ((n as i64 * 0xd1b71759) >> 45) * 55536) << 2);
     let t0 = _mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y));
     let t1 = _mm_mulhi_epu16(t0, div_var);
@@ -58,8 +57,7 @@ unsafe fn cvt8(n: u32) -> (u64, usize) {
     let t6 = _mm_packus_epi16(_mm_setzero_si128(), t5);
     let mask = _mm_movemask_epi8(_mm_cmpgt_epi8(t6, _mm_setzero_si128()));
     let offset = (mask | 0x8000).trailing_zeros() as usize;
-    let ascii = _mm_add_epi8(t6, ascii0);
-    let value = _mm_extract_epi64::<1>(ascii) as u64;
+    let value = _mm_extract_epi64::<1>(t6) as u64 + 0x3030_3030_3030_3030;
     let len = 16 - offset;
     (value, len)
 }
