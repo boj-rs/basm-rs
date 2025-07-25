@@ -26,9 +26,6 @@ impl<const N: usize> Drop for Writer<N> {
 #[target_feature(enable = "avx2")]
 unsafe fn cvt8(n: u32) -> (u64, usize) {
     use core::arch::x86_64::*;
-    let x = _mm_cvtsi32_si128(n as i32);
-    let div_10000 = _mm_set1_epi32(0xd1b71759u32 as i32);
-    let mul_10000_merge = _mm_set1_epi32(55536);
     let div_var = _mm_setr_epi16(
         8389,
         5243,
@@ -51,9 +48,8 @@ unsafe fn cvt8(n: u32) -> (u64, usize) {
     );
     let mul_10 = _mm_set1_epi16(10);
     let ascii0 = _mm_set1_epi8(48);
-    let x_div_10000 = _mm_srli_epi64::<45>(_mm_mul_epu32(x, div_10000));
-    let y = _mm_add_epi32(x, _mm_mul_epu32(x_div_10000, mul_10000_merge));
-    let t0 = _mm_slli_epi16::<2>(_mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y)));
+    let y = _mm_cvtsi64_si128((n as i64 + ((n as i64 * 0xd1b71759) >> 45) * 55536) << 2);
+    let t0 = _mm_shuffle_epi32::<5>(_mm_unpacklo_epi16(y, y));
     let t1 = _mm_mulhi_epu16(t0, div_var);
     let t2 = _mm_mulhi_epu16(t1, shift_var);
     let t3 = _mm_slli_epi64::<16>(t2);
