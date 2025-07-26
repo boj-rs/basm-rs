@@ -163,10 +163,10 @@ where
         }
         // dp[0..=c]
         if c + 1 < n {
-            let y = m[c + 1][c];
+            let y = ops.premul(m[c + 1][c]);
             for r in 0..=c {
                 for j in 0..=c + 1 {
-                    dp[r][j] = ops.mul(dp[r][j], y);
+                    dp[r][j] = y(dp[r][j]);
                 }
             }
         }
