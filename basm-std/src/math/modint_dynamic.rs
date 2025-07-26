@@ -36,6 +36,9 @@ impl FastModOps {
     pub fn canonicalize(&self, a: u64) -> u64 {
         if self.pow2 {
             a & self.data[0]
+        } else if a < self.modulo {
+            // Fast path for already-reduced inputs (we can proceed without division)
+            a
         } else {
             a % self.modulo
         }
