@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use crate::math::{modadd, modmul, modsub};
+use crate::math::modint_dynamic::FastModOps;
 use alloc::{vec, vec::Vec};
 
 fn swap_row(x: &mut [Vec<u64>], i: usize, j: usize) {
@@ -14,43 +14,28 @@ fn swap_col(x: &mut [Vec<u64>], i: usize, j: usize) {
     }
 }
 
-/// Computes a*x + b*y mod modulo. (modulo = 0 means modulo = 2**64)
-/// Assumes all input values are in the range [0, modulo).
-fn modmul_axby([a, x]: [u64; 2], [b, y]: [u64; 2], modulo: u64) -> u64 {
-    let p = a as u128 * x as u128;
-    let q = b as u128 * y as u128;
-    let (x, overflow) = p.overflowing_add(q);
-    let (mut hi, lo) = ((x >> 64) as u64, x as u64);
-    if modulo == 0 {
-        lo
-    } else {
-        if overflow {
-            // Since overflow cannot go past 2*modulo, it suffices to subtract one copy of modulo.
-            hi = hi.wrapping_sub(modulo);
-        }
-        ((((hi as u128) << 64) | (lo as u128)) % modulo as u128) as u64
-    }
-}
-fn mul2x2_row(x: &mut [Vec<u64>], src: usize, dst: usize, mul: [[u64; 2]; 2], modulo: u64) {
+fn mul2x2_row(x: &mut [Vec<u64>], src: usize, dst: usize, mul: [[u64; 2]; 2], ops: &FastModOps) {
     assert!(src != dst);
 
     // add rows
     let [[p, q], [r, s]] = mul;
+    let (p, q, r, s) = (ops.premul(p), ops.premul(q), ops.premul(r), ops.premul(s));
     for k in 0..x.len() {
         let (a, b) = (x[src][k], x[dst][k]);
-        x[src][k] = modmul_axby([p, a], [q, b], modulo);
-        x[dst][k] = modmul_axby([r, a], [s, b], modulo);
+        x[src][k] = ops.add(p(a), q(b));
+        x[dst][k] = ops.add(r(a), s(b));
     }
 }
-fn mul2x2_col(x: &mut [Vec<u64>], src: usize, dst: usize, mul: [[u64; 2]; 2], modulo: u64) {
+fn mul2x2_col(x: &mut [Vec<u64>], src: usize, dst: usize, mul: [[u64; 2]; 2], ops: &FastModOps) {
     assert!(src != dst);
 
     // add columns
     let [[p, q], [r, s]] = mul;
+    let (p, q, r, s) = (ops.premul(p), ops.premul(q), ops.premul(r), ops.premul(s));
     for k in 0..x.len() {
         let (a, b) = (x[k][src], x[k][dst]);
-        x[k][src] = modmul_axby([p, a], [r, b], modulo);
-        x[k][dst] = modmul_axby([q, a], [s, b], modulo);
+        x[k][src] = ops.add(p(a), r(b));
+        x[k][dst] = ops.add(q(a), s(b));
     }
 }
 
@@ -60,7 +45,7 @@ fn mul2x2_col(x: &mut [Vec<u64>], src: usize, dst: usize, mul: [[u64; 2]; 2], mo
 /// `modulo` is used for modular reduction of the returned matrix.
 ///
 /// Note that we assume `modulo` does not equal 1.
-fn egcd_matrix(mut a: u64, mut b: u64, modulo: u64) -> [[u64; 2]; 2] {
+fn egcd_matrix(mut a: u64, mut b: u64, ops: &FastModOps) -> [[u64; 2]; 2] {
     let (mut c, mut parity) = if a < b {
         (a, b) = (b, a);
         ([0, 1, 1, 0], true)
@@ -74,14 +59,14 @@ fn egcd_matrix(mut a: u64, mut b: u64, modulo: u64) -> [[u64; 2]; 2] {
         c = [
             c[2],
             c[3],
-            modsub(c[0], modmul(q, c[2], modulo), modulo),
-            modsub(c[1], modmul(q, c[3], modulo), modulo),
+            ops.fnmadd(ops.canonicalize(q), c[2], c[0]),
+            ops.fnmadd(ops.canonicalize(q), c[3], c[1]),
         ];
         parity = !parity;
     }
     if parity {
-        c[2] = modsub(0, c[2], modulo);
-        c[3] = modsub(0, c[3], modulo);
+        c[2] = ops.neg(c[2]);
+        c[3] = ops.neg(c[3]);
     }
     [[c[0], c[1]], [c[2], c[3]]]
 }
@@ -108,12 +93,13 @@ where
         return vec![0; n + 1];
     }
 
+    let ops = FastModOps::new(modulo);
     let mut m = Vec::with_capacity(n);
     for i in 0..n {
         m.push(x[i].as_ref().to_vec());
         for v in m[i].iter_mut() {
             // Negate the numbers and canonicalize and the modulo representation, in case it is not.
-            *v = modsub(0, *v, modulo);
+            *v = ops.neg(ops.canonicalize(*v));
         }
     }
 
@@ -140,13 +126,13 @@ where
 
         // Reduce rows below c+1
         for r in c + 2..n {
-            let mul = egcd_matrix(m[c + 1][c], m[r][c], modulo);
+            let mul = egcd_matrix(m[c + 1][c], m[r][c], &ops);
             let invmul = [
-                [mul[1][1], modsub(0, mul[0][1], modulo)],
-                [modsub(0, mul[1][0], modulo), mul[0][0]],
+                [mul[1][1], ops.neg(mul[0][1])],
+                [ops.neg(mul[1][0]), mul[0][0]],
             ];
-            mul2x2_row(&mut m, c + 1, r, mul, modulo);
-            mul2x2_col(&mut m, c + 1, r, invmul, modulo);
+            mul2x2_row(&mut m, c + 1, r, mul, &ops);
+            mul2x2_col(&mut m, c + 1, r, invmul, &ops);
         }
     }
 
@@ -164,18 +150,14 @@ where
             let inv_cnt = c - r;
             let mut mul = m[r][c];
             if inv_cnt % 2 == 1 {
-                mul = modsub(0, mul, modulo);
+                mul = ops.neg(mul);
             }
             for j in 0..=c + 1 {
-                let mut tmp = dp[c + 1][j] as u128 + dp[r][j] as u128 * mul as u128;
-                if modulo != 0 {
-                    tmp %= modulo as u128;
-                }
-                dp[c + 1][j] = tmp as u64;
+                dp[c + 1][j] = ops.fmadd(dp[r][j], mul, dp[c + 1][j]);
             }
             if r == c {
                 for j in 1..=c + 1 {
-                    dp[c + 1][j] = modadd(dp[c + 1][j], dp[r][j - 1], modulo);
+                    dp[c + 1][j] = ops.add(dp[c + 1][j], dp[r][j - 1]);
                 }
             }
         }
@@ -184,7 +166,7 @@ where
             let y = m[c + 1][c];
             for r in 0..=c {
                 for j in 0..=c + 1 {
-                    dp[r][j] = modmul(dp[r][j], y, modulo);
+                    dp[r][j] = ops.mul(dp[r][j], y);
                 }
             }
         }

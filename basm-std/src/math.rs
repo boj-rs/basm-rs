@@ -2,6 +2,7 @@ mod charpoly;
 pub use charpoly::charpoly_u64;
 pub mod miller_rabin;
 pub use miller_rabin::*;
+pub mod modint_dynamic;
 mod sieve;
 pub use sieve::LinearSieve;
 mod pollard_rho;
