@@ -42,24 +42,22 @@ impl FastModOps {
     }
     /// Computes `-a` mod `self.modulo`.
     pub fn neg(&self, a: u64) -> u64 {
+        debug_assert!(a <= self.modulo.wrapping_sub(1));
         if self.pow2 {
             0u64.wrapping_sub(a) & self.data[0]
+        } else if a == 0 {
+            0
         } else {
-            debug_assert!(a < self.modulo);
-            if a == 0 {
-                0
-            } else {
-                self.modulo.wrapping_sub(a)
-            }
+            self.modulo.wrapping_sub(a)
         }
     }
     /// Computes `a*b` mod `self.modulo`.
     pub fn mul(&self, a: u64, b: u64) -> u64 {
+        debug_assert!(a <= self.modulo.wrapping_sub(1));
+        debug_assert!(b <= self.modulo.wrapping_sub(1));
         if self.pow2 {
             a.wrapping_mul(b) & self.data[0]
         } else {
-            debug_assert!(a < self.modulo);
-            debug_assert!(b < self.modulo);
             let u = a as u128 * b as u128;
             let (d, [v, k]) = (self.modulo, self.data);
             if self.modulo < 1u64 << 42 {
@@ -96,11 +94,11 @@ impl FastModOps {
     }
     /// Computes `a+b` mod `self.modulo`.
     pub fn add(&self, a: u64, b: u64) -> u64 {
+        debug_assert!(a <= self.modulo.wrapping_sub(1));
+        debug_assert!(b <= self.modulo.wrapping_sub(1));
         if self.pow2 {
             a.wrapping_add(b) & self.data[0]
         } else {
-            debug_assert!(a < self.modulo);
-            debug_assert!(b < self.modulo);
             let neg_b = self.modulo.wrapping_sub(b);
             let (out, overflow) = a.overflowing_sub(neg_b);
             if overflow {
@@ -112,11 +110,11 @@ impl FastModOps {
     }
     /// Computes `a-b` mod `self.modulo`.
     pub fn sub(&self, a: u64, b: u64) -> u64 {
+        debug_assert!(a <= self.modulo.wrapping_sub(1));
+        debug_assert!(b <= self.modulo.wrapping_sub(1));
         if self.pow2 {
             a.wrapping_sub(b) & self.data[0]
         } else {
-            debug_assert!(a < self.modulo);
-            debug_assert!(b < self.modulo);
             let (out, overflow) = a.overflowing_sub(b);
             if overflow {
                 out.wrapping_add(self.modulo)
@@ -173,6 +171,11 @@ mod test {
             let ops = FastModOps::new(modulo);
             let near_modulo = (0u64.wrapping_sub(5)..=5u64).map(|x| modulo.wrapping_add(x));
             for x in it.clone().chain(near_modulo.clone()) {
+                assert_eq!(
+                    modsub(0, x, modulo),
+                    ops.neg(ops.canonicalize(x)),
+                    "{x} {modulo}"
+                );
                 for y in it.clone().chain(near_modulo.clone()) {
                     assert_eq!(
                         modadd(x, y, modulo),
