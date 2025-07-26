@@ -2,6 +2,8 @@ mod charpoly;
 pub use charpoly::charpoly_u64;
 pub mod miller_rabin;
 pub use miller_rabin::*;
+mod modint_dynamic;
+pub use modint_dynamic::FastModOps;
 mod sieve;
 pub use sieve::LinearSieve;
 mod pollard_rho;
