@@ -18,7 +18,22 @@ pub struct MinCostFlowGraph {
     edge_count: usize,
 }
 
-#[derive(Debug, PartialEq)]
+pub enum MinCostFlowMode {
+    /// Compute a maximum flow, and if multiple cost values are possible for the flow, choose minimum.
+    MaxFlowMinCost,
+    /// Compute a maximum flow, and if multiple cost values are possible for the flow, choose maximum.
+    MaxFlowMaxCost,
+    /// Compute a flow that minimizes cost, and if multiple flow values are possible for the cost, choose maximum.
+    MinCostMaxFlow,
+    /// Compute a flow that minimizes cost, and if multiple flow values are possible for the cost, choose minimum.
+    MinCostMinFlow,
+    /// Compute a flow that maximum cost, and if multiple flow values are possible for the cost, choose maximum.
+    MaxCostMaxFlow,
+    /// Compute a flow that maximum cost, and if multiple flow values are possible for the cost, choose minimum.
+    MaxCostMinFlow,
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct MinCostFlowResult {
     pub flow: i64,
     pub cost: i64,
@@ -68,7 +83,7 @@ impl MinCostFlowGraph {
     /// `s` and `t` must be distinct.
     ///
     /// Returns `None` if the graph has a negative cost cycle.
-    pub fn solve(&self, s: usize, t: usize, maximize_cost: bool) -> Option<MinCostFlowResult> {
+    pub fn solve(&self, s: usize, t: usize, mode: MinCostFlowMode) -> Option<MinCostFlowResult> {
         assert!(s != t);
         let (mut adj, mut e) = (self.adj.clone(), self.e.clone());
         let bound = s.max(t);
@@ -78,6 +93,11 @@ impl MinCostFlowGraph {
         let n = adj.len();
 
         // Negate costs if cost maximization is requested
+        type Mode = MinCostFlowMode;
+        let maximize_cost = matches!(
+            mode,
+            Mode::MaxFlowMaxCost | Mode::MaxCostMaxFlow | Mode::MaxCostMinFlow
+        );
         if maximize_cost {
             for e_ent in e.iter_mut() {
                 e_ent.cost = -e_ent.cost;
@@ -115,7 +135,9 @@ impl MinCostFlowGraph {
         }
 
         // Step 2: Main loop
-        let mut ans = MinCostFlowResult { flow: 0, cost: 0 };
+        let mut ans = MinCostFlowResult::default();
+        let mut ans_mincost_maxflow = MinCostFlowResult::default();
+        let mut ans_mincost_minflow = MinCostFlowResult::default();
         loop {
             // Run Dijkstra with weights adjusted as w'[u->v] = s_dist[u] + w[u->v] - s_dist[v]
             // (i.e., Johnson's algorithm; see section 9.4 of Jeff Erickson's Algorithm book (2019) for details)
@@ -160,18 +182,33 @@ impl MinCostFlowGraph {
                 x = s_dist_new[e[eid].u];
             }
             x = s_dist_new[t];
+            let mut cost = 0;
             while x.1 != usize::MAX {
                 let eid = x.1;
                 e[eid].f += flow;
                 e[eid ^ 1].f -= flow;
-                ans.cost += e[eid].cost * flow;
+                cost += e[eid].cost;
                 x = s_dist_new[e[eid].u];
             }
             ans.flow += flow;
+            ans.cost += cost * flow;
+            if cost < 0 {
+                ans_mincost_minflow = ans;
+            }
+            if cost <= 0 {
+                ans_mincost_maxflow = ans;
+            }
 
             // Update s_dist
             s_dist = s_dist_new;
         }
+
+        // Select the right one
+        ans = match mode {
+            Mode::MaxFlowMinCost | Mode::MaxFlowMaxCost => ans,
+            Mode::MinCostMaxFlow | Mode::MaxCostMaxFlow => ans_mincost_maxflow,
+            Mode::MinCostMinFlow | Mode::MaxCostMinFlow => ans_mincost_minflow,
+        };
 
         // Negate cost if cost maximization is requested
         if maximize_cost {
@@ -194,13 +231,32 @@ mod test {
         g.add_edge(0, 2, 10, 4, false);
         g.add_edge(2, 3, 10, -2, false);
         g.add_edge(3, 4, 13, 0, false);
+        g.add_edge(0, 4, 7, -1, false);
+        g.add_edge(0, 4, 3, 0, false);
+        g.add_edge(0, 4, 2, 1, false);
         assert_eq!(
-            Some(MinCostFlowResult { flow: 13, cost: 29 }),
-            g.solve(0, 4, false),
+            Some(MinCostFlowResult { flow: 25, cost: 24 }),
+            g.solve(0, 4, MinCostFlowMode::MaxFlowMinCost),
         );
         assert_eq!(
-            Some(MinCostFlowResult { flow: 13, cost: 36 }),
-            g.solve(0, 4, true),
+            Some(MinCostFlowResult { flow: 25, cost: 31 }),
+            g.solve(0, 4, MinCostFlowMode::MaxFlowMaxCost),
+        );
+        assert_eq!(
+            Some(MinCostFlowResult { flow: 10, cost: -7 }),
+            g.solve(0, 4, MinCostFlowMode::MinCostMaxFlow),
+        );
+        assert_eq!(
+            Some(MinCostFlowResult { flow: 7, cost: -7 }),
+            g.solve(0, 4, MinCostFlowMode::MinCostMinFlow),
+        );
+        assert_eq!(
+            Some(MinCostFlowResult { flow: 18, cost: 38 }),
+            g.solve(0, 4, MinCostFlowMode::MaxCostMaxFlow),
+        );
+        assert_eq!(
+            Some(MinCostFlowResult { flow: 15, cost: 38 }),
+            g.solve(0, 4, MinCostFlowMode::MaxCostMinFlow),
         );
     }
 
@@ -211,10 +267,10 @@ mod test {
         g.add_edge(1, 2, 10, 5, false);
         g.add_edge(2, 3, 10, -8, false);
         g.add_edge(3, 1, 10, 2, false);
-        assert_eq!(None, g.solve(0, 3, false));
+        assert_eq!(None, g.solve(0, 3, MinCostFlowMode::MaxFlowMinCost));
         assert_eq!(
             Some(MinCostFlowResult { flow: 10, cost: 20 }),
-            g.solve(0, 3, true),
+            g.solve(0, 3, MinCostFlowMode::MaxFlowMaxCost),
         );
     }
 }
