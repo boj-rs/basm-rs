@@ -1,5 +1,4 @@
-use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
-use core::cmp::max;
+use basm::platform::io::*;
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
@@ -18,7 +17,7 @@ pub fn main() {
             }
             let ans_new = lo + 1;
             x[ans_new] = v;
-            ans = max(ans, ans_new);
+            ans = ans.max(ans_new);
         }
         writer.println(ans);
     }

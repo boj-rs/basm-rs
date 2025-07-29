@@ -1,4 +1,4 @@
-use basm::platform::io::{MmapReader, ReaderTrait, Writer, Print};
+use basm::platform::io::*;
 use alloc::collections::BTreeSet;
 pub fn main() {
     let mut reader = MmapReader::new();

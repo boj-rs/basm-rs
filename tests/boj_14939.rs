@@ -1,4 +1,4 @@
-use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
+use basm::platform::io::*;
 pub fn main() {
     let mut reader: Reader = Default::default();
     let mut writer: Writer = Default::default();
@@ -6,8 +6,7 @@ pub fn main() {
     let n = 10;
     for i in 0..n {
         for j in 0..n {
-            reader.skip_whitespace();
-            let c = reader.byte();
+            let c = reader.next::<Nonwhite>().0;
             if c == b'O' {
                 board[i] |= 1u32 << j;
             }

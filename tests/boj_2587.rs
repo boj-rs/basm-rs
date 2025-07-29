@@ -1,4 +1,4 @@
-use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
+use basm::platform::io::*;
 pub fn main() {
     let mut reader = Reader::<128>::new();
     let mut writer = Writer::<128>::new();
