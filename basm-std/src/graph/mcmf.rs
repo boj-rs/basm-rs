@@ -27,9 +27,9 @@ pub enum MinCostFlowMode {
     MinCostMaxFlow,
     /// Compute a flow that minimizes cost, and if multiple flow values are possible for the cost, choose minimum.
     MinCostMinFlow,
-    /// Compute a flow that maximum cost, and if multiple flow values are possible for the cost, choose maximum.
+    /// Compute a flow that maximizes cost, and if multiple flow values are possible for the cost, choose maximum.
     MaxCostMaxFlow,
-    /// Compute a flow that maximum cost, and if multiple flow values are possible for the cost, choose minimum.
+    /// Compute a flow that maximizes cost, and if multiple flow values are possible for the cost, choose minimum.
     MaxCostMinFlow,
 }
 
