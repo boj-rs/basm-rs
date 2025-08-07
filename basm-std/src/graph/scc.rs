@@ -12,6 +12,18 @@ pub struct SCCGraph {
     edge_count: usize,
 }
 
+/// The result of SCC decomposition.
+pub struct SCCResult {
+    /// The number of SCCs found. (This is NOT the total number of nodes in the original graph)
+    pub count: usize,
+    /// `id[u]`: SCC index of node `u` in `[0..component_count)`.
+    pub id: Vec<usize>,
+    /// `ord[u]`: The index of node `u` in `comps[id[u]]`.
+    pub ord: Vec<usize>,
+    /// `comps`: Vec of SCCs, each listing its member nodes.
+    pub comps: Vec<Vec<usize>>,
+}
+
 impl Default for SCCGraph {
     fn default() -> Self {
         Self::new()
@@ -48,11 +60,12 @@ impl SCCGraph {
 
     /// Computes strongly connected components using Kosaraju's two-pass algorithm.
     ///
-    /// Returns `(component_count, comp_id, components)`:
-    /// - `component_count`: number of SCCs found.
-    /// - `comp_id[u]`: SCC index of node `u` in `[0..component_count)`.
-    /// - `components`: vector of SCCs, each listing its member nodes.
-    pub fn solve(&self) -> (usize, Vec<usize>, Vec<Vec<usize>>) {
+    /// Returns `(comp_count, id, ord, comps)`:
+    /// - `comp_count`: number of SCCs found.
+    /// - `id[u]`: SCC index of node `u` in `[0..component_count)`.
+    /// - `ord[u]`: The index of node `u` in `comps[id[u]]`.
+    /// - `comps`: Vec of SCCs, each listing its member nodes.
+    pub fn solve(&self) -> SCCResult {
         let n = self.adj.len();
         // 1) First pass: DFS on the original graph to compute finish order.
         let mut visited = vec![false; n];
@@ -108,7 +121,21 @@ impl SCCGraph {
             }
         }
 
-        (cid, comp_id, components)
+        // Compute comp_ord
+        let mut comp_ord = vec![0; n];
+        for comp in &components {
+            for (i, &u) in comp.iter().enumerate() {
+                comp_ord[u] = i;
+            }
+        }
+
+        assert_eq!(cid, components.len());
+        SCCResult {
+            count: cid,
+            id: comp_id,
+            ord: comp_ord,
+            comps: components,
+        }
     }
 }
 
@@ -119,29 +146,32 @@ mod tests {
     #[test]
     fn test_empty_graph() {
         let graph = SCCGraph::new();
-        let (count, ids, comps) = graph.solve();
-        assert_eq!(count, 0);
-        assert!(ids.is_empty());
-        assert!(comps.is_empty());
+        let scc = graph.solve();
+        assert_eq!(scc.count, 0);
+        assert!(scc.id.is_empty());
+        assert!(scc.ord.is_empty());
+        assert!(scc.comps.is_empty());
     }
 
     #[test]
     fn test_single_node() {
         let mut graph = SCCGraph::new();
         graph.add_edge(0, 0);
-        let (count, ids, comps) = graph.solve();
-        assert_eq!(count, 1);
-        assert_eq!(ids, vec![0]);
-        assert_eq!(comps, vec![vec![0]]);
+        let scc = graph.solve();
+        assert_eq!(scc.count, 1);
+        assert_eq!(scc.id, vec![0]);
+        assert_eq!(scc.ord, vec![0]);
+        assert_eq!(scc.comps, vec![vec![0]]);
     }
 
     #[test]
     fn test_two_nodes_no_edge() {
         let mut graph = SCCGraph::new();
         graph.add_edge(1, 1);
-        let (count, _ids, comps) = graph.solve();
-        assert_eq!(count, 2);
-        let mut sorted: Vec<_> = comps
+        let scc = graph.solve();
+        assert_eq!(scc.count, 2);
+        let mut sorted: Vec<_> = scc
+            .comps
             .iter()
             .map(|c| {
                 let mut v = c.clone();
@@ -159,12 +189,15 @@ mod tests {
         graph.add_edge(0, 1);
         graph.add_edge(1, 2);
         graph.add_edge(2, 0);
-        let (count, ids, comps) = graph.solve();
-        assert_eq!(count, 1);
-        let mut comp = comps[0].clone();
+        let scc = graph.solve();
+        assert_eq!(scc.count, 1);
+        let mut comp = scc.comps[0].clone();
         comp.sort();
         assert_eq!(comp, vec![0, 1, 2]);
-        assert_eq!(ids, vec![0, 0, 0]);
+        assert_eq!(scc.id, vec![0, 0, 0]);
+        let mut ord = scc.ord.clone();
+        ord.sort();
+        assert_eq!(ord, vec![0, 1, 2]);
     }
 
     #[test]
@@ -177,16 +210,25 @@ mod tests {
         graph.add_edge(4, 2);
         graph.add_edge(1, 2);
 
-        let (count, ids, comps) = graph.solve();
-        assert_eq!(count, 2);
-        let mut sizes: Vec<_> = comps.iter().map(Vec::len).collect();
+        let scc = graph.solve();
+        assert_eq!(scc.count, 2);
+        let mut sizes: Vec<_> = scc.comps.iter().map(Vec::len).collect();
         sizes.sort();
         assert_eq!(sizes, vec![2, 3]);
         for &u in &[0, 1] {
-            assert_eq!(ids[u], ids[0]);
+            assert_eq!(scc.id[u], scc.id[0]);
         }
         for &u in &[2, 3, 4] {
-            assert_eq!(ids[u], ids[2]);
+            assert_eq!(scc.id[u], scc.id[2]);
+        }
+        for comp in &scc.comps {
+            let mut ord_comp = vec![];
+            for &u in comp {
+                ord_comp.push(scc.ord[u]);
+            }
+            ord_comp.sort();
+            let ord_desired: Vec<usize> = (0..ord_comp.len()).collect();
+            assert_eq!(ord_comp, ord_desired);
         }
     }
 }
