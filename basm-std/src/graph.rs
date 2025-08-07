@@ -1,5 +1,6 @@
 pub mod maxflow;
 pub mod mcmf;
+pub mod scc;
 use crate::collections::JaggedVec;
 
 pub trait DfsTarget<T> {
