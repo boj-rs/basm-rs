@@ -126,6 +126,8 @@ pub fn main() {
 
     - Min-Cost Maximum Flow (Johnson's Algorithm 기반)
 
+    - Strongly Connected Component (SCC) 분해
+
 ## 사용법
 
 `basm.rs`는 그 자체로 완전한 Rust cargo 프로젝트입니다.
