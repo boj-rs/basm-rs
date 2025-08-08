@@ -21,3 +21,4 @@ pub mod serialization;
 pub mod sorts;
 pub mod strings;
 pub mod utils;
+pub mod geometry;
