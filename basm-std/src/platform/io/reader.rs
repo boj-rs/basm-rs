@@ -501,7 +501,7 @@ impl<T: ReaderBufferTrait> ReaderTrait for T {
             let s = unsafe { core::str::from_utf8_unchecked(&data[..end]) };
             let out = f64::from_str(s);
             self.skip_until_whitespace();
-            if let Ok(ans) = out { ans } else { f64::NAN }
+            out.unwrap_or(f64::NAN)
         }
     }
     fn byte(&mut self) -> u8 {
