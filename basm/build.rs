@@ -76,7 +76,8 @@ fn main() {
             link_args_basm.push("-fno-unwind-tables");
             link_args_basm.push("-fno-stack-protector");
             link_args_basm.push("-fno-plt");
-            link_args_basm.push("-e__basm_start");
+            link_args_basm.push("-e");
+            link_args_basm.push("__basm_start");
         }
         "wasm32-unknown-unknown" => {}
         _ => {
