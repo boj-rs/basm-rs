@@ -1,5 +1,5 @@
 [package]
-name = "basm"
+name = "basm-main"
 version = "0.1.0"
 edition = "2024"
 default-run = "basm"
