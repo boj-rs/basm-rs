@@ -2,7 +2,7 @@
 // Learn rust (https://doc.rust-lang.org/book/) and get high performance out of the box!
 
 #![crate_type = "cdylib"] // On Windows, omit this or pass '--crate-type=bin' to rustc to avoid DLL creation.
-#![cfg_attr(not(windows), no_std)]#![allow(unused)]#[no_link]extern crate std as s;
+#![cfg_attr(not(windows), no_std)]#![allow(static_mut_refs, unsafe_op_in_unsafe_fn, unused)]#[no_link]extern crate std as s;
 
 // SOLUTION BEGIN
 #[cfg(any())] mod solution {
@@ -18,7 +18,7 @@ macro_rules! p { () => { "stc" } }
 macro_rules! p { () => { "call LoadLibraryA;lea rdx,[rip+GetProcAddress];lea rdi,[rip+VirtualAlloc];clc" } }
 
 static mut PAYLOAD: [u8; $$$$binary_base91_len$$$$] = *br$$$$binary_base91$$$$;
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe fn _start() {
     s::arch::asm!(p!(),
         ".quad 19510173000030c8h,4ce8d9f7c9h,459927e36758096ah,870d74ff8548c931h,\
