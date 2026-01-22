@@ -23,19 +23,19 @@ name = "bplus_tree"
 harness = false
 
 [target.x86_64-pc-windows-msvc.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 [target.x86_64-pc-windows-gnu.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 [target.x86_64-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 [target.i686-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 [target.aarch64-unknown-linux-gnu.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 [target.aarch64-apple-darwin.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 [target.wasm32-unknown-unknown.dependencies]
-compiler_builtins = { version = "0.1.160", features = ["mem"] }
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins.git", features = ["mem"] }
 
 [features]
 # Favors short routines for code golf.
