@@ -466,8 +466,14 @@ pub unsafe fn init() {
         #[cfg(not(all(feature = "short", target_os = "linux")))]
         {
             use super::super::services;
-            services::install_single_service(5, services_override::svc_read_stdio as *const () as usize);
-            services::install_single_service(6, services_override::svc_write_stdio as *const () as usize);
+            services::install_single_service(
+                5,
+                services_override::svc_read_stdio as *const () as usize,
+            );
+            services::install_single_service(
+                6,
+                services_override::svc_write_stdio as *const () as usize,
+            );
         }
     }
 }

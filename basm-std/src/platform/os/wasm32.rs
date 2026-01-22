@@ -59,7 +59,7 @@ pub unsafe fn init() {
             dlmalloc_dealloc,
             dlmalloc_realloc,
         );
-        services::install_single_service(5, svc_read_stdio as usize);
-        services::install_single_service(6, svc_write_stdio as usize);
+        services::install_single_service(5, svc_read_stdio as *const () as usize);
+        services::install_single_service(6, svc_write_stdio as *const () as usize);
     }
 }
