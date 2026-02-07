@@ -92,7 +92,7 @@ def main(args):
     if target == "x86_64-unknown-linux-gnu" and short:
         target_cargo = ".cargo/x86_64-unknown-linux-gnu-short.json"
         target = "x86_64-unknown-linux-gnu-short"
-        extra_config = ["-Zbuild-std=core,compiler_builtins,alloc", "-Zbuild-std-features=compiler-builtins-mem"]
+        extra_config = ["-Zjson-target-spec", "-Zbuild-std=core,compiler_builtins,alloc", "-Zbuild-std-features=compiler-builtins-mem"]
     else:
         target_cargo = target
         extra_config = []
