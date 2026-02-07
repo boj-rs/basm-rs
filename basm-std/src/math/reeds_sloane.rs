@@ -40,7 +40,7 @@ fn reeds_sloane_prime_power(first_terms: &[u64], p: u64, e: usize) -> Vec<u64> {
                 }
             }
         }
-        (if ppow[lo] == 0 { 0 } else { x / ppow[lo] }, lo)
+        (x.checked_div(ppow[lo]).unwrap_or_default(), lo)
     };
 
     // Step 0
