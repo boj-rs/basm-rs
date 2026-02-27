@@ -602,14 +602,12 @@ impl<const N: usize> ReaderBufferTrait for Reader<N> {
                      * is used (which is >100K), this will not happen often and hence shouldn't affect
                      * performance by a noticeable amount. */
                     let mut white_cnt = 0u32;
-                    let mut j = self.off;
-                    for i in 0..rem {
+                    for (j, i) in (self.off..).zip(0..rem) {
                         let c = self.buf[j].assume_init();
                         if c <= b' ' {
                             white_cnt += 1;
                         }
                         *self.buf[i].assume_init_mut() = c;
-                        j += 1;
                     }
 
                     /* Although the buffer currently falls short of what has been requested,
