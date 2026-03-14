@@ -161,4 +161,4 @@ for each_template_path in template_candidates:
     })
     if out is None or len(out_candidate) < len(out):
         out = out_candidate
-print(out)
+print(out, end='')
