@@ -342,11 +342,8 @@ pub fn modpow<T: ModOps<T>>(mut base: T, mut exponent: T, modulo: T) -> Option<T
     let mut out = T::one();
     if exponent < T::zero() {
         /* check for invertibility of base with respect to mod modulo */
-        if let Some(x) = modinv(base, modulo) {
-            base = x;
-        } else {
-            return None;
-        }
+        let x = modinv(base, modulo)?;
+        base = x;
         exponent = T::zero()
             .my_wrapping_sub(exponent)
             .my_wrapping_sub(T::one());
