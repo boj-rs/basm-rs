@@ -46,6 +46,7 @@ unsafe fn dlmalloc_realloc(
     }
 }
 
+#[link(wasm_import_module = "env")]
 unsafe extern "C" {
     fn svc_read_stdio(fd: usize, buf: *mut u8, count: usize) -> usize;
     fn svc_write_stdio(fd: usize, buf: *const u8, count: usize) -> usize;
