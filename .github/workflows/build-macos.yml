@@ -12,7 +12,7 @@ env:
 jobs:
   build:
     name: CI (macOS)
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       matrix:
         target:
@@ -22,9 +22,6 @@ jobs:
       CARGO_BUILD_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        run: |
-          rustup toolchain install nightly --target ${{ matrix.target }} --profile default --component clippy
       - name: Install Python 3      
         uses: actions/setup-python@v5
         with:
@@ -38,7 +35,14 @@ jobs:
           brew update
           brew upgrade
           brew install gcc
+      - name: Install Rust toolchain
+        run: |
+          brew uninstall rustup
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          rustup toolchain install nightly --target ${{ matrix.target }} --profile default --component clippy
           rustup component add rust-src --toolchain nightly-aarch64-apple-darwin
+      - name: Set cargo PATH
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings -A clippy::missing_safety_doc
       - name: Rustfmt
