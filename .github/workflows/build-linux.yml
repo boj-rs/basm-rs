@@ -30,7 +30,7 @@ jobs:
       - name: Install node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 21
+          node-version: 24
       - name: Install System packages
         run: |
           sudo apt update
